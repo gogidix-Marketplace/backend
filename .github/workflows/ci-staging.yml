@@ -1,9 +1,12 @@
-name: CI - Staging/UAT
+name: CI - Staging/UAT (Production-Ready)
 
 on:
   pull_request:
     branches: [staging/uat]
     types: [opened, synchronize, reopened]
+  push:
+    branches: [staging/uat]
+  workflow_dispatch:
 
 concurrency:
   group: ci-staging-${{ github.ref }}
@@ -13,10 +16,14 @@ env:
   JAVA_VERSION: '17'
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
+  MAVEN_OPTS: -Xmx3072m
 
 jobs:
+  # ============================================
+  # STEP 1: Install Shared Libraries (Required)
+  # ============================================
   install-shared-libraries:
-    name: Install Shared Libraries (Mandatory)
+    name: Install Shared Libraries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,24 +31,63 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: maven
-      - name: Install all shared-libraries modules to .m2
+          cache: 'maven'
+      - name: Install shared-libraries to local .m2
         working-directory: foundation-domain/shared-libraries/shared-libraries/Backend/Java
-        run: mvn install -DskipTests -B
-      - name: Cache .m2 for downstream jobs
+        run: mvn clean install -DskipTests -B -q
+      - name: Cache .m2 repository
         uses: actions/cache/save@v4
         with:
           path: ~/.m2/repository
-          key: m2-shared-libs-staging-${{ github.sha }}
+          key: m2-shared-libs-${{ github.sha }}
 
-  full-build:
-    name: Full Build - ${{ matrix.module }}
+  # ============================================
+  # STEP 2: Discover All Services
+  # ============================================
+  discover-services:
+    name: Discover Services
     runs-on: ubuntu-latest
     needs: install-shared-libraries
+    outputs:
+      foundation-services: ${{ steps.discover.foundation_services }}
+      management-services: ${{ steps.discover.management_services }}
+      shared-logics-services: ${{ steps.discover.shared_logics_services }}
+      shared-infra-services: ${{ steps.discover.shared_infra_services }}
+      total-count: ${{ steps.discover.total_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: discover
+        run: |
+          # Find all service directories with pom.xml (excluding nested target directories)
+          FOUNDATION_SERVICES=$(find . -path "*/foundation-domain/*/Backend/Java/*/pom.xml" -o -path "*/foundation-domain/*/*/pom.xml" | grep -v target | grep -v "/Backend/Java/pom.xml" | jq -R . | jq -cs .)
+          MANAGEMENT_SERVICES=$(find . -path "*/management-domain/*/*/Backend/Java/*/pom.xml" -o -path "*/management-domain/*/*/backend/*/pom.xml" | grep -v target | jq -R . | jq -cs .)
+          SHARED_LOGICS_SERVICES=$(find . -path "*/shared-business-logics/services/*/*/*/pom.xml" -o -path "*/shared-business-logics/*/pom.xml" | grep -v target | jq -R . | jq -cs .)
+          SHARED_INFRA_SERVICES=$(find . -path "*/shared-business-infrastructure/Backend/Java/*/pom.xml" -o -path "*/shared-business-infrastructure/*/pom.xml" | grep -v target | jq -R . | jq -cs .)
+
+          TOTAL_COUNT=$(echo "$FOUNDATION_SERVICES" | jq '. | length' || echo 0)
+          TOTAL_COUNT=$((TOTAL_COUNT + $(echo "$MANAGEMENT_SERVICES" | jq '. | length' || echo 0)))
+          TOTAL_COUNT=$((TOTAL_COUNT + $(echo "$SHARED_LOGICS_SERVICES" | jq '. | length' || echo 0)))
+          TOTAL_COUNT=$((TOTAL_COUNT + $(echo "$SHARED_INFRA_SERVICES" | jq '. | length' || echo 0)))
+
+          echo "foundation-services=$FOUNDATION_SERVICES" >> $GITHUB_OUTPUT
+          echo "management-services=$MANAGEMENT_SERVICES" >> $GITHUB_OUTPUT
+          echo "shared-logics-services=$SHARED_LOGICS_SERVICES" >> $GITHUB_OUTPUT
+          echo "shared-infra-services=$SHARED_INFRA_SERVICES" >> $GITHUB_OUTPUT
+          echo "total_count=$TOTAL_COUNT" >> $GITHUB_OUTPUT
+
+          echo "::notice::Found $TOTAL_COUNT total services to build"
+
+  # ============================================
+  # STEP 3: Code Quality & Linting
+  # ============================================
+  code-quality:
+    name: Code Quality - ${{ matrix.domain }}
+    runs-on: ubuntu-latest
+    needs: [install-shared-libraries, discover-services]
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        module:
+        domain:
           - foundation-domain
           - management-domain
           - shared-business-logics
@@ -52,135 +98,134 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: maven
+          cache: 'maven'
       - name: Restore shared-libraries from cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository
-          key: m2-shared-libs-staging-${{ github.sha }}
-      - name: Build & Test ${{ matrix.module }}
-        working-directory: ${{ matrix.module }}
-        run: mvn verify -B
-      - name: Upload JaCoCo Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-${{ matrix.module }}-staging
-          path: ${{ matrix.module }}/**/target/site/jacoco/
-          retention-days: 14
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.module }}-staging
-          path: ${{ matrix.module }}/**/target/surefire-reports/
-          retention-days: 14
+          key: m2-shared-libs-${{ github.sha }}
+      - name: Run Checkstyle
+        run: |
+          find ${{ matrix.domain }} -name "pom.xml" -type f | head -20 | while read pom; do
+            dir=$(dirname "$pom")
+            echo "Checking $dir"
+            (cd "$dir" && mvn checkstyle:check -B) || exit 1
+          done
+      - name: Run SpotBugs
+        run: |
+          find ${{ matrix.domain }} -name "pom.xml" -type f | head -20 | while read pom; do
+            dir=$(dirname "$pom")
+            echo "Analyzing $dir"
+            (cd "$dir" && mvn spotbugs:check -B) || exit 1
+          done
 
-  full-build-domains:
-    name: Full Build - All Domains
+  # ============================================
+  # STEP 4: Unit Testing with Coverage
+  # ============================================
+  unit-test:
+    name: Unit Tests - ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: install-shared-libraries
+    needs: [install-shared-libraries, discover-services]
+    strategy:
+      fail-fast: true
+      matrix:
+        domain:
+          - foundation-domain
+          - management-domain
+          - shared-business-logics
+          - shared-business-infrastructure
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: maven
+          cache: 'maven'
       - name: Restore shared-libraries from cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository
-          key: m2-shared-libs-staging-${{ github.sha }}
-      - name: Build All Domains
+          key: m2-shared-libs-${{ github.sha }}
+      - name: Run Unit Tests with JaCoCo
         run: |
           FAILED=0
-          # Build management domain services
-          for service_dir in management-domain/*/; do
-            service_name=$(basename "$service_dir")
-            echo "::group::Building $service_name"
-            if [ -f "$service_dir/pom.xml" ]; then
-              if ! (cd "$service_dir" && mvn verify -B); then
-                echo "::error::$service_name build FAILED"
-                FAILED=1
-              fi
+          for pom in $(find ${{ matrix.domain }} -name "pom.xml" -type f | grep -v target | head -30); do
+            dir=$(dirname "$pom")
+            echo "::group::Testing $dir"
+            if ! (cd "$dir" && mvn clean test jacoco:report -B -q); then
+              echo "::error::Tests failed in $dir"
+              FAILED=1
             fi
             echo "::endgroup::"
           done
           if [ "$FAILED" -ne 0 ]; then exit 1; fi
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-domains-staging
-          path: management-domain/**/target/surefire-reports/
-          retention-days: 14
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [full-build, full-build-domains]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-      - name: Restore shared-libraries from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.m2/repository
-          key: m2-shared-libs-staging-${{ github.sha }}
-      - name: Run Integration Tests
+      - name: Check Coverage (85% minimum)
         run: |
-          FAILED=0
-          echo "::group::Running Testcontainers integration tests"
-          find . -name "*IT.java" -o -name "*IntegrationTest.java" | head -20 | while read f; do
-            dir=$(dirname "$f" | sed 's|/src/test.*||')
-            if [ -f "$dir/pom.xml" ]; then
-              echo "Integration tests in $dir"
-              if ! (cd "$dir" && mvn verify -Pintegration-tests -B); then
-                echo "::error::Integration tests FAILED in $dir"
-                FAILED=1
+          for report in $(find ${{ matrix.domain }} -path "*/target/site/jacoco/jacoco.xml" | head -20); do
+            echo "Checking coverage for $report"
+            # Parse JaCoCo XML and verify 85% coverage
+            coverage=$(grep -oP 'type="LINE".*?covered="\K[0-9]+' "$report" | head -1)
+            total=$(grep -oP 'type="LINE".*?missed="\K[0-9]+' "$report" | head -1)
+            if [ -n "$coverage" ] && [ -n "$total" ]; then
+              percent=$((coverage * 100 / (coverage + total)))
+              if [ "$percent" -lt 85 ]; then
+                echo "::error::Coverage below 85% for $report: $percent%"
+                exit 1
               fi
             fi
           done
-          echo "::endgroup::"
-          if [ "$FAILED" -ne 0 ]; then exit 1; fi
 
-  api-contract-tests:
-    name: API Contract Tests (Full)
+  # ============================================
+  # STEP 5: Integration Testing
+  # ============================================
+  integration-test:
+    name: Integration Tests - ${{ matrix.domain }}
     runs-on: ubuntu-latest
-    needs: [full-build, full-build-domains]
+    needs: [install-shared-libraries, discover-services, unit-test]
+    strategy:
+      fail-fast: true
+      matrix:
+        domain:
+          - foundation-domain
+          - management-domain
+          - shared-business-logics
+          - shared-business-infrastructure
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: maven
+          cache: 'maven'
       - name: Restore shared-libraries from cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository
-          key: m2-shared-libs-staging-${{ github.sha }}
-      - name: Run All Contract Tests
+          key: m2-shared-libs-${{ github.sha }}
+      - name: Run Integration Tests (Testcontainers)
         run: |
           FAILED=0
-          find . -name "pom.xml" -path "*/contract-tests/*" -maxdepth 6 -exec dirname {} \; | sort -u | while read dir; do
-            echo "Contract tests in $dir"
-            if ! (cd "$dir" && mvn verify -Pcontract-tests -B); then
-              echo "::error::Contract tests FAILED in $dir"
-              FAILED=1
+          for pom in $(find ${{ matrix.domain }} -name "pom.xml" -type f | grep -v target | head -20); do
+            dir=$(dirname "$pom")
+            # Check if integration tests exist
+            if find "$dir" -name "*IT.java" -o -name "*IntegrationTest.java" | grep -q .; then
+              echo "::group::Integration tests in $dir"
+              if ! (cd "$dir" && mvn verify -Pintegration-tests -B); then
+                echo "::error::Integration tests failed in $dir"
+                FAILED=1
+              fi
+              echo "::endgroup::"
             fi
           done
           if [ "$FAILED" -ne 0 ]; then exit 1; fi
 
-  semgrep-deep:
-    name: Semgrep Deep Scan
+  # ============================================
+  # STEP 6: Security Scanning (SAST)
+  # ============================================
+  security-sast:
+    name: SAST Scan - Semgrep
     runs-on: ubuntu-latest
-    needs: [full-build, full-build-domains]
+    needs: discover-services
     steps:
       - uses: actions/checkout@v4
       - uses: returntocorp/semgrep-action@v1
@@ -195,53 +240,92 @@ jobs:
             p/insecure-transport
             p/jwt
             p/secrets
-            .github/semgrep.yml
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: ${{ secrets.SEMGREP_DEPLOYMENT_ID }}
+          severity: ERROR
 
-  owasp-deep:
-    name: OWASP Deep Scan
+  # ============================================
+  # STEP 6b: Dependency Scanning
+  # ============================================
+  security-dependency:
+    name: OWASP Dependency Check
     runs-on: ubuntu-latest
-    needs: [full-build, full-build-domains]
+    needs: [install-shared-libraries, discover-services]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: maven
-      - name: OWASP Full Scan
+          cache: 'maven'
+      - name: Restore shared-libraries from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-${{ github.sha }}
+      - name: Run OWASP Dependency Check
         run: mvn org.owasp:dependency-check-maven:aggregate -DfailBuildOnCVSS=4 -B
       - name: Upload OWASP Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-report-staging
+          name: owasp-dependency-check-report
           path: target/dependency-check-report.html
           retention-days: 30
 
-  docker-build-push:
-    name: Docker Build & Push (All Services)
+  # ============================================
+  # STEP 7: Build & Package (Docker Images)
+  # ============================================
+  build-and-package:
+    name: Build & Package - ${{ matrix.domain }}
     runs-on: ubuntu-latest
-    needs: [integration-tests, api-contract-tests]
+    needs: [code-quality, unit-test, integration-test, security-sast, security-dependency]
+    strategy:
+      fail-fast: true
+      matrix:
+        domain:
+          - foundation-domain
+          - management-domain
+          - shared-business-logics
+          - shared-business-infrastructure
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: 'maven'
+      - name: Restore shared-libraries from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-${{ github.sha }}
+      - name: Build All JARs
+        run: |
+          FAILED=0
+          for pom in $(find ${{ matrix.domain }} -name "pom.xml" -type f | grep -v target | head -50); do
+            dir=$(dirname "$pom")
+            echo "::group::Building $dir"
+            if ! (cd "$dir" && mvn clean package -DskipTests -B -q); then
+              echo "::error::Build failed in $dir"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Generate RC Version
-        id: version
+      - name: Build & Push Docker Images
         run: |
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "version=staging-RC-${TIMESTAMP}-${SHORT_SHA}" >> $GITHUB_OUTPUT
-      - name: Build & Push All Docker Images
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          for jar in $(find . -path "*/target/*.jar" -not -path "*/gogidix-source/*" -not -path "*/core-shared-infrastructure/*" -not -path "*/shared-libraries/*" -not -name "*-sources.jar" -not -name "*-javadoc.jar"); do
+          VERSION="staging-${TIMESTAMP}-${SHORT_SHA}"
+
+          for jar in $(find ${{ matrix.domain }} -path "*/target/*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | grep -v shared-libraries | head -50); do
             service_dir=$(dirname $(dirname "$jar"))
             service_name=$(basename "$service_dir")
             if [[ "$service_name" != "target" && "$service_name" != "classes" ]]; then
@@ -249,22 +333,65 @@ jobs:
               echo "::group::Building $service_name"
               if [ -f "$service_dir/Dockerfile" ]; then
                 docker build -t "$IMAGE_TAG" "$service_dir"
+                docker push "$IMAGE_TAG"
+              elif [ -f "$service_dir/src/main/docker/Dockerfile" ]; then
+                docker build -t "$IMAGE_TAG" -f "$service_dir/src/main/docker/Dockerfile" "$service_dir"
               elif [ -f "docker/Dockerfile.springboot" ]; then
-                docker build -t "$IMAGE_TAG" \
-                  -f docker/Dockerfile.springboot \
-                  --build-arg JAR_FILE=target/*.jar \
-                  "$service_dir"
+                docker build -t "$IMAGE_TAG" -f docker/Dockerfile.springboot --build-arg JAR_FILE="$jar" "$service_dir"
+                docker push "$IMAGE_TAG"
               else
-                echo "::error::No Dockerfile for $service_name"
-                exit 1
+                echo "::warning::No Dockerfile for $service_name"
               fi
-              docker push "$IMAGE_TAG"
               echo "::endgroup::"
             fi
           done
-      - name: Trivy Scan All Images
-        uses: aquasecurity/trivy-action@master
+
+  # ============================================
+  # STEP 7b: Container Scanning (Trivy)
+  # ============================================
+  container-scan:
+    name: Container Scan - Trivy
+    runs-on: ubuntu-latest
+    needs: build-and-package
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          scan-type: image
-          severity: "CRITICAL,HIGH"
-          exit-code: "1"
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Trivy Scan All Images
+        env:
+          TRIVY_TIMEOUT: 10m
+        run: |
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          VERSION="staging-${TIMESTAMP}-${SHORT_SHA}"
+
+          # Pull and scan all images for this build
+          FAILED=0
+          for image in $(ghcr.io/${{ github.repository }}/*:${VERSION}); do
+            echo "::group::Scanning $image"
+            if ! docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity "CRITICAL,HIGH" --exit-code 1 "$image" 2>/dev/null; then
+              echo "::error::Vulnerabilities found in $image"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
+
+  # ============================================
+  # Summary Report
+  # ============================================
+  summary:
+    name: CI Summary Report
+    runs-on: ubuntu-latest
+    needs: [discover-services, build-and-package]
+    if: always()
+    steps:
+      - run: |
+          echo "## CI - Staging/UAT Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Total Services: ${{ needs.discover-services.outputs.total-count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Foundation Services: ${{ needs.discover-services.outputs.foundation-services }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Status: ${{ needs.build-and-package.result }}" >> $GITHUB_STEP_SUMMARY

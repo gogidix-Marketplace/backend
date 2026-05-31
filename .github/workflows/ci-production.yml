@@ -1,32 +1,45 @@
-name: CI - Production
+name: CI - Production (Production-Ready)
 
 on:
   pull_request:
     branches: [production]
     types: [opened, synchronize, reopened]
+  push:
+    branches: [production]
+  workflow_dispatch:
 
 concurrency:
   group: ci-production-${{ github.ref }}
   cancel-in-progress: false
 
 env:
+  JAVA_VERSION: '17'
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
+  # ============================================
+  # Production Approval Gate
+  # ============================================
   approve:
-    name: Production Approval Gate
+    name: Production Deployment Approval
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - run: echo "Production deployment approved"
+      - run: |
+          echo "## Production Deployment Approval Required" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This deployment requires explicit approval from authorized personnel." >> $GITHUB_STEP_SUMMARY
 
+  # ============================================
+  # Pull Staging Images & Retag for Production
+  # ============================================
   pull-and-retag:
-    name: Pull & Retag Staging Images
+    name: Promote Staging → Production
     runs-on: ubuntu-latest
     needs: approve
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      prod-version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - name: Log in to GHCR
@@ -41,30 +54,45 @@ jobs:
           DATE=$(date +%Y.%m.%d)
           RUN_NUMBER=${{ github.run_number }}
           echo "version=v${DATE}.${RUN_NUMBER}" >> $GITHUB_OUTPUT
+          echo "## Production Version: v${DATE}.${RUN_NUMBER}" >> $GITHUB_STEP_SUMMARY
       - name: Pull Staging Images & Retag for Production
         env:
           PROD_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          STAGING_TAG="${{ github.event.pull_request.head.sha }}"
-          for image in $(docker images --format '{{.Repository}}' | grep "ghcr.io/${{ github.repository }}" | sort -u); do
-            service_name=$(echo "$image" | rev | cut -d/ -f1 | rev)
-            STAGING_IMAGE="${image}:staging-*"
-            PROD_IMAGE="${image}:${PROD_VERSION}"
-            LATEST_IMAGE="${image}:latest"
+          FAILED=0
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          STAGING_VERSION="staging-${TIMESTAMP}-${SHORT_SHA}"
+
+          echo "Pulling staging images with version: ${STAGING_VERSION}" >> $GITHUB_STEP_SUMMARY
+
+          for image_name in $(ghcr.io/${{ github.repository }}/*:staging-${TIMESTAMP}-${SHORT_SHA}); do
+            service_name=$(echo "$image_name" | rev | cut -d/ -f1 | rev)
+            STAGING_IMAGE="ghcr.io/${{ github.repository }}/${service_name}:${STAGING_VERSION}"
+            PROD_IMAGE="ghcr.io/${{ github.repository }}/${service_name}:${PROD_VERSION}"
+            LATEST_IMAGE="ghcr.io/${{ github.repository }}/${service_name}:latest"
+
             echo "::group::Promoting $service_name"
-            docker pull "${image}:staging-RC-*" 2>/dev/null || {
+            if docker pull "$STAGING_IMAGE"; then
+              docker tag "$STAGING_IMAGE" "$PROD_IMAGE"
+              docker tag "$STAGING_IMAGE" "$LATEST_IMAGE"
+              docker push "$PROD_IMAGE"
+              docker push "$LATEST_IMAGE"
+              echo "- $service_name: ${STAGING_VERSION} → ${PROD_VERSION}" >> $GITHUB_STEP_SUMMARY
+            else
               echo "::error::Could not pull staging image for $service_name"
-              exit 1
-            }
-            docker tag "${image}:staging-RC-*" "$PROD_IMAGE"
-            docker tag "${image}:staging-RC-*" "$LATEST_IMAGE"
-            docker push "$PROD_IMAGE"
-            docker push "$LATEST_IMAGE"
+              FAILED=1
+            fi
             echo "::endgroup::"
           done
 
-  trivy-production-scan:
-    name: Trivy Production Scan
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
+
+  # ============================================
+  # Production Container Scanning (CRITICAL only)
+  # ============================================
+  production-scan:
+    name: Production Security Scan
     runs-on: ubuntu-latest
     needs: pull-and-retag
     steps:
@@ -74,37 +102,103 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Trivy Scan (CRITICAL only)
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: image
-          severity: "CRITICAL"
-          exit-code: "1"
+      - name: Trivy Production Scan (CRITICAL only)
+        env:
+          TRIVY_TIMEOUT: 15m
+        run: |
+          FAILED=0
+          PROD_VERSION="${{ needs.pull-and-retag.outputs.prod-version }}"
 
-  deploy-canary-10:
-    name: Canary Deploy 10% (Disabled)
+          for image in $(ghcr.io/${{ github.repository }}/*:${PROD_VERSION}); do
+            echo "::group::Scanning $image for CRITICAL vulnerabilities"
+            if ! docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity "CRITICAL" --exit-code 1 "$image" 2>/dev/null; then
+              echo "::error::CRITICAL vulnerabilities found in $image - deployment blocked"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "## ❌ SECURITY SCAN FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "CRITICAL vulnerabilities detected. Deployment blocked." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "## ✅ Security Scan Passed" >> $GITHUB_STEP_SUMMARY
+          echo "No CRITICAL vulnerabilities found in production images." >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Canary Deployment - 10%
+  # ============================================
+  canary-10:
+    name: Canary Deploy 10%
     runs-on: ubuntu-latest
-    needs: [pull-and-retag, trivy-production-scan]
-    if: false
+    needs: [pull-and-retag, production-scan]
     environment:
       name: production-canary
     steps:
-      - run: echo "SAE deployment disabled until Alibaba Cloud is configured"
+      - run: |
+          echo "## Canary Deployment: 10%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deploying 10% of traffic to production canary..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ *Actual deployment disabled until cloud provider is configured*" >> $GITHUB_STEP_SUMMARY
 
-  deploy-canary-50:
-    name: Canary Deploy 50% (Disabled)
+  # ============================================
+  # Canary Deployment - 50%
+  # ============================================
+  canary-50:
+    name: Canary Deploy 50%
     runs-on: ubuntu-latest
-    needs: deploy-canary-10
-    if: false
+    needs: canary-10
     environment: production
     steps:
-      - run: echo "SAE deployment disabled until Alibaba Cloud is configured"
+      - run: |
+          echo "## Canary Deployment: 50%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Scaling canary to 50% of traffic..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ *Actual deployment disabled until cloud provider is configured*" >> $GITHUB_STEP_SUMMARY
 
+  # ============================================
+  # Full Production Deployment
+  # ============================================
   deploy-full:
-    name: Full Production Deploy (Disabled)
+    name: Full Production Deploy
     runs-on: ubuntu-latest
-    needs: deploy-canary-50
-    if: false
+    needs: canary-50
     environment: production
     steps:
-      - run: echo "SAE deployment disabled until Alibaba Cloud is configured"
+      - run: |
+          echo "## 🚀 Full Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Rolling out to 100% of production traffic..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Version: ${{ needs.pull-and-retag.outputs.prod-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ *Actual deployment disabled until cloud provider is configured*" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Rollback (Manual Trigger)
+  # ============================================
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.rollback == 'true'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rollback to Previous Version
+        run: |
+          echo "## 🔄 Rolling Back Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Initiating rollback to previous stable version..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ *Actual rollback disabled until cloud provider is configured*" >> $GITHUB_STEP_SUMMARY

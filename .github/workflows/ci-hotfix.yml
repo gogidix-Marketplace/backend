@@ -1,9 +1,12 @@
-name: CI - Hotfix
+name: CI - Hotfix (Fast-Track)
 
 on:
   pull_request:
-    branches: [production]
+    branches: [hotfix, production]
     types: [opened, synchronize, reopened]
+  push:
+    branches: [hotfix]
+  workflow_dispatch:
 
 concurrency:
   group: ci-hotfix-${{ github.ref }}
@@ -15,8 +18,11 @@ env:
   IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
+  # ============================================
+  # Install Shared Libraries
+  # ============================================
   install-shared-libraries:
-    name: Install Shared Libraries (Mandatory)
+    name: Install Shared Libraries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,21 +30,23 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: maven
-      - name: Install all shared-libraries modules to .m2
+          cache: 'maven'
+      - name: Install shared-libraries to local .m2
         working-directory: foundation-domain/shared-libraries/shared-libraries/Backend/Java
-        run: mvn install -DskipTests -B
-      - name: Cache .m2 for downstream jobs
+        run: mvn clean install -DskipTests -B -q
+      - name: Cache .m2 repository
         uses: actions/cache/save@v4
         with:
           path: ~/.m2/repository
           key: m2-shared-libs-hotfix-${{ github.sha }}
 
-  detect-hotfix-changes:
-    name: Detect Hotfix Scope
+  # ============================================
+  # Detect Hotfix Scope
+  # ============================================
+  detect-changes:
+    name: Detect Hotfix Changes
     runs-on: ubuntu-latest
     needs: install-shared-libraries
-    if: startsWith(github.head_ref, 'hotfix/')
     outputs:
       foundation: ${{ steps.filter.outputs.foundation }}
       management: ${{ steps.filter.outputs.management }}
@@ -62,56 +70,69 @@ jobs:
             shared-infra:
               - 'shared-business-infrastructure/**'
 
+  # ============================================
+  # Build & Test Affected Domains
+  # ============================================
   build-hotfix:
-    name: Build Hotfix - ${{ matrix.module }}
+    name: Hotfix Build - ${{ matrix.domain }}
     runs-on: ubuntu-latest
-    needs: detect-hotfix-changes
+    needs: detect-changes
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
-          - module: foundation-domain
+          - domain: foundation-domain
+            changed: ${{ needs.detect-changes.outputs.foundation == 'true' }}
             path: foundation-domain
-            filter_key: foundation
-          - module: management-domain
+          - domain: management-domain
+            changed: ${{ needs.detect-changes.outputs.management == 'true' }}
             path: management-domain
-            filter_key: management
-          - module: shared-business-logics
+          - domain: shared-business-logics
+            changed: ${{ needs.detect-changes.outputs.shared-logics == 'true' }}
             path: shared-business-logics
-            filter_key: shared-logics
-          - module: shared-business-infrastructure
+          - domain: shared-business-infrastructure
+            changed: ${{ needs.detect-changes.outputs.shared-infra == 'true' }}
             path: shared-business-infrastructure
-            filter_key: shared-infra
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-          cache: maven
+          cache: 'maven'
       - name: Restore shared-libraries from cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository
           key: m2-shared-libs-hotfix-${{ github.sha }}
-      - name: Check if module changed
-        id: check-changes
+      - name: Skip if no changes
+        if: matrix.changed != 'true'
         run: |
-          if [ "${{ needs.detect-hotfix-changes.outputs[matrix.filter_key] }}" == "true" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "Module ${{ matrix.module }} has no changes, skipping build"
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Fast-track Build & Test
-        if: steps.check-changes.outputs.changed == 'true'
-        working-directory: ${{ matrix.path }}
-        run: mvn verify -B
+          echo "No changes detected in ${{ matrix.domain }}, skipping build"
+          echo "skip=true" >> $GITHUB_ENV
+      - name: Build & Test Affected Services
+        if: env.skip != 'true'
+        run: |
+          echo "Building hotfix for ${{ matrix.domain }}"
+          FAILED=0
+          for pom in $(find ${{ matrix.path }} -name "pom.xml" -type f | grep -v target | head -50); do
+            dir=$(dirname "$pom")
+            echo "::group::Building $dir"
+            if ! (cd "$dir" && mvn clean verify -B); then
+              echo "::error::Build failed in $dir"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
 
+  # ============================================
+  # Build Hotfix Docker Images
+  # ============================================
   docker-hotfix:
-    name: Docker Build & Push (Hotfix)
+    name: Hotfix Docker Images
     runs-on: ubuntu-latest
-    needs: build-hotfix
+    needs: [detect-changes, build-hotfix]
     steps:
       - uses: actions/checkout@v4
       - name: Log in to GHCR
@@ -124,7 +145,10 @@ jobs:
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           VERSION="hotfix-${SHORT_SHA}"
-          for jar in $(find . -path "*/target/*.jar" -not -path "*/gogidix-source/*" -not -path "*/core-shared-infrastructure/*" -not -path "*/shared-libraries/*" -not -name "*-sources.jar" -not -name "*-javadoc.jar"); do
+          echo "Building hotfix images: ${VERSION}" >> $GITHUB_STEP_SUMMARY
+
+          FAILED=0
+          for jar in $(find . -path "*/target/*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | grep -v shared-libraries | grep -v target | head -50); do
             service_dir=$(dirname $(dirname "$jar"))
             service_name=$(basename "$service_dir")
             if [[ "$service_name" != "target" && "$service_name" != "classes" ]]; then
@@ -132,37 +156,76 @@ jobs:
               echo "::group::Building hotfix $service_name"
               if [ -f "$service_dir/Dockerfile" ]; then
                 docker build -t "$IMAGE_TAG" "$service_dir"
-              elif [ -f "docker/Dockerfile.springboot" ]; then
-                docker build -t "$IMAGE_TAG" \
-                  -f docker/Dockerfile.springboot \
-                  --build-arg JAR_FILE=target/*.jar \
-                  "$service_dir"
-              else
-                continue
+                docker push "$IMAGE_TAG"
+                echo "- $service_name" >> $GITHUB_STEP_SUMMARY
+              elif [ -f "$service_dir/src/main/docker/Dockerfile" ]; then
+                docker build -t "$IMAGE_TAG" -f "$service_dir/src/main/docker/Dockerfile" "$service_dir"
+                docker push "$IMAGE_TAG"
+                echo "- $service_name" >> $GITHUB_STEP_SUMMARY
               fi
-              docker push "$IMAGE_TAG"
               echo "::endgroup::"
             fi
           done
-      - name: Trivy Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          severity: "CRITICAL"
-          exit-code: "1"
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
 
+  # ============================================
+  # Security Scan Hotfix Images
+  # ============================================
+  scan-hotfix:
+    name: Scan Hotfix Images
+    runs-on: ubuntu-latest
+    needs: docker-hotfix
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Trivy Scan Hotfix Images
+        env:
+          TRIVY_TIMEOUT: 10m
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          VERSION="hotfix-${SHORT_SHA}"
+
+          FAILED=0
+          for image in $(ghcr.io/${{ github.repository }}/*:${VERSION}); do
+            echo "::group::Scanning $image"
+            if ! docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity "CRITICAL,HIGH" --exit-code 1 "$image" 2>/dev/null; then
+              echo "::error::Vulnerabilities found in $image"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
+
+  # ============================================
+  # Hotfix Production Approval
+  # ============================================
   approve-hotfix:
     name: Hotfix Production Approval
     runs-on: ubuntu-latest
-    needs: [build-hotfix, docker-hotfix]
+    needs: [build-hotfix, scan-hotfix]
     environment: production
     steps:
-      - run: echo "Hotfix deployment approved"
+      - run: |
+          echo "## Hotfix Production Approval" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Hotfix requires explicit production approval." >> $GITHUB_STEP_SUMMARY
 
+  # ============================================
+  # Deploy Hotfix to Production
+  # ============================================
   deploy-hotfix:
-    name: Deploy Hotfix to Production (Disabled)
+    name: Deploy Hotfix to Production
     runs-on: ubuntu-latest
     needs: approve-hotfix
-    if: false
     environment: production
     steps:
-      - run: echo "SAE deployment disabled until Alibaba Cloud is configured"
+      - run: |
+          echo "## 🚀 Hotfix Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deploying hotfix to production..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ *Actual deployment disabled until cloud provider is configured*" >> $GITHUB_STEP_SUMMARY

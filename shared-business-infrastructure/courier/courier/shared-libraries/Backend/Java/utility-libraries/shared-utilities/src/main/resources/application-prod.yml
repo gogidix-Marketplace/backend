@@ -1,0 +1,89 @@
+# Production Profile Configuration for Shared Utilities
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  # Production Database Configuration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:gogidix_utilities}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 600000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+
+  # Production JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  # Production Cache Settings
+  cache:
+    redis:
+      time-to-live: 7200000
+
+  # Production Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      database: 2
+      ssl: ${REDIS_SSL:false}
+      timeout: 10000ms
+
+  # Production Security
+  security:
+    user:
+      name: ${SECURITY_USER}
+      password: ${SECURITY_PASSWORD}
+      roles: ADMIN
+
+# Production Logging
+logging:
+  level:
+    com.gogidix.infrastructure.sharedlibraries.sharedutilities: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.apache.commons: WARN
+
+# Production Management
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+      
+# Production utility settings
+gogidix:
+  utilities:
+    file:
+      temp-directory: ${TEMP_DIR:/var/tmp/gogidix-utilities}
+      max-file-size: 200MB
+      cleanup-interval: 7200000
+    validation:
+      strict-mode: true
+      log-validation-errors: true
+    date:
+      cache-ttl-seconds: 3600
+    json:
+      cache-ttl-seconds: 3600
+      
+# Production async settings
+utilities:
+  async:
+    core-pool-size: 5
+    max-pool-size: 20
+    queue-capacity: 1000
+  processing:
+    timeout-seconds: 60
+    max-retries: 5

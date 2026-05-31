@@ -1,0 +1,57 @@
+# Test Profile Configuration for Shared Utilities
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  # In-memory Database for Testing
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: password
+    driver-class-name: org.h2.Driver
+
+  # JPA Test Settings
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  # Simple Cache for Testing
+  cache:
+    type: simple
+
+  # Disable Redis for tests
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+# Test Logging
+logging:
+  level:
+    com.gogidix.infrastructure.sharedlibraries.sharedutilities: WARN
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.testcontainers: WARN
+
+# Test-specific utility settings
+gogidix:
+  utilities:
+    file:
+      temp-directory: /tmp/test-utilities
+      cleanup-interval: 60000
+    validation:
+      strict-mode: true
+      log-validation-errors: false
+    date:
+      cache-ttl-seconds: 60
+    json:
+      cache-ttl-seconds: 60
+
+# Disable security for tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

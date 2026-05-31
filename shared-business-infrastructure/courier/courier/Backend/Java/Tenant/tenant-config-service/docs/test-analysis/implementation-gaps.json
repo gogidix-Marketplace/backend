@@ -1,0 +1,14 @@
+{
+  "serviceName": "tenant-config-service",
+  "analysisDate": "2026-03-06T12:46:38Z",
+  "summary": {
+    "totalFiles": 21,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

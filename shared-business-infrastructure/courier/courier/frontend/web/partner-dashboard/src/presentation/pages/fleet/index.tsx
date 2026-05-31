@@ -1,0 +1,1 @@
+export default function fleetPage() { return <div>fleet</div> }

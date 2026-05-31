@@ -1,0 +1,376 @@
+package com.gogidix.shared.model.domain.model.order;
+
+import com.gogidix.shared.model.domain.model.DomainEntity;
+import com.gogidix.shared.model.domain.model.common.Money;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.With;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Clean domain order item entity without infrastructure dependencies.
+ * Represents individual items within an order.
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+@With
+@Builder
+public class OrderItem extends DomainEntity {
+    
+    // Product Information
+    private final UUID productId;
+    private final String productSku;
+    private final String productName;
+    private final String productDescription;
+    private final String productImageUrl;
+    
+    // Quantity and Pricing
+    private final int quantity;
+    private final Money unitPrice;
+    private final Money costPrice;
+    private final Money totalPrice;
+    private final Money discountAmount;
+    private final double discountPercentage;
+    
+    // Physical Properties
+    private final double weight;
+    private final String dimensions;
+    private final String color;
+    private final String size;
+    private final String variant;
+    
+    // Vendor Information
+    private final UUID vendorId;
+    private final String vendorName;
+    private final String vendorSku;
+    
+    // Fulfillment Information
+    private final UUID warehouseId;
+    private final String warehouseLocation;
+    private final int availableQuantity;
+    private final int reservedQuantity;
+    private final LocalDateTime reservationExpiresAt;
+    
+    // Status Information
+    private final ItemStatus itemStatus;
+    private final String itemNotes;
+    
+    // Shipping Information
+    private final boolean requiresSpecialHandling;
+    private final String handlingInstructions;
+    private final boolean fragile;
+    private final boolean hazardous;
+    private final String shippingCategory;
+    
+    // Customization
+    private final String customizationDetails;
+    private final String personalizedMessage;
+    
+    /**
+     * Calculates the total weight for this item (weight * quantity).
+     */
+    public double getTotalWeight() {
+        return weight * quantity;
+    }
+    
+    /**
+     * Calculates the subtotal before any discounts.
+     */
+    public Money getSubtotal() {
+        return unitPrice.multiply(quantity);
+    }
+    
+    /**
+     * Calculates the discount amount per item.
+     */
+    public Money getDiscountPerItem() {
+        if (quantity <= 0) return Money.ZERO;
+        return discountAmount.divide(quantity);
+    }
+    
+    /**
+     * Calculates the final price per item after discount.
+     */
+    public Money getFinalUnitPrice() {
+        return unitPrice.subtract(getDiscountPerItem());
+    }
+    
+    /**
+     * Checks if the item is customized.
+     */
+    public boolean isCustomized() {
+        return customizationDetails != null && !customizationDetails.trim().isEmpty();
+    }
+    
+    /**
+     * Checks if the item has personalization.
+     */
+    public boolean isPersonalized() {
+        return personalizedMessage != null && !personalizedMessage.trim().isEmpty();
+    }
+    
+    /**
+     * Checks if the item requires special shipping.
+     */
+    public boolean requiresSpecialShipping() {
+        return requiresSpecialHandling || fragile || hazardous;
+    }
+    
+    /**
+     * Checks if inventory is sufficient.
+     */
+    public boolean hasEnoughInventory() {
+        return availableQuantity >= quantity;
+    }
+    
+    /**
+     * Checks if the item reservation is still valid.
+     */
+    public boolean isReservationValid() {
+        return reservationExpiresAt != null && 
+               LocalDateTime.now().isBefore(reservationExpiresAt) &&
+               reservedQuantity >= quantity;
+    }
+    
+    /**
+     * Updates the quantity and recalculates pricing.
+     */
+    public OrderItem updateQuantity(int newQuantity, String updatedBy) {
+        if (newQuantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
+        
+        Money newTotalPrice = unitPrice.multiply(newQuantity);
+        Money newDiscountAmount = getDiscountPerItem().multiply(newQuantity);
+        
+        OrderItem updated = this.withQuantity(newQuantity)
+                  .withTotalPrice(newTotalPrice.subtract(newDiscountAmount))
+                  .withDiscountAmount(newDiscountAmount);
+        updated.updateWith(updatedBy);
+        return updated;
+    }
+    
+    /**
+     * Applies a discount to this item.
+     */
+    public OrderItem applyDiscount(Money discountAmount, String appliedBy) {
+        if (discountAmount.getAmount().compareTo(getSubtotal().getAmount()) > 0) {
+            throw new IllegalArgumentException("Discount cannot exceed item subtotal");
+        }
+        
+        Money newTotalPrice = getSubtotal().subtract(discountAmount);
+        double newDiscountPercentage = discountAmount.getAmount()
+                .divide(getSubtotal().getAmount(), 4, java.math.RoundingMode.HALF_UP)
+                .multiply(java.math.BigDecimal.valueOf(100))
+                .doubleValue();
+        
+        OrderItem updated = this.withDiscountAmount(discountAmount)
+                  .withDiscountPercentage(newDiscountPercentage)
+                  .withTotalPrice(newTotalPrice);
+        updated.updateWith(appliedBy);
+        return updated;
+    }
+    
+    /**
+     * Applies a percentage discount to this item.
+     */
+    public OrderItem applyPercentageDiscount(double percentage, String appliedBy) {
+        if (percentage < 0 || percentage > 100) {
+            throw new IllegalArgumentException("Discount percentage must be between 0 and 100");
+        }
+        
+        Money subtotal = getSubtotal();
+        Money discountAmount = subtotal.multiply(percentage / 100.0);
+        
+        return applyDiscount(discountAmount, appliedBy);
+    }
+    
+    /**
+     * Updates the item status.
+     */
+    public OrderItem updateStatus(ItemStatus newStatus, String updatedBy) {
+        OrderItem updated = this.withItemStatus(newStatus);
+        updated.updateWith(updatedBy);
+        return updated;
+    }
+    
+    /**
+     * Adds notes to the item.
+     */
+    public OrderItem addNotes(String notes, String updatedBy) {
+        String existingNotes = itemNotes != null ? itemNotes : "";
+        String timestamp = LocalDateTime.now().toString();
+        String newNotes = existingNotes + (existingNotes.isEmpty() ? "" : "\n") + 
+                         "[" + timestamp + "] " + notes;
+        OrderItem updated = this.withItemNotes(newNotes);
+        updated.updateWith(updatedBy);
+        return updated;
+    }
+    
+    /**
+     * Reserves inventory for this item.
+     */
+    public OrderItem reserveInventory(int quantityToReserve, LocalDateTime expiresAt, String reservedBy) {
+        if (quantityToReserve > availableQuantity) {
+            throw new IllegalArgumentException("Cannot reserve more than available quantity");
+        }
+        
+        OrderItem updated = this.withReservedQuantity(quantityToReserve)
+                  .withReservationExpiresAt(expiresAt)
+                  .withAvailableQuantity(availableQuantity - quantityToReserve);
+        updated.updateWith(reservedBy);
+        return updated;
+    }
+    
+    /**
+     * Releases reserved inventory.
+     */
+    public OrderItem releaseReservation(String releasedBy) {
+        OrderItem updated = this.withReservedQuantity(0)
+                  .withReservationExpiresAt(null)
+                  .withAvailableQuantity(availableQuantity + reservedQuantity);
+        updated.updateWith(releasedBy);
+        return updated;
+    }
+    
+    /**
+     * Updates warehouse information.
+     */
+    public OrderItem updateWarehouse(UUID warehouseId, String warehouseLocation, String updatedBy) {
+        OrderItem updated = this.withWarehouseId(warehouseId)
+                  .withWarehouseLocation(warehouseLocation);
+        updated.updateWith(updatedBy);
+        return updated;
+    }
+    
+    /**
+     * Gets the shipping weight category.
+     */
+    public WeightCategory getWeightCategory() {
+        double totalWeight = getTotalWeight();
+        if (totalWeight <= 0.5) return WeightCategory.LIGHT;
+        if (totalWeight <= 2.0) return WeightCategory.MEDIUM;
+        if (totalWeight <= 10.0) return WeightCategory.HEAVY;
+        return WeightCategory.EXTRA_HEAVY;
+    }
+    
+    /**
+     * Gets the shipping size category.
+     */
+    public SizeCategory getSizeCategory() {
+        // This would need dimension parsing logic in a real implementation
+        return SizeCategory.STANDARD;
+    }
+    
+    /**
+     * Calculates the shipping complexity score.
+     */
+    public int getShippingComplexityScore() {
+        int score = 0;
+        
+        if (requiresSpecialHandling) score += 2;
+        if (fragile) score += 3;
+        if (hazardous) score += 5;
+        if (isCustomized()) score += 1;
+        if (getTotalWeight() > 10.0) score += 2;
+        
+        return score;
+    }
+    
+    /**
+     * Checks if this item can be backordered.
+     */
+    public boolean canBeBackordered() {
+        return !hasEnoughInventory() && 
+               !requiresSpecialShipping() && 
+               !isCustomized();
+    }
+    
+    /**
+     * Calculates the item priority for fulfillment.
+     */
+    public int getFulfillmentPriority() {
+        int priority = 0;
+        
+        if (fragile || hazardous) priority += 3;
+        if (isCustomized() || isPersonalized()) priority += 2;
+        if (requiresSpecialHandling) priority += 1;
+        if (getTotalWeight() > 5.0) priority -= 1;
+        
+        return Math.max(0, priority);
+    }
+    
+    @Override
+    public boolean isValid() {
+        return productId != null &&
+               productSku != null && !productSku.trim().isEmpty() &&
+               productName != null && !productName.trim().isEmpty() &&
+               quantity > 0 &&
+               unitPrice != null &&
+               totalPrice != null &&
+               itemStatus != null;
+    }
+    
+    @Override
+    public String getEntityType() {
+        return "ORDER_ITEM";
+    }
+    
+    /**
+     * Item status enumeration.
+     */
+    public enum ItemStatus {
+        PENDING, CONFIRMED, PROCESSING, PICKED, PACKED, SHIPPED, DELIVERED, CANCELLED, RETURNED
+    }
+    
+    /**
+     * Weight categories for shipping.
+     */
+    public enum WeightCategory {
+        LIGHT, MEDIUM, HEAVY, EXTRA_HEAVY
+    }
+    
+    /**
+     * Size categories for shipping.
+     */
+    public enum SizeCategory {
+        SMALL, STANDARD, LARGE, OVERSIZED
+    }
+    
+    // Explicit getters for reliable compilation (Lombok @Data not processing properly)
+    public UUID getProductId() { return productId; }
+    public String getProductSku() { return productSku; }
+    public String getProductName() { return productName; }
+    public String getProductDescription() { return productDescription; }
+    public String getProductImageUrl() { return productImageUrl; }
+    public int getQuantity() { return quantity; }
+    public Money getUnitPrice() { return unitPrice; }
+    public Money getTotalPrice() { return totalPrice; }
+    public Money getDiscountAmount() { return discountAmount; }
+    public double getDiscountPercentage() { return discountPercentage; }
+    public double getWeight() { return weight; }
+    public String getDimensions() { return dimensions; }
+    public String getColor() { return color; }
+    public String getSize() { return size; }
+    public String getVariant() { return variant; }
+    public UUID getVendorId() { return vendorId; }
+    public String getVendorName() { return vendorName; }
+    public String getVendorSku() { return vendorSku; }
+    public UUID getWarehouseId() { return warehouseId; }
+    public String getWarehouseLocation() { return warehouseLocation; }
+    public int getAvailableQuantity() { return availableQuantity; }
+    public int getReservedQuantity() { return reservedQuantity; }
+    public LocalDateTime getReservationExpiresAt() { return reservationExpiresAt; }
+    public ItemStatus getItemStatus() { return itemStatus; }
+    public String getItemNotes() { return itemNotes; }
+    public boolean isRequiresSpecialHandling() { return requiresSpecialHandling; }
+    public String getHandlingInstructions() { return handlingInstructions; }
+    public boolean isFragile() { return fragile; }
+    public boolean isHazardous() { return hazardous; }
+    public String getShippingCategory() { return shippingCategory; }
+    public String getCustomizationDetails() { return customizationDetails; }
+    public String getPersonalizedMessage() { return personalizedMessage; }
+}

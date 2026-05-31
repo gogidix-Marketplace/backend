@@ -1,0 +1,818 @@
+package com.gogidix.shared.model.domain.model.user;
+
+import com.gogidix.shared.model.domain.model.BaseEntity;
+import com.gogidix.shared.model.domain.model.EntityStatus;
+import com.gogidix.shared.model.domain.model.ValidationResult;
+import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.regex.Pattern;
+
+/**
+ * Rich Domain Model for User - HEXAGONAL ARCHITECTURE TEMPLATE
+ * 
+ * This serves as the comprehensive user domain model for Agent B services.
+ * Demonstrates:
+ * - Rich user business logic and behavior
+ * - Zero infrastructure dependencies (NO Lombok, JPA, etc.)
+ * - Immutable design with builder pattern
+ * - User authentication, authorization, and profile management
+ * - Security policies and compliance rules
+ * 
+ * @author Agent A - Foundation Lead
+ * @template-for Agent B User Management
+ * @version 1.0.0
+ */
+public class User extends BaseEntity {
+    
+    // User Identity (immutable)
+    private final String username;
+    private final String email;
+    private final String firstName;
+    private final String lastName;
+    private final String displayName;
+    
+    // Contact Information (immutable)
+    private final String phoneNumber;
+    private final String alternateEmail;
+    private final String profileImageUrl;
+    private final String personalWebsite;
+    
+    // Personal Information (immutable)
+    private final LocalDateTime dateOfBirth;
+    private final String gender;
+    private final String nationality;
+    private final String languageCode;
+    private final String timezone;
+    private final String locale;
+    
+    // User Classification (immutable)
+    private final UserStatus userStatus;
+    private final String userType;
+    private final Set<UserRole> roles;
+    private final Set<String> permissions;
+    private final UserTier tier;
+    private final String organizationId;
+    private final String departmentId;
+    
+    // Authentication and Security (immutable)
+    private final boolean emailVerified;
+    private final boolean phoneVerified;
+    private final boolean twoFactorEnabled;
+    private final boolean accountLocked;
+    private final LocalDateTime lastLoginAt;
+    private final int failedLoginAttempts;
+    private final LocalDateTime lockedUntil;
+    private final String lockReason;
+    private final LocalDateTime lastPasswordChangeAt;
+    private final int passwordExpiryDays;
+    
+    // Verification and Recovery (immutable)
+    private final String passwordResetToken;
+    private final LocalDateTime passwordResetExpiresAt;
+    private final String emailVerificationToken;
+    private final LocalDateTime emailVerificationExpiresAt;
+    private final String phoneVerificationToken;
+    private final LocalDateTime phoneVerificationExpiresAt;
+    private final String mfaSecret;
+    private final Set<String> mfaBackupCodes;
+    
+    // Terms and Privacy (immutable)
+    private final LocalDateTime termsAcceptedAt;
+    private final String termsVersion;
+    private final LocalDateTime privacyAcceptedAt;
+    private final String privacyVersion;
+    private final boolean marketingOptIn;
+    private final boolean dataProcessingConsent;
+    private final LocalDateTime consentUpdatedAt;
+    
+    // Activity and Behavior (immutable)
+    private final int loginCount;
+    private final LocalDateTime firstLoginAt;
+    private final String lastKnownIpAddress;
+    private final String lastKnownUserAgent;
+    private final String lastKnownLocation;
+    private final Map<String, Object> preferences;
+    private final Map<String, Object> metadata;
+    
+    // Business Metrics (immutable)
+    private final LocalDateTime subscriptionStartDate;
+    private final LocalDateTime subscriptionEndDate;
+    private final boolean isPremiumUser;
+    private final double lifetimeValue;
+    private final int supportTicketCount;
+    private final double satisfactionScore;
+    
+    // Constructor for complete user creation
+    public User(UUID id, Long version, LocalDateTime createdAt, String createdBy,
+               LocalDateTime updatedAt, String updatedBy, boolean deleted,
+               LocalDateTime deletedAt, String deletedBy,
+               String username, String email, String firstName, String lastName, String displayName,
+               String phoneNumber, String alternateEmail, String profileImageUrl, String personalWebsite,
+               LocalDateTime dateOfBirth, String gender, String nationality, String languageCode, 
+               String timezone, String locale,
+               UserStatus userStatus, String userType, Set<UserRole> roles, Set<String> permissions, 
+               UserTier tier, String organizationId, String departmentId,
+               boolean emailVerified, boolean phoneVerified, boolean twoFactorEnabled, boolean accountLocked,
+               LocalDateTime lastLoginAt, int failedLoginAttempts, LocalDateTime lockedUntil, String lockReason,
+               LocalDateTime lastPasswordChangeAt, int passwordExpiryDays,
+               String passwordResetToken, LocalDateTime passwordResetExpiresAt,
+               String emailVerificationToken, LocalDateTime emailVerificationExpiresAt,
+               String phoneVerificationToken, LocalDateTime phoneVerificationExpiresAt,
+               String mfaSecret, Set<String> mfaBackupCodes,
+               LocalDateTime termsAcceptedAt, String termsVersion, LocalDateTime privacyAcceptedAt, 
+               String privacyVersion, boolean marketingOptIn, boolean dataProcessingConsent, 
+               LocalDateTime consentUpdatedAt,
+               int loginCount, LocalDateTime firstLoginAt, String lastKnownIpAddress, 
+               String lastKnownUserAgent, String lastKnownLocation, 
+               Map<String, Object> preferences, Map<String, Object> metadata,
+               LocalDateTime subscriptionStartDate, LocalDateTime subscriptionEndDate, 
+               boolean isPremiumUser, double lifetimeValue, int supportTicketCount, double satisfactionScore) {
+        
+        super(id, version, "USER", createdAt, createdBy, updatedAt, updatedBy, 
+              deleted, deletedAt, deletedBy, null, 
+              mapUserStatusToEntityStatus(userStatus), null, null, null);
+              
+        this.username = username;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.displayName = displayName != null ? displayName : generateDisplayName();
+        
+        this.phoneNumber = phoneNumber;
+        this.alternateEmail = alternateEmail;
+        this.profileImageUrl = profileImageUrl;
+        this.personalWebsite = personalWebsite;
+        
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+        this.nationality = nationality;
+        this.languageCode = languageCode != null ? languageCode : "en";
+        this.timezone = timezone != null ? timezone : "UTC";
+        this.locale = locale != null ? locale : "en_US";
+        
+        this.userStatus = userStatus != null ? userStatus : UserStatus.PENDING_VERIFICATION;
+        this.userType = userType != null ? userType : "STANDARD";
+        this.roles = roles != null ? new HashSet<>(roles) : new HashSet<>();
+        this.permissions = permissions != null ? new HashSet<>(permissions) : new HashSet<>();
+        this.tier = tier != null ? tier : UserTier.BASIC;
+        this.organizationId = organizationId;
+        this.departmentId = departmentId;
+        
+        this.emailVerified = emailVerified;
+        this.phoneVerified = phoneVerified;
+        this.twoFactorEnabled = twoFactorEnabled;
+        this.accountLocked = accountLocked;
+        this.lastLoginAt = lastLoginAt;
+        this.failedLoginAttempts = failedLoginAttempts;
+        this.lockedUntil = lockedUntil;
+        this.lockReason = lockReason;
+        this.lastPasswordChangeAt = lastPasswordChangeAt;
+        this.passwordExpiryDays = passwordExpiryDays > 0 ? passwordExpiryDays : 90;
+        
+        this.passwordResetToken = passwordResetToken;
+        this.passwordResetExpiresAt = passwordResetExpiresAt;
+        this.emailVerificationToken = emailVerificationToken;
+        this.emailVerificationExpiresAt = emailVerificationExpiresAt;
+        this.phoneVerificationToken = phoneVerificationToken;
+        this.phoneVerificationExpiresAt = phoneVerificationExpiresAt;
+        this.mfaSecret = mfaSecret;
+        this.mfaBackupCodes = mfaBackupCodes != null ? new HashSet<>(mfaBackupCodes) : new HashSet<>();
+        
+        this.termsAcceptedAt = termsAcceptedAt;
+        this.termsVersion = termsVersion;
+        this.privacyAcceptedAt = privacyAcceptedAt;
+        this.privacyVersion = privacyVersion;
+        this.marketingOptIn = marketingOptIn;
+        this.dataProcessingConsent = dataProcessingConsent;
+        this.consentUpdatedAt = consentUpdatedAt;
+        
+        this.loginCount = loginCount;
+        this.firstLoginAt = firstLoginAt;
+        this.lastKnownIpAddress = lastKnownIpAddress;
+        this.lastKnownUserAgent = lastKnownUserAgent;
+        this.lastKnownLocation = lastKnownLocation;
+        this.preferences = preferences != null ? new HashMap<>(preferences) : new HashMap<>();
+        this.metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
+        
+        this.subscriptionStartDate = subscriptionStartDate;
+        this.subscriptionEndDate = subscriptionEndDate;
+        this.isPremiumUser = isPremiumUser;
+        this.lifetimeValue = lifetimeValue;
+        this.supportTicketCount = supportTicketCount;
+        this.satisfactionScore = satisfactionScore;
+    }
+    
+    // ==============================================
+    // USER BUSINESS LOGIC METHODS - Template
+    // ==============================================
+    
+    /**
+     * Business Logic: Get user's full name
+     */
+    public String getFullName() {
+        if (firstName == null && lastName == null) {
+            return displayName != null ? displayName : username;
+        }
+        StringBuilder fullName = new StringBuilder();
+        if (firstName != null && !firstName.trim().isEmpty()) {
+            fullName.append(firstName.trim());
+        }
+        if (lastName != null && !lastName.trim().isEmpty()) {
+            if (fullName.length() > 0) {
+                fullName.append(" ");
+            }
+            fullName.append(lastName.trim());
+        }
+        return fullName.length() > 0 ? fullName.toString() : (displayName != null ? displayName : username);
+    }
+    
+    /**
+     * Business Rule: Check if user account is locked
+     */
+    public boolean isAccountLocked() {
+        return accountLocked || (lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now()));
+    }
+    
+    /**
+     * Business Rule: Check if user account is active and usable
+     */
+    public boolean isAccountActive() {
+        return userStatus == UserStatus.ACTIVE && !isAccountLocked() && !isDeleted();
+    }
+    
+    /**
+     * Business Rule: Check if user has specific role
+     */
+    public boolean hasRole(UserRole role) {
+        return roles != null && roles.contains(role);
+    }
+    
+    /**
+     * Business Rule: Check if user has any of the required roles
+     */
+    public boolean hasAnyRole(Set<UserRole> requiredRoles) {
+        if (roles == null || requiredRoles == null) return false;
+        return roles.stream().anyMatch(requiredRoles::contains);
+    }
+    
+    /**
+     * Business Rule: Check if user has all required roles
+     */
+    public boolean hasAllRoles(Set<UserRole> requiredRoles) {
+        if (roles == null || requiredRoles == null) return false;
+        return roles.containsAll(requiredRoles);
+    }
+    
+    /**
+     * Business Rule: Check if user has specific permission
+     */
+    public boolean hasPermission(String permission) {
+        return permissions != null && permissions.contains(permission);
+    }
+    
+    /**
+     * Business Rule: Check if user has any of required permissions
+     */
+    public boolean hasAnyPermission(Set<String> requiredPermissions) {
+        if (permissions == null || requiredPermissions == null) return false;
+        return permissions.stream().anyMatch(requiredPermissions::contains);
+    }
+    
+    /**
+     * Business Rule: Check if email address is valid format
+     */
+    public boolean hasValidEmail() {
+        if (email == null || email.trim().isEmpty()) return false;
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        return Pattern.compile(emailRegex).matcher(email).matches();
+    }
+    
+    /**
+     * Business Rule: Check if username meets requirements
+     */
+    public boolean hasValidUsername() {
+        if (username == null || username.trim().isEmpty()) return false;
+        // Username: 3-30 characters, alphanumeric, underscore, hyphen
+        String usernameRegex = "^[a-zA-Z0-9_-]{3,30}$";
+        return Pattern.compile(usernameRegex).matcher(username).matches();
+    }
+    
+    /**
+     * Business Rule: Check if phone number is valid format
+     */
+    public boolean hasValidPhoneNumber() {
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) return true; // Optional field
+        // Basic international phone number validation
+        String phoneRegex = "^\\+?[1-9]\\d{1,14}$";
+        return Pattern.compile(phoneRegex).matcher(phoneNumber.replaceAll("[\\s-()]", "")).matches();
+    }
+    
+    /**
+     * Business Logic: Increment failed login attempts
+     */
+    public User incrementFailedLoginAttempts() {
+        return new User(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), LocalDateTime.now(), "system",
+            isDeleted(), getDeletedAt(), getDeletedBy(),
+            username, email, firstName, lastName, displayName,
+            phoneNumber, alternateEmail, profileImageUrl, personalWebsite,
+            dateOfBirth, gender, nationality, languageCode, timezone, locale,
+            userStatus, userType, roles, permissions, tier, organizationId, departmentId,
+            emailVerified, phoneVerified, twoFactorEnabled, accountLocked,
+            lastLoginAt, failedLoginAttempts + 1, lockedUntil, lockReason,
+            lastPasswordChangeAt, passwordExpiryDays,
+            passwordResetToken, passwordResetExpiresAt,
+            emailVerificationToken, emailVerificationExpiresAt,
+            phoneVerificationToken, phoneVerificationExpiresAt,
+            mfaSecret, mfaBackupCodes,
+            termsAcceptedAt, termsVersion, privacyAcceptedAt, privacyVersion, 
+            marketingOptIn, dataProcessingConsent, consentUpdatedAt,
+            loginCount, firstLoginAt, lastKnownIpAddress, lastKnownUserAgent, 
+            lastKnownLocation, preferences, metadata,
+            subscriptionStartDate, subscriptionEndDate, isPremiumUser, 
+            lifetimeValue, supportTicketCount, satisfactionScore
+        );
+    }
+    
+    /**
+     * Business Logic: Reset failed login attempts and unlock account
+     */
+    public User resetFailedLoginAttempts() {
+        return new User(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), LocalDateTime.now(), "system",
+            isDeleted(), getDeletedAt(), getDeletedBy(),
+            username, email, firstName, lastName, displayName,
+            phoneNumber, alternateEmail, profileImageUrl, personalWebsite,
+            dateOfBirth, gender, nationality, languageCode, timezone, locale,
+            userStatus, userType, roles, permissions, tier, organizationId, departmentId,
+            emailVerified, phoneVerified, twoFactorEnabled, false, // unlock account
+            lastLoginAt, 0, null, null, // reset attempts and lock
+            lastPasswordChangeAt, passwordExpiryDays,
+            passwordResetToken, passwordResetExpiresAt,
+            emailVerificationToken, emailVerificationExpiresAt,
+            phoneVerificationToken, phoneVerificationExpiresAt,
+            mfaSecret, mfaBackupCodes,
+            termsAcceptedAt, termsVersion, privacyAcceptedAt, privacyVersion, 
+            marketingOptIn, dataProcessingConsent, consentUpdatedAt,
+            loginCount, firstLoginAt, lastKnownIpAddress, lastKnownUserAgent, 
+            lastKnownLocation, preferences, metadata,
+            subscriptionStartDate, subscriptionEndDate, isPremiumUser, 
+            lifetimeValue, supportTicketCount, satisfactionScore
+        );
+    }
+    
+    /**
+     * Business Logic: Lock account for specified duration with reason
+     */
+    public User lockAccount(long lockDurationMinutes, String reason) {
+        LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(lockDurationMinutes);
+        return new User(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), LocalDateTime.now(), "system",
+            isDeleted(), getDeletedAt(), getDeletedBy(),
+            username, email, firstName, lastName, displayName,
+            phoneNumber, alternateEmail, profileImageUrl, personalWebsite,
+            dateOfBirth, gender, nationality, languageCode, timezone, locale,
+            userStatus, userType, roles, permissions, tier, organizationId, departmentId,
+            emailVerified, phoneVerified, twoFactorEnabled, true, // lock account
+            lastLoginAt, failedLoginAttempts, lockUntil, reason,
+            lastPasswordChangeAt, passwordExpiryDays,
+            passwordResetToken, passwordResetExpiresAt,
+            emailVerificationToken, emailVerificationExpiresAt,
+            phoneVerificationToken, phoneVerificationExpiresAt,
+            mfaSecret, mfaBackupCodes,
+            termsAcceptedAt, termsVersion, privacyAcceptedAt, privacyVersion, 
+            marketingOptIn, dataProcessingConsent, consentUpdatedAt,
+            loginCount, firstLoginAt, lastKnownIpAddress, lastKnownUserAgent, 
+            lastKnownLocation, preferences, metadata,
+            subscriptionStartDate, subscriptionEndDate, isPremiumUser, 
+            lifetimeValue, supportTicketCount, satisfactionScore
+        );
+    }
+    
+    /**
+     * Updates the last login timestamp.
+     */
+    public User updateLastLogin() {
+        return this.withLastLoginAt(LocalDateTime.now())
+                  .resetFailedLoginAttempts();
+    }
+    
+    /**
+     * Verifies the user's email.
+     */
+    public User verifyEmail() {
+        return this.withEmailVerified(true)
+                  .withEmailVerificationToken(null);
+    }
+    
+    /**
+     * Verifies the user's phone number.
+     */
+    public User verifyPhone() {
+        return this.withPhoneVerified(true)
+                  .withPhoneVerificationToken(null);
+    }
+    
+    /**
+     * Accepts terms and conditions.
+     */
+    public User acceptTerms() {
+        return this.withTermsAcceptedAt(LocalDateTime.now());
+    }
+    
+    /**
+     * Accepts privacy policy.
+     */
+    public User acceptPrivacy() {
+        return this.withPrivacyAcceptedAt(LocalDateTime.now());
+    }
+    
+    /**
+     * Changes user status.
+     */
+    public User changeStatus(UserStatus newStatus, String updatedBy) {
+        LocalDateTime now = LocalDateTime.now();
+        return new User(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(),
+            now, updatedBy, isDeleted(), getDeletedAt(), getDeletedBy(),
+            this.username, this.email, this.firstName, this.lastName, this.displayName,
+            this.phoneNumber, this.alternateEmail, this.profileImageUrl, this.personalWebsite,
+            this.dateOfBirth, this.gender, this.nationality, this.languageCode,
+            this.timezone, this.locale,
+            newStatus, this.userType, this.roles, this.permissions,
+            this.tier, this.organizationId, this.departmentId,
+            this.emailVerified, this.phoneVerified, this.twoFactorEnabled, this.accountLocked,
+            this.lastLoginAt, this.failedLoginAttempts, this.lockedUntil, this.lockReason,
+            this.lastPasswordChangeAt, this.passwordExpiryDays,
+            this.passwordResetToken, this.passwordResetExpiresAt,
+            this.emailVerificationToken, this.emailVerificationExpiresAt,
+            this.phoneVerificationToken, this.phoneVerificationExpiresAt,
+            this.mfaSecret, this.mfaBackupCodes,
+            this.termsAcceptedAt, this.termsVersion, this.privacyAcceptedAt,
+            this.privacyVersion, this.marketingOptIn, this.dataProcessingConsent,
+            this.consentUpdatedAt,
+            this.loginCount, this.firstLoginAt, this.lastKnownIpAddress,
+            this.lastKnownUserAgent, this.lastKnownLocation,
+            this.preferences, this.metadata,
+            this.subscriptionStartDate, this.subscriptionEndDate,
+            this.isPremiumUser, this.lifetimeValue, this.supportTicketCount, this.satisfactionScore
+        );
+    }
+    
+    /**
+     * Updates profile information.
+     */
+    public User updateProfile(String firstName, String lastName, String phoneNumber, String updatedBy) {
+        LocalDateTime now = LocalDateTime.now();
+        return new User(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(),
+            now, updatedBy, isDeleted(), getDeletedAt(), getDeletedBy(),
+            this.username, this.email, firstName, lastName, this.displayName,
+            phoneNumber, this.alternateEmail, this.profileImageUrl, this.personalWebsite,
+            this.dateOfBirth, this.gender, this.nationality, this.languageCode,
+            this.timezone, this.locale,
+            this.userStatus, this.userType, this.roles, this.permissions,
+            this.tier, this.organizationId, this.departmentId,
+            this.emailVerified, this.phoneVerified, this.twoFactorEnabled, this.accountLocked,
+            this.lastLoginAt, this.failedLoginAttempts, this.lockedUntil, this.lockReason,
+            this.lastPasswordChangeAt, this.passwordExpiryDays,
+            this.passwordResetToken, this.passwordResetExpiresAt,
+            this.emailVerificationToken, this.emailVerificationExpiresAt,
+            this.phoneVerificationToken, this.phoneVerificationExpiresAt,
+            this.mfaSecret, this.mfaBackupCodes,
+            this.termsAcceptedAt, this.termsVersion, this.privacyAcceptedAt,
+            this.privacyVersion, this.marketingOptIn, this.dataProcessingConsent,
+            this.consentUpdatedAt,
+            this.loginCount, this.firstLoginAt, this.lastKnownIpAddress,
+            this.lastKnownUserAgent, this.lastKnownLocation,
+            this.preferences, this.metadata,
+            this.subscriptionStartDate, this.subscriptionEndDate,
+            this.isPremiumUser, this.lifetimeValue, this.supportTicketCount, this.satisfactionScore
+        );
+    }
+    
+    /**
+     * Sets password reset token.
+     */
+    public User setPasswordResetToken(String token, LocalDateTime expiresAt) {
+        return this.withPasswordResetToken(token)
+                  .withPasswordResetExpiresAt(expiresAt);
+    }
+    
+    /**
+     * Clears password reset token.
+     */
+    public User clearPasswordResetToken() {
+        return this.withPasswordResetToken(null)
+                  .withPasswordResetExpiresAt(null);
+    }
+    
+    /**
+     * Checks if password reset token is valid.
+     */
+    public boolean isPasswordResetTokenValid() {
+        return passwordResetToken != null && 
+               passwordResetExpiresAt != null && 
+               passwordResetExpiresAt.isAfter(LocalDateTime.now());
+    }
+    
+    /**
+     * Enables two-factor authentication.
+     */
+    public User enableTwoFactor() {
+        return this.withTwoFactorEnabled(true);
+    }
+    
+    /**
+     * Disables two-factor authentication.
+     */
+    public User disableTwoFactor() {
+        return this.withTwoFactorEnabled(false);
+    }
+    
+    /**
+     * Updates marketing preferences.
+     */
+    public User updateMarketingOptIn(boolean optIn, String updatedBy) {
+        LocalDateTime now = LocalDateTime.now();
+        return new User(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(),
+            now, updatedBy, isDeleted(), getDeletedAt(), getDeletedBy(),
+            this.username, this.email, this.firstName, this.lastName, this.displayName,
+            this.phoneNumber, this.alternateEmail, this.profileImageUrl, this.personalWebsite,
+            this.dateOfBirth, this.gender, this.nationality, this.languageCode,
+            this.timezone, this.locale,
+            this.userStatus, this.userType, this.roles, this.permissions,
+            this.tier, this.organizationId, this.departmentId,
+            this.emailVerified, this.phoneVerified, this.twoFactorEnabled, this.accountLocked,
+            this.lastLoginAt, this.failedLoginAttempts, this.lockedUntil, this.lockReason,
+            this.lastPasswordChangeAt, this.passwordExpiryDays,
+            this.passwordResetToken, this.passwordResetExpiresAt,
+            this.emailVerificationToken, this.emailVerificationExpiresAt,
+            this.phoneVerificationToken, this.phoneVerificationExpiresAt,
+            this.mfaSecret, this.mfaBackupCodes,
+            this.termsAcceptedAt, this.termsVersion, this.privacyAcceptedAt,
+            this.privacyVersion, optIn, this.dataProcessingConsent,
+            this.consentUpdatedAt,
+            this.loginCount, this.firstLoginAt, this.lastKnownIpAddress,
+            this.lastKnownUserAgent, this.lastKnownLocation,
+            this.preferences, this.metadata,
+            this.subscriptionStartDate, this.subscriptionEndDate,
+            this.isPremiumUser, this.lifetimeValue, this.supportTicketCount, this.satisfactionScore
+        );
+    }
+    
+    /**
+     * Suspends the user account.
+     */
+    public User suspend(String suspendedBy) {
+        return this.changeStatus(UserStatus.SUSPENDED, suspendedBy);
+    }
+    
+    /**
+     * Activates the user account.
+     */
+    public User activate(String activatedBy) {
+        return this.changeStatus(UserStatus.ACTIVE, activatedBy);
+    }
+    
+    /**
+     * Deactivates the user account.
+     */
+    public User deactivate(String deactivatedBy) {
+        return this.changeStatus(UserStatus.INACTIVE, deactivatedBy);
+    }
+    
+    @Override
+    public boolean isValid() {
+        return username != null && !username.trim().isEmpty() &&
+               email != null && !email.trim().isEmpty() &&
+               getStatus() != null &&
+               userType != null && !userType.trim().isEmpty();
+    }
+    
+    @Override
+    public boolean isComplete() {
+        return isValid() &&
+               firstName != null && !firstName.trim().isEmpty() &&
+               lastName != null && !lastName.trim().isEmpty() &&
+               emailVerified;
+    }
+    
+    @Override
+    public String getEntityType() {
+        return "USER";
+    }
+    
+    /**
+     * Determines if this user can be deleted.
+     */
+    @Override
+    public boolean canBeDeleted() {
+        return super.canBeDeleted() && 
+               (userStatus == UserStatus.INACTIVE || userStatus == UserStatus.SUSPENDED);
+    }
+    
+    /**
+     * Gets user display name.
+     */
+    public String getDisplayName() {
+        String fullName = getFullName();
+        return fullName.equals(username) ? username : fullName;
+    }
+    
+    /**
+     * Checks if user profile is complete.
+     */
+    public boolean isProfileComplete() {
+        return firstName != null && !firstName.trim().isEmpty() &&
+               lastName != null && !lastName.trim().isEmpty() &&
+               email != null && !email.trim().isEmpty() &&
+               emailVerified;
+    }
+    
+    /**
+     * Checks if account needs attention (locked, suspended, etc.).
+     */
+    public boolean needsAttention() {
+        return isAccountLocked() || 
+               userStatus == UserStatus.SUSPENDED || 
+               userStatus == UserStatus.PENDING_VERIFICATION ||
+               failedLoginAttempts >= 3;
+    }
+    
+    /**
+     * Gets account security score (0-100).
+     */
+    public int getSecurityScore() {
+        int score = 0;
+        
+        if (emailVerified) score += 20;
+        if (phoneVerified) score += 15;
+        if (twoFactorEnabled) score += 25;
+        if (!isAccountLocked()) score += 10;
+        if (failedLoginAttempts == 0) score += 10;
+        if (isProfileComplete()) score += 20;
+        
+        return score;
+    }
+    
+    /**
+     * Checks if user is eligible for specific features.
+     */
+    public boolean isEligibleForFeature(String featureName) {
+        return switch (featureName.toLowerCase()) {
+            case "premium" -> hasRole(UserRole.PREMIUM_USER) || hasRole(UserRole.ADMIN);
+            case "admin" -> hasRole(UserRole.ADMIN) || hasRole(UserRole.SUPER_ADMIN);
+            case "vendor" -> hasRole(UserRole.VENDOR) || hasRole(UserRole.ADMIN);
+            case "beta" -> hasRole(UserRole.BETA_TESTER) || hasRole(UserRole.ADMIN);
+            default -> isAccountActive();
+        };
+    }
+    
+    /**
+     * Gets user risk level based on account status and activity.
+     */
+    public UserRiskLevel getRiskLevel() {
+        if (userStatus == UserStatus.SUSPENDED || isAccountLocked()) {
+            return UserRiskLevel.HIGH;
+        }
+        if (failedLoginAttempts >= 3 || !emailVerified) {
+            return UserRiskLevel.MEDIUM;
+        }
+        if (!twoFactorEnabled || getSecurityScore() < 70) {
+            return UserRiskLevel.LOW;
+        }
+        return UserRiskLevel.MINIMAL;
+    }
+    
+    /**
+     * User risk levels for security assessment.
+     */
+    public enum UserRiskLevel {
+        MINIMAL, LOW, MEDIUM, HIGH
+    }
+    
+    // ========================================
+    // Standard Getter Methods
+    // ========================================
+    
+    public String getUsername() { return username; }
+    public String getEmail() { return email; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public String getAlternateEmail() { return alternateEmail; }
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public String getPersonalWebsite() { return personalWebsite; }
+    
+    public LocalDateTime getDateOfBirth() { return dateOfBirth; }
+    public String getGender() { return gender; }
+    public String getNationality() { return nationality; }
+    public String getLanguageCode() { return languageCode; }
+    public String getTimezone() { return timezone; }
+    public String getLocale() { return locale; }
+    
+    public UserStatus getUserStatus() { return userStatus; }
+    public String getUserType() { return userType; }
+    public Set<UserRole> getRoles() { return roles != null ? new HashSet<>(roles) : new HashSet<>(); }
+    public Set<String> getPermissions() { return permissions != null ? new HashSet<>(permissions) : new HashSet<>(); }
+    public UserTier getTier() { return tier; }
+    public String getOrganizationId() { return organizationId; }
+    public String getDepartmentId() { return departmentId; }
+    
+    public boolean isEmailVerified() { return emailVerified; }
+    public boolean isPhoneVerified() { return phoneVerified; }
+    public boolean isTwoFactorEnabled() { return twoFactorEnabled; }
+    // isAccountLocked() already defined as business logic method at line 238
+    public LocalDateTime getLastLoginAt() { return lastLoginAt; }
+    public int getFailedLoginAttempts() { return failedLoginAttempts; }
+    public LocalDateTime getLockedUntil() { return lockedUntil; }
+    public String getLockReason() { return lockReason; }
+    public LocalDateTime getLastPasswordChangeAt() { return lastPasswordChangeAt; }
+    public int getPasswordExpiryDays() { return passwordExpiryDays; }
+    
+    public String getPasswordResetToken() { return passwordResetToken; }
+    public LocalDateTime getPasswordResetExpiresAt() { return passwordResetExpiresAt; }
+    public String getEmailVerificationToken() { return emailVerificationToken; }
+    public LocalDateTime getEmailVerificationExpiresAt() { return emailVerificationExpiresAt; }
+    public String getPhoneVerificationToken() { return phoneVerificationToken; }
+    public LocalDateTime getPhoneVerificationExpiresAt() { return phoneVerificationExpiresAt; }
+    public String getMfaSecret() { return mfaSecret; }
+    public Set<String> getMfaBackupCodes() { return mfaBackupCodes != null ? new HashSet<>(mfaBackupCodes) : new HashSet<>(); }
+    
+    public LocalDateTime getTermsAcceptedAt() { return termsAcceptedAt; }
+    public String getTermsVersion() { return termsVersion; }
+    public LocalDateTime getPrivacyAcceptedAt() { return privacyAcceptedAt; }
+    public String getPrivacyVersion() { return privacyVersion; }
+    public boolean isMarketingOptIn() { return marketingOptIn; }
+    public boolean isDataProcessingConsent() { return dataProcessingConsent; }
+    public boolean getDataProcessingConsent() { return dataProcessingConsent; }  // Alt name for compatibility
+    public LocalDateTime getConsentUpdatedAt() { return consentUpdatedAt; }
+    
+    public int getLoginCount() { return loginCount; }
+    public LocalDateTime getFirstLoginAt() { return firstLoginAt; }
+    public String getLastKnownIpAddress() { return lastKnownIpAddress; }
+    public String getLastKnownUserAgent() { return lastKnownUserAgent; }
+    public String getLastKnownLocation() { return lastKnownLocation; }
+    public Map<String, Object> getPreferences() { return preferences != null ? new HashMap<>(preferences) : new HashMap<>(); }
+    public Map<String, Object> getMetadata() { return metadata != null ? new HashMap<>(metadata) : new HashMap<>(); }
+    
+    public LocalDateTime getSubscriptionStartDate() { return subscriptionStartDate; }
+    public LocalDateTime getSubscriptionEndDate() { return subscriptionEndDate; }
+    public boolean isPremiumUser() { return isPremiumUser; }
+    public double getLifetimeValue() { return lifetimeValue; }
+    public int getSupportTicketCount() { return supportTicketCount; }
+    public double getSatisfactionScore() { return satisfactionScore; }
+    
+    /**
+     * Implementation of abstract validateBusinessRules method.
+     */
+    @Override
+    public ValidationResult validateBusinessRules() {
+        List<String> errors = new ArrayList<>();
+        
+        if (username == null || username.trim().isEmpty()) {
+            errors.add("Username is required");
+        }
+        if (email == null || !email.contains("@")) {
+            errors.add("Valid email is required");
+        }
+        
+        return errors.isEmpty() ? 
+            ValidationResult.success() :
+            ValidationResult.failure(errors);
+    }
+    
+    /**
+     * Generate display name from first and last name.
+     */
+    private String generateDisplayName() {
+        if (firstName != null && lastName != null) {
+            return firstName + " " + lastName;
+        }
+        return username != null ? username : "Unknown User";
+    }
+    
+    /**
+     * Map user status to entity status.
+     */
+    private static EntityStatus mapUserStatusToEntityStatus(UserStatus userStatus) {
+        return switch (userStatus) {
+            case ACTIVE -> EntityStatus.ACTIVE;
+            case INACTIVE -> EntityStatus.INACTIVE;
+            case SUSPENDED -> EntityStatus.SUSPENDED;
+            case BANNED -> EntityStatus.SUSPENDED;
+            case PENDING_VERIFICATION -> EntityStatus.PENDING;
+            case DELETED -> EntityStatus.DELETED;
+        };
+    }
+}

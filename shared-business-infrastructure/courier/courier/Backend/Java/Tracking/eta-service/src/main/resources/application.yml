@@ -1,0 +1,178 @@
+# =============================================================================
+# ETA Service Configuration
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8108}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: eta-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:eta_service}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
+      auto-index-creation: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        delivery.timeout.ms: 30000
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topic:
+      eta-events: eta-events
+      tracking-events: tracking-events
+
+  # Cache Configuration
+  cache:
+    type: simple
+    cache-names: etaCalculations,etaHistory,trafficFactors
+
+  # WebSocket Configuration
+  websocket:
+    enabled: true
+
+  # Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.courier: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: ${MONGO_LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg [tenantId=%X{tenantId}][userId=%X{userId}][traceId=%X{traceId},spanId=%X{spanId}]%n"
+
+# ETA Service Specific Configuration
+eta:
+  calculation:
+    # Base speed in km/h for different vehicle types
+    base-speed:
+      bike: 25.0
+      motorcycle: 35.0
+      car: 40.0
+      truck: 30.0
+      walking: 5.0
+
+    # Service time in minutes for pickup/delivery
+    service-time:
+      pickup: 5.0
+      delivery: 3.0
+
+    # Maximum ETA in minutes
+    max-eta-minutes: 480
+
+    # Minimum ETA in minutes
+    min-eta-minutes: 1
+
+  traffic:
+    # Enable traffic factor calculation
+    enabled: ${TRAFFIC_ENABLED:true}
+
+    # Traffic API configuration (for external services)
+    api:
+      enabled: ${TRAFFIC_API_ENABLED:false}
+      url: ${TRAFFIC_API_URL:}
+      timeout: 5000
+
+    # Traffic factor multipliers
+    factors:
+      low: 1.0
+      medium: 1.3
+      high: 1.7
+      severe: 2.2
+
+    # Traffic level thresholds (vehicles per minute)
+    thresholds:
+      low: 10
+      medium: 25
+      high: 40
+
+    # Peak hours configuration
+    peak-hours:
+      morning-start: "07:00"
+      morning-end: "09:00"
+      evening-start: "17:00"
+      evening-end: "19:00"
+      peak-multiplier: 1.4
+
+  # Distance calculation settings
+  distance:
+    # Use Haversine formula for distance calculation
+    method: haversine
+
+    # Earth radius in km
+    earth-radius-km: 6371.0
+
+  # Historical data settings
+  history:
+    # Keep history for this many days
+    retention-days: 90
+
+    # Use historical data for ETA calculation
+    enabled: ${HISTORICAL_DATA_ENABLED:true}
+
+    # Weight of historical data in calculation (0.0 - 1.0)
+    weight: 0.3
+
+  # Real-time updates
+  real-time:
+    # Enable real-time ETA updates via WebSocket
+    enabled: ${REAL_TIME_ENABLED:true}
+
+    # Update interval in seconds
+    update-interval: 30
+
+    # Threshold for significant ETA change (percentage)
+    significant-change-threshold: 10

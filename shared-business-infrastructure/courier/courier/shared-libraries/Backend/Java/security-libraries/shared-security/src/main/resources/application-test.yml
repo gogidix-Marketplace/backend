@@ -1,0 +1,52 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:security-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      connection-timeout: 5000
+      idle-timeout: 60000
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+        show_sql: false
+
+  cache:
+    type: simple
+
+  session:
+    store-type: none
+
+logging:
+  level:
+    com.gogidix: INFO
+    org.springframework.security: WARN
+    io.jsonwebtoken: WARN
+  pattern:
+    console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+
+gogidix:
+  security:
+    jwt:
+      secret: test-secret-key-for-testing-purposes-only-not-for-production-use-at-least-256-bits
+      expiration: 300000
+    session:
+      timeout: 300
+      max-sessions: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,22 @@
+{
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit",
+                    "lint":  "next lint",
+                    "build":  "next build",
+                    "dev":  "next dev",
+                    "start":  "next start"
+                },
+    "name":  "@cargonexus/courier-partner-dashboard",
+    "version":  "0.1.0",
+    "dependencies":  {
+                         "react-dom":  "^18.3.1",
+                         "@types/react-dom":  "^18.3.0",
+                         "typescript":  "^5.4.5",
+                         "@cargonexus/frontend-shared":  "workspace:*",
+                         "@types/react":  "^18.3.3",
+                         "react":  "^18.3.1",
+                         "next":  "14.2.3"
+                     },
+    "private":  true,
+    "description":  "Courier partner operations - dispatch, fleet, analytics"
+}

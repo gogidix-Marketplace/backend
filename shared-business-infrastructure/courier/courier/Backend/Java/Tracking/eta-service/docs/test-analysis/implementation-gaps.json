@@ -1,0 +1,14 @@
+{
+  "serviceName": "eta-service",
+  "analysisDate": "2026-03-06T12:56:12Z",
+  "summary": {
+    "totalFiles": 27,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

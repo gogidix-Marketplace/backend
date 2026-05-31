@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: pricing-engine-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: test_pricing_engine
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix.shared.courier.pricing: DEBUG

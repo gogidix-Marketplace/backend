@@ -1,0 +1,2 @@
+# Value objects for ETA domain
+# This directory will contain value objects like ETACalculation, TimeWindow, etc.

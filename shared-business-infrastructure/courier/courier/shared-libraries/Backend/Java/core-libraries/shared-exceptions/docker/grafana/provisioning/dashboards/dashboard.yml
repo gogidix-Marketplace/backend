@@ -1,0 +1,19 @@
+# Grafana Dashboard Provisioning Configuration
+# Automatically loads dashboards for Shared Exceptions Service
+# Author: Gogidix Development Team
+# Version: 1.0.0
+# Date: 2025-08-13
+
+apiVersion: 1
+
+providers:
+  - name: 'shared-exceptions-dashboards'
+    orgId: 1
+    folder: 'Gogidix Shared Libraries'
+    folderUid: 'gogidix-shared-libs'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

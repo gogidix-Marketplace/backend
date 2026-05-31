@@ -1,0 +1,1 @@
+export interface DispatchOrder { id: string; pickup: string; dropoff: string; status: string; riderId?: string; customerId: string; } export interface Rider { id: string; name: string; phone: string; status: 'available' | 'busy' | 'offline'; vehicleType: string; } export interface FleetVehicle { id: string; plate: string; type: string; status: string; assignedRiderId?: string; }

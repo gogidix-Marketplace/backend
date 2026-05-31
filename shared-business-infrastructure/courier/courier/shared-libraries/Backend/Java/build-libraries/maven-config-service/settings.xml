@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 
+                              http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    
+    <!-- Centralized Maven Configuration Service -->
+    <!-- Optimized for Enterprise Java Microservices Build Performance -->
+    
+    <localRepository>${user.home}/.m2/repository</localRepository>
+    <interactiveMode>false</interactiveMode>
+    <offline>false</offline>
+    
+    <!-- Maven Central Mirror for Enhanced Performance -->
+    <mirrors>
+        <mirror>
+            <id>maven-central-mirror</id>
+            <name>Maven Central Repository Mirror</name>
+            <url>https://repo1.maven.org/maven2</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+    </mirrors>
+    
+    <!-- Optimized Repository Configurations -->
+    <profiles>
+        <profile>
+            <id>optimized-repositories</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            
+            <repositories>
+                <repository>
+                    <id>central</id>
+                    <name>Maven Central Repository</name>
+                    <url>https://repo1.maven.org/maven2</url>
+                    <layout>default</layout>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>daily</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </releases>
+                </repository>
+                
+                <repository>
+                    <id>spring-releases</id>
+                    <name>Spring Releases Repository</name>
+                    <url>https://repo.spring.io/libs-release</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>daily</updatePolicy>
+                    </releases>
+                </repository>
+            </repositories>
+            
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>central</id>
+                    <name>Maven Plugin Repository</name>
+                    <url>https://repo1.maven.org/maven2</url>
+                    <layout>default</layout>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>daily</updatePolicy>
+                    </releases>
+                </pluginRepository>
+            </pluginRepositories>
+            
+            <!-- Performance Optimizations -->
+            <properties>
+                <!-- Parallel downloads -->
+                <maven.artifact.threads>4</maven.artifact.threads>
+                
+                <!-- Network settings -->
+                <http.keepAlive>true</http.keepAlive>
+                <maven.wagon.http.pool>true</maven.wagon.http.pool>
+                <maven.wagon.http.pool.size>20</maven.wagon.http.pool.size>
+                <maven.wagon.httpconnectionManager.maxTotal>20</maven.wagon.httpconnectionManager.maxTotal>
+                <maven.wagon.httpconnectionManager.maxPerRoute>10</maven.wagon.httpconnectionManager.maxPerRoute>
+                
+                <!-- Timeout settings -->
+                <maven.wagon.http.connectionTimeout>300000</maven.wagon.http.connectionTimeout>
+                <maven.wagon.http.readTimeout>1800000</maven.wagon.http.readTimeout>
+                
+                <!-- Retry settings -->
+                <maven.wagon.http.retryHandler.count>3</maven.wagon.http.retryHandler.count>
+                
+                <!-- Logging optimization -->
+                <org.slf4j.simpleLogger.showDateTime>true</org.slf4j.simpleLogger.showDateTime>
+                <org.slf4j.simpleLogger.dateTimeFormat>HH:mm:ss.SSS</org.slf4j.simpleLogger.dateTimeFormat>
+            </properties>
+        </profile>
+    </profiles>
+    
+    <activeProfiles>
+        <activeProfile>optimized-repositories</activeProfile>
+    </activeProfiles>
+    
+</settings>

@@ -1,0 +1,197 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shared-utilities
+  namespace: gogidix-infrastructure
+  labels:
+    app: shared-utilities
+    component: utilities
+    tier: infrastructure
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: shared-utilities
+  template:
+    metadata:
+      labels:
+        app: shared-utilities
+        component: utilities
+        tier: infrastructure
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/utilities/actuator/prometheus"
+        prometheus.io/port: "8707"
+    spec:
+      serviceAccountName: shared-utilities
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+      - name: shared-utilities
+        image: gogidix/shared-utilities:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8707
+          name: http
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: SERVER_PORT
+          value: "8707"
+        - name: MANAGEMENT_PORT
+          value: "8707"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: shared-utilities-config
+              key: db.host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: shared-utilities-config
+              key: db.port
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: shared-utilities-config
+              key: db.name
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: shared-utilities-secrets
+              key: db.username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: shared-utilities-secrets
+              key: db.password
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: shared-utilities-config
+              key: redis.host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: shared-utilities-config
+              key: redis.port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: shared-utilities-secrets
+              key: redis.password
+        - name: TEMP_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: shared-utilities-config
+              key: temp.directory
+        - name: JAVA_OPTS
+          valueFrom:
+            configMapKeyRef:
+              name: shared-utilities-config
+              key: java.opts
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/utilities/actuator/health/liveness
+            port: 8707
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/utilities/actuator/health/readiness
+            port: 8707
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/utilities/actuator/health
+            port: 8707
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 30
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: temp
+          mountPath: /tmp/utilities
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: temp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: config
+        configMap:
+          name: shared-utilities-config
+      imagePullSecrets:
+      - name: gogidix-registry-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shared-utilities-service
+  namespace: gogidix-infrastructure
+  labels:
+    app: shared-utilities
+    component: utilities
+    tier: infrastructure
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8707
+    targetPort: 8707
+    protocol: TCP
+    name: http
+  selector:
+    app: shared-utilities
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shared-utilities-headless
+  namespace: gogidix-infrastructure
+  labels:
+    app: shared-utilities
+    component: utilities
+    tier: infrastructure
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 8707
+    targetPort: 8707
+    protocol: TCP
+    name: http
+  selector:
+    app: shared-utilities

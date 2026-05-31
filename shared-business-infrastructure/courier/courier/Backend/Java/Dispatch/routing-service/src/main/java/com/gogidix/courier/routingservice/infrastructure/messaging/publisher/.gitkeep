@@ -1,0 +1,2 @@
+# Publisher classes for routing service messaging
+# This directory will contain Kafka and message publishers for the routing service

@@ -1,0 +1,1 @@
+export default function pickupsPage() { return <div>pickups</div> }

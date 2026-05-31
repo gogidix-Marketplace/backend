@@ -1,0 +1,14 @@
+{
+  "serviceName": "pricing-engine-service",
+  "analysisDate": "2026-03-06T12:39:31Z",
+  "summary": {
+    "totalFiles": 36,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

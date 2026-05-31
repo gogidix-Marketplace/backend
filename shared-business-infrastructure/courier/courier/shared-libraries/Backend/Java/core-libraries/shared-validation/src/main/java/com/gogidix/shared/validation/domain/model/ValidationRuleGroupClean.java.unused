@@ -1,0 +1,265 @@
+package com.gogidix.shared.validation.domain.model;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+/**
+ * Clean domain model representing a group of related validation rules.
+ * 
+ * This immutable entity encapsulates validation rule grouping logic following
+ * Domain Driven Design principles with zero external dependencies.
+ * 
+ * @author Gogidix Development Team
+ * @version 2.0.0
+ * @since 2024-01-01
+ */
+public final class ValidationRuleGroupClean {
+    
+    private final String groupId;
+    private final String groupName;
+    private final String description;
+    private final List<ValidationRuleClean> rules;
+    private final Map<String, Object> metadata;
+    private final GroupPriority priority;
+    private final boolean isActive;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
+    private final String version;
+    
+    // Private constructor enforces immutability
+    private ValidationRuleGroupClean(Builder builder) {
+        this.groupId = Objects.requireNonNull(builder.groupId, "Group ID cannot be null");
+        this.groupName = Objects.requireNonNull(builder.groupName, "Group name cannot be null");
+        this.description = builder.description;
+        this.rules = Collections.unmodifiableList(new ArrayList<>(builder.rules));
+        this.metadata = Collections.unmodifiableMap(new ConcurrentHashMap<>(builder.metadata));
+        this.priority = Objects.requireNonNull(builder.priority, "Priority cannot be null");
+        this.isActive = builder.isActive;
+        this.createdAt = Objects.requireNonNull(builder.createdAt, "Created timestamp cannot be null");
+        this.updatedAt = builder.updatedAt;
+        this.version = Objects.requireNonNull(builder.version, "Version cannot be null");
+        
+        validateInvariant();
+    }
+    
+    // Business invariant validation
+    private void validateInvariant() {
+        if (groupName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Group name cannot be empty");
+        }
+        if (rules.isEmpty()) {
+            throw new IllegalArgumentException("Rule group must contain at least one rule");
+        }
+        if (createdAt.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Created timestamp cannot be in the future");
+        }
+    }
+    
+    // Rich business logic methods
+    
+    /**
+     * Validates input against all rules in this group.
+     */
+    public ValidationResultClean validateInput(Object input, ValidationContextClean context) {
+        List<ValidationResultClean> results = new ArrayList<>();
+        
+        for (ValidationRuleClean rule : rules) {
+            if (rule.isActive()) {
+                ValidationResultClean result = rule.validate(input, context);
+                results.add(result);
+                
+                // Fast fail on critical errors if group is set to do so
+                if (!result.isValid() && priority == GroupPriority.CRITICAL) {
+                    break;
+                }
+            }
+        }
+        
+        return combineResults(results);
+    }
+    
+    /**
+     * Combines multiple validation results into a single result.
+     */
+    private ValidationResultClean combineResults(List<ValidationResultClean> results) {
+        boolean allValid = results.stream().allMatch(ValidationResultClean::isValid);
+        
+        List<String> allErrors = results.stream()
+            .flatMap(r -> r.getErrorMessages().stream())
+            .collect(Collectors.toList());
+            
+        List<String> allWarnings = results.stream()
+            .flatMap(r -> r.getWarningMessages().stream())
+            .collect(Collectors.toList());
+            
+        return ValidationResultClean.builder()
+            .valid(allValid)
+            .errorMessages(allErrors)
+            .warningMessages(allWarnings)
+            .metadata(combineMetadata(results))
+            .build();
+    }
+    
+    /**
+     * Combines metadata from multiple validation results.
+     */
+    private Map<String, Object> combineMetadata(List<ValidationResultClean> results) {
+        Map<String, Object> combinedMetadata = new HashMap<>();
+        results.forEach(result -> combinedMetadata.putAll(result.getMetadata()));
+        return combinedMetadata;
+    }
+    
+    /**
+     * Checks if this group can validate the given input type.
+     */
+    public boolean canValidate(Class<?> inputType) {
+        return rules.stream().anyMatch(rule -> rule.supportsType(inputType));
+    }
+    
+    /**
+     * Returns active rules count in this group.
+     */
+    public int getActiveRulesCount() {
+        return (int) rules.stream().filter(ValidationRuleClean::isActive).count();
+    }
+    
+    /**
+     * Returns rules filtered by specific criteria.
+     */
+    public List<ValidationRuleClean> getRulesByType(String ruleType) {
+        return rules.stream()
+            .filter(rule -> rule.getRuleType().equals(ruleType))
+            .collect(Collectors.toList());
+    }
+    
+    // Getters (immutable access)
+    public String getGroupId() { return groupId; }
+    public String getGroupName() { return groupName; }
+    public String getDescription() { return description; }
+    public List<ValidationRuleClean> getRules() { return rules; }
+    public Map<String, Object> getMetadata() { return metadata; }
+    public GroupPriority getPriority() { return priority; }
+    public boolean isActive() { return isActive; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public String getVersion() { return version; }
+    
+    // Builder pattern for construction
+    public static Builder builder() {
+        return new Builder();
+    }
+    
+    public static class Builder {
+        private String groupId;
+        private String groupName;
+        private String description;
+        private List<ValidationRuleClean> rules = new ArrayList<>();
+        private Map<String, Object> metadata = new HashMap<>();
+        private GroupPriority priority = GroupPriority.NORMAL;
+        private boolean isActive = true;
+        private LocalDateTime createdAt = LocalDateTime.now();
+        private LocalDateTime updatedAt;
+        private String version = "1.0.0";
+        
+        public Builder groupId(String groupId) {
+            this.groupId = groupId;
+            return this;
+        }
+        
+        public Builder groupName(String groupName) {
+            this.groupName = groupName;
+            return this;
+        }
+        
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+        
+        public Builder rules(List<ValidationRuleClean> rules) {
+            this.rules = new ArrayList<>(rules);
+            return this;
+        }
+        
+        public Builder addRule(ValidationRuleClean rule) {
+            this.rules.add(rule);
+            return this;
+        }
+        
+        public Builder metadata(Map<String, Object> metadata) {
+            this.metadata = new HashMap<>(metadata);
+            return this;
+        }
+        
+        public Builder priority(GroupPriority priority) {
+            this.priority = priority;
+            return this;
+        }
+        
+        public Builder active(boolean isActive) {
+            this.isActive = isActive;
+            return this;
+        }
+        
+        public Builder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+        
+        public Builder updatedAt(LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+        
+        public Builder version(String version) {
+            this.version = version;
+            return this;
+        }
+        
+        public ValidationRuleGroupClean build() {
+            return new ValidationRuleGroupClean(this);
+        }
+    }
+    
+    // Domain enums
+    public enum GroupPriority {
+        LOW(1),
+        NORMAL(2),
+        HIGH(3),
+        CRITICAL(4);
+        
+        private final int level;
+        
+        GroupPriority(int level) {
+            this.level = level;
+        }
+        
+        public int getLevel() { return level; }
+        
+        public boolean isHigherThan(GroupPriority other) {
+            return this.level > other.level;
+        }
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ValidationRuleGroupClean that = (ValidationRuleGroupClean) o;
+        return Objects.equals(groupId, that.groupId) &&
+               Objects.equals(version, that.version);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(groupId, version);
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("ValidationRuleGroupClean{groupId='%s', groupName='%s', rulesCount=%d, priority=%s, active=%s}", 
+                           groupId, groupName, rules.size(), priority, isActive);
+    }
+}

@@ -1,0 +1,1 @@
+export interface Package { id: string; trackingCode: string; status: 'received' | 'in-transit' | 'ready-for-pickup' | 'delivered'; senderName: string; receiverName: string; } export interface CollectionCenter { id: string; name: string; address: string; capacity: number; currentLoad: number; }

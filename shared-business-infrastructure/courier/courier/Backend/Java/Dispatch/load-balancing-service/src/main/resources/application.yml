@@ -1,0 +1,105 @@
+# =============================================================================
+# Load Balancing Service Configuration
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8103}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: load-balancing-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:load_balancing}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
+      auto-index-creation: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        delivery.timeout.ms: 30000
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topic:
+      load-balance-events: load-balance-events
+
+  # Cache Configuration
+  cache:
+    type: simple
+    cache-names: balancingRules,driverCapacity
+
+  # Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.courier: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: ${MONGO_LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg [tenantId=%X{tenantId}][traceId=%X{traceId},spanId=%X{spanId}]%n"
+
+# Service Specific Configuration
+load-balancing:
+  strategy:
+    type: ${BALANCING_STRATEGY:LEAST_LOADED}
+    options:
+      consider-performance: ${CONSIDER_PERFORMANCE:true}
+      consider-proximity: ${CONSIDER_PROXIMITY:true}
+      max-drivers-per-zone: ${MAX_DRIVERS_PER_ZONE:50}
+  distribution:
+    batch-size: ${DISTRIBUTION_BATCH_SIZE:100}
+    timeout-seconds: ${DISTRIBUTION_TIMEOUT:30}
+  capacity:
+    default-max: ${DEFAULT_MAX_CAPACITY:10}
+    overload-threshold: ${OVERLOAD_THRESHOLD:0.8}

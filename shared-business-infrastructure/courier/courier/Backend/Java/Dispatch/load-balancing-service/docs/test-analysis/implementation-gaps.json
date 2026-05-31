@@ -1,0 +1,14 @@
+{
+  "serviceName": "load-balancing-service",
+  "analysisDate": "2026-03-06T11:41:54Z",
+  "summary": {
+    "totalFiles": 5,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

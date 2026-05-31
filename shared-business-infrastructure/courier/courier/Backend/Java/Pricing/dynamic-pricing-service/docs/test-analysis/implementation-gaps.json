@@ -1,0 +1,14 @@
+{
+  "serviceName": "dynamic-pricing-service",
+  "analysisDate": "2026-03-06T12:34:04Z",
+  "summary": {
+    "totalFiles": 11,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

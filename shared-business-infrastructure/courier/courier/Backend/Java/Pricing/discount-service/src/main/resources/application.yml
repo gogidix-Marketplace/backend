@@ -1,0 +1,113 @@
+# =============================================================================
+# Discount Service Configuration
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8113}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: discount-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:discount_service}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
+      auto-index-creation: true
+
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topic:
+      discount-events: discount-events
+
+  # Cache Configuration
+  cache:
+    type: redis
+    cache-names: discountCodes,discountValidation
+    redis:
+      time-to-live: 600000
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.courier: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: ${MONGO_LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg [tenantId=%X{tenantId}][traceId=%X{traceId},spanId=%X{spanId}]%n"
+
+# Service Specific Configuration
+discount:
+  validation:
+    max-uses-per-code: ${MAX_USES_PER_CODE:1000}
+    max-uses-per-user: ${MAX_USES_PER_USER:5}
+    cache-ttl-seconds: ${CACHE_TTL_SECONDS:300}
+  expiry:
+    default-days: ${DEFAULT_EXPIRY_DAYS:30}
+    max-days: ${MAX_DAYS:365}

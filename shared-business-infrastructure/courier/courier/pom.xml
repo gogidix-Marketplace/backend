@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gogidix.cargo.courier</groupId>
+    <artifactId>courier-domain</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Courier Domain</name>
+    <description>CargoNexus Courier Domain</description>
+
+    <modules>
+        <module>api-gateway</module>
+        <module>shared-libraries/Backend/Java</module>
+        <!-- Dispatch -->
+        <module>Backend/Java/Dispatch/assignment-service</module>
+        <module>Backend/Java/Dispatch/dispatch-core-service</module>
+        <module>Backend/Java/Dispatch/load-balancing-service</module>
+        <module>Backend/Java/Dispatch/routing-service</module>
+        <!-- Driver -->
+        <module>Backend/Java/Driver/availability-service</module>
+        <module>Backend/Java/Driver/driver-pool-service</module>
+        <module>Backend/Java/Driver/performance-service</module>
+        <!-- Partner -->
+        <module>Backend/Java/Partner/commission-service</module>
+        <module>Backend/Java/Partner/partner-portal-service</module>
+        <!-- Pricing -->
+        <module>Backend/Java/Pricing/discount-service</module>
+        <module>Backend/Java/Pricing/dynamic-pricing-service</module>
+        <module>Backend/Java/Pricing/pricing-engine-service</module>
+        <!-- PublicAPI -->
+        <module>Backend/Java/PublicAPI/public-booking-service</module>
+        <module>Backend/Java/PublicAPI/public-quote-service</module>
+        <module>Backend/Java/PublicAPI/public-tracking-service</module>
+        <!-- Tenant -->
+        <module>Backend/Java/Tenant/tenant-config-service</module>
+        <!-- Tracking -->
+        <module>Backend/Java/Tracking/eta-service</module>
+        <module>Backend/Java/Tracking/gps-tracking-service</module>
+        <module>Backend/Java/Tracking/location-service</module>
+        <module>Backend/Java/Tracking/notification-service</module>
+        <!-- Ecommerce Integration -->
+        <module>Backend/Java/Ecommerce/ecommerce-integration-service</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring.boot.version>3.1.5</spring.boot.version>
+        <spring.cloud.version>2022.0.4</spring.cloud.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Courier-Domain</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages - CargoNexus-Courier-Domain</name>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Courier-Domain</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Packages - CargoNexus-Courier-Domain Snapshots</name>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Courier-Domain</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring.boot.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

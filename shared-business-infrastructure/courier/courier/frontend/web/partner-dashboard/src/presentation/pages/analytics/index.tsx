@@ -1,0 +1,1 @@
+export default function analyticsPage() { return <div>analytics</div> }

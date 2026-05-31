@@ -1,0 +1,378 @@
+# =============================================================================
+# GOGIDIX SHARED MODEL LIBRARY - COMPREHENSIVE CONFIGURATION
+# =============================================================================
+# Service: shared-model-service
+# Port: 8704 (Shared Model Library Service)
+# Domain: shared-libraries
+# Architecture: Hexagonal Architecture with Domain-Driven Design
+# =============================================================================
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+server:
+  port: ${SERVER_PORT:8704}
+  servlet:
+    context-path: /shared-model
+  shutdown: graceful
+  http2:
+    enabled: true
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+
+# =============================================================================
+# SPRING BOOT CONFIGURATION
+# =============================================================================
+spring:
+  application:
+    name: shared-model-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+
+  main:
+    banner-mode: console
+    allow-bean-definition-overriding: false
+
+  # =============================================================================
+  # SERVICE DISCOVERY CONFIGURATION (EUREKA)
+  # =============================================================================
+  cloud:
+    discovery:
+      enabled: true
+
+  # =============================================================================
+  # DATABASE CONFIGURATION (H2 FOR TESTING)
+  # =============================================================================
+  datasource:
+    url: jdbc:h2:mem:shared_model_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    hikari:
+      pool-name: SharedModelHikariPool
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  # =============================================================================
+  # JPA CONFIGURATION
+  # =============================================================================
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        generate_statistics: false
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+
+  # =============================================================================
+  # H2 CONSOLE CONFIGURATION (FOR TESTING)
+  # =============================================================================
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        trace: false
+        web-allow-others: false
+
+  # =============================================================================
+  # JACKSON JSON CONFIGURATION
+  # =============================================================================
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      write-durations-as-timestamps: false
+      indent-output: true
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+      accept-empty-string-as-null-object: true
+    default-property-inclusion: non_null
+    date-format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+    time-zone: UTC
+    property-naming-strategy: SNAKE_CASE
+
+  # =============================================================================
+  # VALIDATION CONFIGURATION
+  # =============================================================================
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+
+# =============================================================================
+# EUREKA CLIENT CONFIGURATION
+# =============================================================================
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 30
+    heartbeat-executor-thread-pool-size: 2
+    cache-refresh-executor-thread-pool-size: 2
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    instance-id: ${spring.application.name}:${server.port}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    health-check-url-path: /shared-model/actuator/health
+    status-page-url-path: /shared-model/actuator/info
+    metadata-map:
+      version: '@project.version@'
+      description: 'Shared Model Library Service'
+      domain: 'shared-libraries'
+      architecture: 'hexagonal'
+
+# =============================================================================
+# ACTUATOR CONFIGURATION
+# =============================================================================
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus,env,beans,configprops,threaddump,heapdump
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  health:
+    defaults:
+      enabled: true
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    build:
+      enabled: true
+    git:
+      enabled: true
+      mode: full
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+      service: shared-model
+      domain: shared-libraries
+    export:
+      prometheus:
+        enabled: true
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level:
+    root: INFO
+    com.gogidix.libraries.sharedmodel: DEBUG
+    org.springframework.web: INFO
+    org.springframework.cloud.netflix.eureka: INFO
+    org.springframework.boot.actuate: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.data.jpa: DEBUG
+    org.springframework.validation: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [%X{traceId:-},%X{spanId:-}] - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [%X{traceId:-},%X{spanId:-}] - %msg%n'
+  file:
+    name: logs/shared-model-service.log
+    max-size: 100MB
+    max-history: 30
+
+# =============================================================================
+# SPRINGDOC OPENAPI CONFIGURATION
+# =============================================================================
+springdoc:
+  api-docs:
+    enabled: true
+    path: /shared-model/v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /shared-model/swagger-ui.html
+    display-request-duration: true
+    display-operation-id: true
+    show-extensions: true
+    show-common-extensions: true
+  packages-to-scan: com.gogidix.libraries.sharedmodel
+  paths-to-match: /api/**
+
+# =============================================================================
+# GOGIDIX SHARED MODEL LIBRARY CONFIGURATION
+# =============================================================================
+gogidix:
+  shared-model:
+    service:
+      name: "Gogidix Shared Model Library"
+      version: "1.0.0"
+      description: "Common domain models, DTOs, and data structures for the Gogidix ecosystem"
+      
+    # Domain Model Configuration
+    domain:
+      validation:
+        enabled: true
+        strict-mode: true
+        validate-on-persist: true
+        validate-on-update: true
+      
+      auditing:
+        enabled: true
+        date-time-provider: "system"
+        auditor-provider: "spring-security"
+      
+      soft-delete:
+        enabled: true
+        global: true
+        
+    # Entity Configuration  
+    entities:
+      base-entity:
+        id-generation-strategy: "UUID"
+        version-control: true
+        audit-fields: true
+        soft-delete: true
+        
+    # Currency Configuration
+    currency:
+      default: "USD"
+      supported:
+        - "USD"
+        - "EUR" 
+        - "GBP"
+        - "CAD"
+        - "AUD"
+        - "JPY"
+        - "NGN"
+      precision: 2
+      rounding-mode: "HALF_UP"
+      
+    # Location Configuration
+    location:
+      default-country: "US"
+      supported-countries:
+        - "US"
+        - "CA"
+        - "GB"
+        - "DE"
+        - "FR"
+        - "AU"
+        - "NG"
+      coordinate-precision: 6
+      
+    # JSON Serialization
+    serialization:
+      date-format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+      timezone: "UTC"
+      null-handling: "EXCLUDE"
+      enum-format: "STRING"
+      
+    # Validation Rules
+    validation:
+      order:
+        max-items: 100
+        max-order-value: 50000.00
+        required-fields:
+          - "customerEmail"
+          - "currencyCode"
+          - "totalAmount"
+      product:
+        max-name-length: 255
+        max-description-length: 2000
+        required-fields:
+          - "name"
+          - "status"
+      user:
+        max-username-length: 50
+        max-email-length: 100
+        required-fields:
+          - "email"
+          - "status"
+          
+    # Caching Configuration
+    cache:
+      enabled: true
+      ttl-seconds: 3600
+      max-entries: 10000
+      eviction-policy: "LRU"
+      
+    # Performance Configuration
+    performance:
+      pagination:
+        default-page-size: 20
+        max-page-size: 100
+      lazy-loading: true
+      batch-size: 25
+
+# =============================================================================
+# ENVIRONMENT SPECIFIC OVERRIDES
+# =============================================================================
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+      
+logging:
+  level:
+    root: WARN
+    com.gogidix.libraries.sharedmodel: INFO
+    org.hibernate.SQL: ERROR
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+gogidix:
+  shared-model:
+    domain:
+      validation:
+        strict-mode: true
+    performance:
+      lazy-loading: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+      
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+      
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.springframework.test: DEBUG

@@ -1,0 +1,74 @@
+spring:
+  profiles:
+    active: test
+
+# Disable external dependencies for testing
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    
+  data:
+    redis:
+      host: localhost
+      port: 6381  # Different port for testing isolation
+  
+  kafka:
+    bootstrap-servers: localhost:9094  # Different port for test isolation
+
+# Test-specific Gogidix Configuration
+gogidix:
+  testing:
+    testcontainers:
+      enabled: true
+      reuse: false  # Don't reuse containers in test profile for isolation
+      cleanup: true
+    
+    wiremock:
+      enabled: true
+      port: 8090  # Different port to avoid conflicts
+      record-mappings: false
+      verbose-logging: true  # More verbose in test
+    
+    database:
+      seed-data: false  # Don't seed data in tests by default
+      cleanup-after-test: true
+      isolation-level: READ_COMMITTED
+    
+    integration:
+      timeout: 10000  # Shorter timeout for tests
+      retry-attempts: 1  # No retries in tests for faster feedback
+      parallel-execution: false  # Disable parallel execution in test
+    
+    security:
+      mock-authentication: true
+      mock-authorization: true
+      test-jwt-secret: test-jwt-secret-for-unit-tests-only-256-bits-long
+    
+    mock-services:
+      external-apis: true
+      third-party-services: true
+      payment-gateways: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.gogidix.testing: DEBUG
+    org.testcontainers: INFO
+    org.springframework: WARN
+    org.springframework.test: INFO
+    org.springframework.boot.test: INFO
+    com.github.tomakehurst.wiremock: INFO
+    org.hibernate.SQL: WARN

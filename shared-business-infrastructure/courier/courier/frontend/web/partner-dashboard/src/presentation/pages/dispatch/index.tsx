@@ -1,0 +1,1 @@
+export default function dispatchPage() { return <div>dispatch</div> }

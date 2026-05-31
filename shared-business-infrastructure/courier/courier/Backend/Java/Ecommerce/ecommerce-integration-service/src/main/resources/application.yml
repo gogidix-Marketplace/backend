@@ -1,0 +1,80 @@
+server:
+  port: ${SERVICE_PORT:8115}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: ecommerce-integration-service
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
+      database: ${MONGODB_DB:ecommerce_integration}
+      auto-index-creation: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        delivery.timeout.ms: 30000
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+
+  cache:
+    type: simple
+    cache-names: courierAvailability, trackingCache
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+logging:
+  level:
+    root: INFO
+    com.gogidix.shared.courier.ecommerce: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: ${MONGO_LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:INFO}
+
+ecommerce:
+  courier:
+    assignment-timeout-minutes: ${ASSIGNMENT_TIMEOUT_MINUTES:5}
+    max-retries: ${MAX_RETRIES:3}
+    default-vehicle-type: ${DEFAULT_VEHICLE_TYPE:MOTORCYCLE}
+  tracking:
+    retention-days: ${TRACKING_RETENTION_DAYS:90}

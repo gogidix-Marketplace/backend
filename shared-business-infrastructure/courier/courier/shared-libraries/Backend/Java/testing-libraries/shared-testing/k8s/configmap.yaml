@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shared-testing-config
+  namespace: shared-libraries
+data:
+  application.yml: |
+    gogidix:
+      shared-testing:
+        enabled: true
+        config:
+          key: value

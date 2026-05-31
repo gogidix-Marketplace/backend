@@ -1,0 +1,115 @@
+# =============================================================================
+# GPS Tracking Service Configuration
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8109}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: gps-tracking-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:gps_tracking}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
+      auto-index-creation: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        delivery.timeout.ms: 30000
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topic:
+      gps-tracking-events: gps-tracking-events
+
+  # Cache Configuration
+  cache:
+    type: simple
+    cache-names: gpsLocations, trackingSessions
+
+  # Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.courier: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: ${MONGO_LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg [tenantId=%X{tenantId}][userId=%X{userId}][traceId=%X{traceId},spanId=%X{spanId}]%n"
+
+# Service Specific Configuration
+gps:
+  tracking:
+    # Location retention settings
+    retention:
+      days: ${GPS_RETENTION_DAYS:30}
+      history-days: ${GPS_HISTORY_DAYS:90}
+
+    # Session timeout settings
+    session:
+      timeout-minutes: ${GPS_SESSION_TIMEOUT:30}
+      stale-location-minutes: ${GPS_STALE_LOCATION_MINUTES:5}
+
+    # Nearby search settings
+    search:
+      max-radius-meters: ${GPS_MAX_RADIUS:50000}
+      default-radius-meters: ${GPS_DEFAULT_RADIUS:5000}
+      max-results: ${GPS_MAX_RESULTS:100}
+
+    # Location validation settings
+    validation:
+      min-accuracy: ${GPS_MIN_ACCURACY:500}
+      max-speed: ${GPS_MAX_SPEED:50}
+      min-distance-between-updates: ${GPS_MIN_DISTANCE:5}

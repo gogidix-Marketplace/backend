@@ -1,0 +1,1 @@
+export default function ridersPage() { return <div>riders</div> }

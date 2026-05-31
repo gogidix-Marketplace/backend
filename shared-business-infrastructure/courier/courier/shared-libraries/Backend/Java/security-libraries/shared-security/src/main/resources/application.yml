@@ -1,0 +1,232 @@
+# =============================================================================
+# GOGIDIX SHARED SECURITY LIBRARY - COMPREHENSIVE CONFIGURATION
+# =============================================================================
+# Service: shared-security-service
+# Port: 8302 (Shared Security Library Service)
+# Domain: shared-libraries
+# Architecture: Hexagonal Architecture with Security-First Design
+# =============================================================================
+
+server:
+  port: ${SERVER_PORT:8302}
+  servlet:
+    context-path: /shared-security
+  shutdown: graceful
+
+spring:
+  application:
+    name: shared-security-service
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+
+  # =============================================================================
+  # SECURITY CONFIGURATION
+  # =============================================================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8302/shared-security}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8302/shared-security/.well-known/jwks.json}
+
+  # =============================================================================
+  # SESSION MANAGEMENT WITH REDIS
+  # =============================================================================
+  session:
+    store-type: redis
+    redis:
+      namespace: "gogidix:security:session"
+      flush-mode: on_save
+      save-mode: on_set_attribute
+    timeout: 30m
+
+  # =============================================================================
+  # REDIS CONFIGURATION
+  # =============================================================================
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:1}
+    timeout: 10s
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+        max-wait: 2s
+
+  # =============================================================================
+  # CACHE CONFIGURATION
+  # =============================================================================
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600s
+      cache-null-values: false
+      key-prefix: "gogidix:security:cache:"
+
+  # =============================================================================
+  # KAFKA CONFIGURATION
+  # =============================================================================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+    consumer:
+      group-id: shared-security-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.gogidix.libraries.sharedsecurity"
+
+# =============================================================================
+# EUREKA CLIENT CONFIGURATION
+# =============================================================================
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    instance-id: ${spring.application.name}:${server.port}
+    prefer-ip-address: true
+    metadata-map:
+      version: '@project.version@'
+      description: 'Shared Security Library Service'
+      domain: 'shared-libraries'
+      architecture: 'hexagonal'
+
+# =============================================================================
+# ACTUATOR CONFIGURATION
+# =============================================================================
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus,security
+  endpoint:
+    health:
+      show-details: always
+    security:
+      enabled: true
+  security:
+    enabled: true
+  metrics:
+    tags:
+      service: shared-security
+      domain: shared-libraries
+
+# =============================================================================
+# JWT CONFIGURATION
+# =============================================================================
+gogidix:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:gogidix-shared-security-jwt-secret-key-change-in-production}
+      expiration: ${JWT_EXPIRATION:86400000}  # 24 hours
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days
+      issuer: ${JWT_ISSUER:gogidix-security-service}
+      audience: ${JWT_AUDIENCE:gogidix-ecosystem}
+      algorithm: HS512
+
+    # Rate Limiting Configuration
+    rate-limiting:
+      enabled: true
+      login-attempts:
+        max-attempts: 5
+        window-minutes: 15
+        block-duration-minutes: 30
+      api-calls:
+        requests-per-minute: 100
+        burst-capacity: 150
+
+    # CORS Configuration
+    cors:
+      allowed-origins:
+        - http://localhost:3000
+        - http://localhost:8080
+        - http://localhost:8100
+      allowed-methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowed-headers:
+        - "*"
+      allow-credentials: true
+      max-age: 3600
+
+    # Session Configuration
+    session:
+      concurrent-sessions: 3
+      maximum-sessions: 5
+      prevent-login-if-maximum-exceeded: false
+      invalidate-on-logout: true
+
+    # Password Policy
+    password-policy:
+      min-length: 8
+      require-uppercase: true
+      require-lowercase: true
+      require-digits: true
+      require-special-chars: true
+      forbidden-patterns:
+        - "password"
+        - "123456"
+        - "admin"
+
+    # Account Security
+    account-security:
+      max-login-attempts: 5
+      account-lockout-duration-minutes: 30
+      password-expiry-days: 90
+      require-2fa: false
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level:
+    com.gogidix.libraries.sharedsecurity: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [%X{traceId:-},%X{spanId:-}] - %msg%n'
+
+# =============================================================================
+# ENVIRONMENT SPECIFIC OVERRIDES
+# =============================================================================
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+
+gogidix:
+  security:
+    jwt:
+      secret: ${JWT_SECRET_PRODUCTION}
+    rate-limiting:
+      api-calls:
+        requests-per-minute: 200
+    account-security:
+      require-2fa: true
+
+logging:
+  level:
+    root: WARN
+    com.gogidix.libraries.sharedsecurity: INFO

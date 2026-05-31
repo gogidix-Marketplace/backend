@@ -1,0 +1,14 @@
+{
+  "serviceName": "performance-service",
+  "analysisDate": "2026-03-06T12:26:44Z",
+  "summary": {
+    "totalFiles": 5,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

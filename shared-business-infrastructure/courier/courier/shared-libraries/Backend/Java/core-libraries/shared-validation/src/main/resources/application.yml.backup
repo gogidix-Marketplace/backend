@@ -1,0 +1,138 @@
+server:
+  port: 8708
+
+spring:
+  application:
+    name: shared-validation-service
+  
+  profiles:
+    active: development
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      write-durations-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+
+  messages:
+    basename: validation-messages,messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
+# =============================================================================
+# EUREKA CLIENT CONFIGURATION
+# =============================================================================
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    instance-id: ${spring.application.name}:${server.port}
+    prefer-ip-address: true
+    metadata-map:
+      version: '@project.version@'
+      description: 'Shared Validation Library Service'
+      domain: 'shared-libraries'
+      architecture: 'hexagonal'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+logging:
+  level:
+    com.gogidix.validation: DEBUG
+    com.gogidix.ecosystem.shared.validation: DEBUG
+    org.hibernate.validator: INFO
+    org.springframework.validation: INFO
+    jakarta.validation: INFO
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n'
+
+# Gogidix Validation Configuration
+gogidix:
+  validation:
+    # Global validation settings
+    fail-fast: false
+    locale: en_US
+    message-interpolation: true
+    
+    # Email validation settings
+    email:
+      allow-local-domains: false
+      max-length: 254
+      strict-mode: true
+      
+    # Phone validation settings
+    phone:
+      default-region: US
+      allow-international: true
+      format-output: E164
+      
+    # Address validation settings
+    address:
+      require-postal-code: true
+      validate-country-codes: true
+      normalize-format: true
+      
+    # Credit card validation settings
+    credit-card:
+      validate-luhn: true
+      allowed-types:
+        - VISA
+        - MASTERCARD
+        - AMEX
+        - DISCOVER
+      mask-numbers: true
+      
+    # Password validation settings
+    password:
+      min-length: 8
+      max-length: 128
+      require-uppercase: true
+      require-lowercase: true
+      require-numbers: true
+      require-special-chars: true
+      forbidden-patterns:
+        - "password"
+        - "123456"
+        - "qwerty"
+        
+    # Business validation settings
+    business:
+      product-name-max-length: 255
+      sku-pattern: "^[A-Z0-9]{3,20}$"
+      price-max-decimals: 2
+      quantity-max-value: 999999
+      
+    # File upload validation
+    file-upload:
+      max-file-size: 10MB
+      allowed-types:
+        - image/jpeg
+        - image/png
+        - image/gif
+        - application/pdf
+        - text/csv
+      scan-for-viruses: true
+      
+    # Cross-field validation
+    cross-field:
+      date-range-validation: true
+      conditional-required: true
+      mutual-exclusion: true

@@ -1,0 +1,14 @@
+{
+  "serviceName": "routing-service",
+  "analysisDate": "2026-03-06T12:02:45Z",
+  "summary": {
+    "totalFiles": 23,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

@@ -1,0 +1,150 @@
+# Docker Compose for Shared Validation Library
+# Local development environment with dependencies
+# Spring Boot 3.1.5 with Java 17
+
+version: '3.8'
+
+networks:
+  validation-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+
+services:
+  # =====================================
+  # DATABASE SERVICES
+  # =====================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: shared-validation-postgres
+    environment:
+      POSTGRES_DB: gogidix_validation
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      validation-network:
+        ipv4_address: 172.23.0.10
+
+  # =====================================
+  # CACHE SERVICES
+  # =====================================
+  redis:
+    image: redis:7-alpine
+    container_name: shared-validation-redis
+    command: redis-server --appendonly yes --requirepass redis123
+    ports:
+      - "6382:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      validation-network:
+        ipv4_address: 172.23.0.11
+
+  # =====================================
+  # APPLICATION SERVICE
+  # =====================================
+  shared-validation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: shared-validation-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Spring profiles
+      SPRING_PROFILES_ACTIVE: docker
+      
+      # Database configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      
+      # Redis configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      
+      # JVM configuration
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:+UseStringDeduplication"
+      JVM_MEMORY: "-Xmx512m -Xms256m"
+      
+      # Application configuration
+      SERVER_PORT: 8708
+      MANAGEMENT_PORT: 8708
+      
+      # Validation-specific configuration
+      VALIDATION_STRICT_MODE: false
+      
+    ports:
+      - "8708:8708"
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8708/api/validation/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      validation-network:
+        ipv4_address: 172.23.0.20
+
+  # =====================================
+  # DEVELOPMENT TOOLS
+  # =====================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: shared-validation-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gogidix.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5053:80"
+    depends_on:
+      - postgres
+    networks:
+      validation-network:
+        ipv4_address: 172.23.0.21
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: shared-validation-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379:4:redis123
+    ports:
+      - "8084:8081"
+    depends_on:
+      - redis
+    networks:
+      validation-network:
+        ipv4_address: 172.23.0.22

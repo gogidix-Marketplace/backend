@@ -1,0 +1,1 @@
+export interface Delivery { id: string; pickup: string; dropoff: string; status: string; earnings: number; } export interface RiderEarnings { today: number; week: number; month: number; deliveries: number; }

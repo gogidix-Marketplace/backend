@@ -1,0 +1,366 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>com.gogidix.shared</groupId>
+        <artifactId>shared-libraries-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>shared-validation-service</artifactId>
+    <packaging>jar</packaging>
+    
+    <name>Gogidix Shared Validation Library Service</name>
+    <description>Validation rules, constraints, and validation utilities for the Gogidix Social E-commerce Ecosystem</description>
+    
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2022.0.4</spring-cloud.version>
+        <hibernate-validator.version>8.0.1.Final</hibernate-validator.version>
+        <sonar.projectKey>gogidix-application_shared-validation</sonar.projectKey>
+        <sonar.projectName>Gogidix Shared Validation Library</sonar.projectName>
+    
+        <!-- Financial-Grade Testing: Coverage Thresholds -->
+        <jacoco.version>0.8.10</jacoco.version>
+        <pitest.version>1.15.2</pitest.version>
+        <pitest.junit5.version>1.2.1</pitest.junit5.version>
+        <fg.coverage.minimum>0.85</fg.coverage.minimum>
+        <fg.mutation.minimum>60</fg.mutation.minimum>
+
+        <!-- Memory Configuration for CI/Standard Environments -->
+        <surefire.heap.min>128m</surefire.heap.min>
+        <surefire.heap.max>512m</surefire.heap.max>
+        <pitest.heap.min>128m</pitest.heap.min>
+        <pitest.heap.max>512m</pitest.heap.max>
+
+        <!-- Test Parallelism -->
+        <surefire.parallel.tests>1</surefire.parallel.tests>
+        <surefire.parallel.methods>1</surefire.parallel.methods>
+
+        <!-- Test timeout for integration tests -->
+        <surefire.timeout>180</surefire.timeout>
+
+        <!-- JVM Arguments -->
+        <surefire.jvm.args>-Xms${surefire.heap.min} -Xmx${surefire.heap.max} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:CompressedClassSpaceSize=64m -Xss256k -Djava.awt.headless=true</surefire.jvm.args>
+
+    </properties>
+    
+    <dependencies>
+        <!-- Core Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Eureka Service Discovery -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        
+        <!-- Validation Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator-annotation-processor</artifactId>
+            <version>${hibernate-validator.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        
+        <!-- Web for validation context -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+        
+        <!-- JSON Processing for validation messages -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        
+        <!-- Expression Language for validation -->
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>jakarta.el</artifactId>
+            <version>4.0.2</version>
+        </dependency>
+        
+        <!-- Bean Validation API -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+        
+        <!-- Regular Expressions for custom validators -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        
+        <!-- Email validation -->
+        <dependency>
+            <groupId>commons-validator</groupId>
+            <artifactId>commons-validator</artifactId>
+            <version>1.7</version>
+        </dependency>
+        
+        <!-- Phone number validation -->
+        <dependency>
+            <groupId>com.googlecode.libphonenumber</groupId>
+            <artifactId>libphonenumber</artifactId>
+            <version>8.13.23</version>
+        </dependency>
+        
+        <!-- Credit card validation -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+        </dependency>
+        
+        <!-- Lombok for utility classes -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        
+        <!-- Testing Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator-test-utils</artifactId>
+            <version>${hibernate-validator.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.2.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <!-- FIX: Suppress deprecation warnings in test compilation because tests
+                         intentionally use deprecated EmailValidator/PhoneValidator for backward compatibility.
+                         These tests verify the deprecated API still works during transition period.
+                         Note: testCompilerArgument (singular) is correct for maven-compiler-plugin 3.x -->
+                    <testCompilerArgument>-Xlint:-deprecation</testCompilerArgument>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.hibernate.validator</groupId>
+                            <artifactId>hibernate-validator-annotation-processor</artifactId>
+                            <version>${hibernate-validator.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <argLine>-Xmx512m</argLine>
+                </configuration>
+            </plugin>
+            
+            <!-- Spring Boot Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+                    <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <excludes>
+                                        <exclude>org.springframework.boot.sharedvalidation</exclude>
+                                    </excludes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${fg.coverage.minimum}</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.75</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                            <haltOnFailure>true</haltOnFailure>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>${pitest.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>${pitest.junit5.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <mutationThreshold>60</mutationThreshold>
+                    <coverageThreshold>85</coverageThreshold>
+                    <timeoutConstant>5000</timeoutConstant>
+                    <features>+CLASSLIMIT(limit[200])</features>
+                    <jvmArgs>
+                        <jvmArg>-Xms256m</jvmArg>
+                        <jvmArg>-Xmx768m</jvmArg>
+                        <jvmArg>-XX:+UseG1GC</jvmArg>
+                    </jvmArgs>
+                    <targetClasses>
+                        <param>org.springframework.boot.sharedvalidation.domain.**</param>
+                        <param>org.springframework.boot.sharedvalidation.application.**</param>
+                        <param>org.springframework.boot.sharedvalidation.infrastructure.**</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>org.springframework.boot.sharedvalidation.**</param>
+                    </targetTests>
+                    <excludedClasses>
+                        <param>*.*Test*</param>
+                        <param>*.*Config*</param>
+                        <param>*.*Application*</param>
+                    </excludedClasses>
+                    <outputFormats>
+                        <param>HTML</param>
+                        <param>XML</param>
+                    </outputFormats>
+                    <withHistory>true</withHistory>
+                    <historyInputFile>${project.build.directory}/pitest-history.bin</historyInputFile>
+                    <historyOutputFile>${project.build.directory}/pitest-history.bin</historyOutputFile>
+                    <timestampedReports>true</timestampedReports>
+                    <failWhenNoMutations>false</failWhenNoMutations>
+                    <detectInlinedCode>false</detectInlinedCode>
+                </configuration>
+            </plugin>
+</plugins>
+    </build>
+
+    <!-- Financial-Grade Testing: CI Profiles -->
+    <profiles>
+        <!-- CI Profile: Coverage-focused -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+        <!-- Local Development Profile -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+        <!-- Certification Profile: Full testing including mutation -->
+        <profile>
+            <id>certification</id>
+            <properties>
+                <pitest.skip>false</pitest.skip>
+            </properties>
+        </profile>
+    </profiles>
+
+</project>

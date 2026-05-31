@@ -1,0 +1,1 @@
+export default function reportsPage() { return <div>reports</div> }

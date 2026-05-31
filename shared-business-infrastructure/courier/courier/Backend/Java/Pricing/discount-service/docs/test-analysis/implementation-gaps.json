@@ -1,0 +1,14 @@
+{
+  "serviceName": "discount-service",
+  "analysisDate": "2026-03-06T12:32:27Z",
+  "summary": {
+    "totalFiles": 20,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

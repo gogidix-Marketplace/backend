@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shared-audit-config
+  namespace: shared-libraries
+data:
+  application.yml: |
+    gogidix:
+      shared-audit:
+        enabled: true
+        config:
+          key: value

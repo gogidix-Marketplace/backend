@@ -1,0 +1,14 @@
+{
+  "serviceName": "partner-portal-service",
+  "analysisDate": "2026-03-06T12:28:40Z",
+  "summary": {
+    "totalFiles": 5,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

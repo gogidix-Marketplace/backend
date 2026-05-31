@@ -1,0 +1,21 @@
+{
+    "scripts":  {
+                    "android":  "expo start --android",
+                    "web":  "expo start --web",
+                    "typecheck":  "tsc --noEmit",
+                    "lint":  "eslint .",
+                    "start":  "expo start",
+                    "ios":  "expo start --ios"
+                },
+    "name":  "@cargonexus/rider-app",
+    "version":  "0.1.0",
+    "dependencies":  {
+                         "typescript":  "^5.4.5",
+                         "expo":  "~51.0.0",
+                         "react":  "18.3.1",
+                         "react-native":  "0.74.1",
+                         "@cargonexus/frontend-shared":  "workspace:*"
+                     },
+    "private":  true,
+    "description":  "Courier rider/driver app - navigation, delivery, earnings"
+}

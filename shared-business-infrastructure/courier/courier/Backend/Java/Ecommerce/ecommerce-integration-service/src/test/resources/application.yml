@@ -1,0 +1,26 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: ecommerce-integration-service-test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: ecommerce_integration_test
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ecommerce-integration-service-test
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
+
+logging:
+  level:
+    root: WARN
+    com.gogidix: DEBUG

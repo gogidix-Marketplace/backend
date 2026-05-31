@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: driver-pool-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: test_driver_pool
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix.shared.courier.driver: DEBUG

@@ -1,0 +1,14 @@
+{
+  "serviceName": "notification-service",
+  "analysisDate": "2026-03-06T13:08:32Z",
+  "summary": {
+    "totalFiles": 26,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

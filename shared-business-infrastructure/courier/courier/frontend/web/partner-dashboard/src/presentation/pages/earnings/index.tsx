@@ -1,0 +1,1 @@
+export default function earningsPage() { return <div>earnings</div> }

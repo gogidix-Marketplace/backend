@@ -1,0 +1,367 @@
+# Prometheus Alert Rules for Shared Messaging Service
+# Comprehensive alerting covering availability, performance, business, and security metrics
+
+groups:
+- name: shared-messaging-availability
+  rules:
+  - alert: SharedMessagingServiceDown
+    expr: up{job="shared-messaging"} == 0
+    for: 5m
+    labels:
+      severity: critical
+      category: availability
+      team: platform
+    annotations:
+      summary: "Shared Messaging service is down"
+      description: "The shared-messaging service has been down for more than 5 minutes. All message processing has stopped."
+      dashboard: "https://grafana.gogidix.com/d/messaging-overview"
+      runbook: "https://docs.gogidix.com/runbooks/messaging-service-down"
+      
+  - alert: SharedMessagingHighErrorRate
+    expr: |
+      (
+        rate(messaging_messages_failed_total[5m]) / 
+        (rate(messaging_messages_sent_total[5m]) + rate(messaging_messages_failed_total[5m]))
+      ) > 0.05
+    for: 2m
+    labels:
+      severity: high
+      category: reliability
+      team: platform
+    annotations:
+      summary: "High message failure rate detected"
+      description: "Message failure rate is {{ $value | humanizePercentage }} over the last 5 minutes. Normal rate is <1%."
+      dashboard: "https://grafana.gogidix.com/d/messaging-errors"
+      
+  - alert: SharedMessagingDatabaseConnectivityIssue
+    expr: messaging_database_connections_total{status="failed"} > 0
+    for: 1m
+    labels:
+      severity: critical
+      category: infrastructure
+      team: platform
+    annotations:
+      summary: "Database connectivity issues detected"
+      description: "{{ $value }} database connection failures detected in the last minute"
+      dashboard: "https://grafana.gogidix.com/d/messaging-infrastructure"
+
+- name: shared-messaging-performance
+  rules:
+  - alert: SharedMessagingHighResponseTime
+    expr: |
+      histogram_quantile(0.95, 
+        rate(messaging_processing_duration_seconds_bucket[5m])
+      ) > 1.0
+    for: 5m
+    labels:
+      severity: medium
+      category: performance
+      team: platform
+    annotations:
+      summary: "High response times detected"
+      description: "95th percentile response time is {{ $value }}s. SLA target is <200ms."
+      dashboard: "https://grafana.gogidix.com/d/messaging-performance"
+      
+  - alert: SharedMessagingQueueBacklog
+    expr: messaging_queue_depth > 1000
+    for: 10m
+    labels:
+      severity: medium
+      category: capacity
+      team: platform
+    annotations:
+      summary: "Message queue backlog detected"
+      description: "{{ $value }} messages are pending processing. Normal queue depth is <100."
+      dashboard: "https://grafana.gogidix.com/d/messaging-queues"
+      
+  - alert: SharedMessagingMemoryUsageHigh
+    expr: |
+      (
+        java_lang_Memory_HeapMemoryUsage_used{job="shared-messaging"} / 
+        java_lang_Memory_HeapMemoryUsage_max{job="shared-messaging"}
+      ) > 0.80
+    for: 10m
+    labels:
+      severity: medium
+      category: resource
+      team: platform
+    annotations:
+      summary: "High memory usage detected"
+      description: "JVM heap memory usage is {{ $value | humanizePercentage }}. Consider scaling or investigating memory leaks."
+      
+  - alert: SharedMessagingCacheEfficiencyLow
+    expr: |
+      (
+        rate(messaging_cache_hits_total[10m]) / 
+        (rate(messaging_cache_hits_total[10m]) + rate(messaging_cache_misses_total[10m]))
+      ) < 0.70
+    for: 15m
+    labels:
+      severity: low
+      category: performance
+      team: platform
+    annotations:
+      summary: "Cache efficiency is low"
+      description: "Cache hit rate is {{ $value | humanizePercentage }}. Expected >70% for optimal performance."
+
+- name: shared-messaging-business
+  rules:
+  - alert: SharedMessagingDeliverySuccessRateLow
+    expr: |
+      (
+        rate(messaging_delivery_success_total[15m]) / 
+        (rate(messaging_delivery_success_total[15m]) + rate(messaging_delivery_failure_total[15m]))
+      ) < 0.95
+    for: 10m
+    labels:
+      severity: high
+      category: business
+      team: messaging
+    annotations:
+      summary: "Message delivery success rate is low"
+      description: "Delivery success rate is {{ $value | humanizePercentage }}. SLA target is >95%."
+      dashboard: "https://grafana.gogidix.com/d/messaging-business"
+      
+  - alert: SharedMessagingVolumeAnomalyLow
+    expr: |
+      (
+        rate(messaging_messages_sent_total[1h]) < 
+        (avg_over_time(rate(messaging_messages_sent_total[1h])[7d:1h]) * 0.5)
+      )
+    for: 30m
+    labels:
+      severity: medium
+      category: business
+      team: messaging
+    annotations:
+      summary: "Unusually low message volume detected"
+      description: "Current message rate is 50% below the 7-day average. Possible integration issues."
+      
+  - alert: SharedMessagingVolumeAnomalyHigh
+    expr: |
+      (
+        rate(messaging_messages_sent_total[5m]) > 
+        (avg_over_time(rate(messaging_messages_sent_total[5m])[7d:5m]) * 3.0)
+      )
+    for: 10m
+    labels:
+      severity: medium
+      category: capacity
+      team: messaging
+    annotations:
+      summary: "Unusually high message volume detected"
+      description: "Current message rate is 3x above the 7-day average. Monitor for capacity issues."
+      
+  - alert: SharedMessagingCostAnomalyHigh
+    expr: |
+      rate(messaging_delivery_cost_total[1h]) > 
+      (avg_over_time(rate(messaging_delivery_cost_total[1h])[7d:1h]) * 2.0)
+    for: 2h
+    labels:
+      severity: medium
+      category: cost
+      team: messaging
+    annotations:
+      summary: "Delivery costs are unusually high"
+      description: "Current delivery cost rate is 2x above the 7-day average. Review cost optimization."
+
+- name: shared-messaging-security
+  rules:
+  - alert: SharedMessagingSecurityViolation
+    expr: increase(messaging_security_violations_total[1h]) > 5
+    for: 1m
+    labels:
+      severity: critical
+      category: security
+      team: security
+    annotations:
+      summary: "Multiple security violations detected"
+      description: "{{ $value }} security violations detected in the last hour. Immediate investigation required."
+      dashboard: "https://grafana.gogidix.com/d/messaging-security"
+      escalation: "security-oncall"
+      
+  - alert: SharedMessagingAuthenticationFailureSpike
+    expr: |
+      rate(messaging_authentication_attempts_total{result="failure"}[5m]) > 
+      rate(messaging_authentication_attempts_total{result="success"}[5m])
+    for: 5m
+    labels:
+      severity: high
+      category: security
+      team: security
+    annotations:
+      summary: "Authentication failure spike detected"
+      description: "Authentication failures exceed successes. Possible brute force attack."
+      
+  - alert: SharedMessagingUnauthorizedAccess
+    expr: increase(messaging_authorization_failures_total[10m]) > 10
+    for: 1m
+    labels:
+      severity: high
+      category: security
+      team: security
+    annotations:
+      summary: "Multiple unauthorized access attempts"
+      description: "{{ $value }} authorization failures in the last 10 minutes. Review access patterns."
+
+- name: shared-messaging-sla
+  rules:
+  - alert: SharedMessagingSLAViolationAvailability
+    expr: |
+      (
+        avg_over_time(up{job="shared-messaging"}[5m]) < 0.999
+      )
+    for: 1m
+    labels:
+      severity: high
+      category: sla
+      team: platform
+    annotations:
+      summary: "SLA availability violation"
+      description: "Service availability is {{ $value | humanizePercentage }}. SLA requires 99.9%."
+      escalation: "platform-oncall"
+      
+  - alert: SharedMessagingSLAViolationResponseTime
+    expr: |
+      histogram_quantile(0.95, 
+        rate(messaging_sla_response_time_seconds_bucket{priority="HIGH"}[5m])
+      ) > 0.200
+    for: 2m
+    labels:
+      severity: medium
+      category: sla
+      team: platform
+    annotations:
+      summary: "SLA response time violation for high priority messages"
+      description: "95th percentile response time is {{ $value }}s. SLA requires <200ms for high priority."
+      
+  - alert: SharedMessagingSLAViolationDeliveryTime
+    expr: |
+      histogram_quantile(0.95, 
+        rate(messaging_delivery_duration_seconds_bucket{delivery_method="EMAIL"}[10m])
+      ) > 30.0
+    for: 5m
+    labels:
+      severity: medium
+      category: sla
+      team: messaging
+    annotations:
+      summary: "SLA delivery time violation for email"
+      description: "95th percentile email delivery time is {{ $value }}s. SLA requires <30s."
+
+- name: shared-messaging-infrastructure
+  rules:
+  - alert: SharedMessagingDiskSpaceHigh
+    expr: |
+      (
+        node_filesystem_avail_bytes{job="shared-messaging",fstype!="tmpfs"} / 
+        node_filesystem_size_bytes{job="shared-messaging",fstype!="tmpfs"}
+      ) < 0.10
+    for: 5m
+    labels:
+      severity: high
+      category: infrastructure
+      team: platform
+    annotations:
+      summary: "Low disk space on messaging service"
+      description: "Available disk space is {{ $value | humanizePercentage }}. Critical threshold is <10%."
+      
+  - alert: SharedMessagingRedisConnectionFailure
+    expr: redis_connected_clients{job="shared-messaging-redis"} == 0
+    for: 2m
+    labels:
+      severity: high
+      category: infrastructure
+      team: platform
+    annotations:
+      summary: "Redis connection failure"
+      description: "No clients connected to Redis. Cache functionality may be impaired."
+      
+  - alert: SharedMessagingKafkaLag
+    expr: kafka_consumer_lag_sum{job="shared-messaging"} > 1000
+    for: 10m
+    labels:
+      severity: medium
+      category: infrastructure
+      team: platform
+    annotations:
+      summary: "High Kafka consumer lag"
+      description: "Kafka consumer lag is {{ $value }} messages. Normal lag is <100."
+
+- name: shared-messaging-external-dependencies
+  rules:
+  - alert: SharedMessagingExternalAPIFailureRate
+    expr: |
+      (
+        rate(messaging_external_api_duration_seconds_count{status_code!~"2.."}[5m]) / 
+        rate(messaging_external_api_duration_seconds_count[5m])
+      ) > 0.05
+    for: 5m
+    labels:
+      severity: medium
+      category: external
+      team: messaging
+    annotations:
+      summary: "High failure rate for external API calls"
+      description: "External API failure rate is {{ $value | humanizePercentage }}. Normal rate is <1%."
+      
+  - alert: SharedMessagingExternalAPILatencyHigh
+    expr: |
+      histogram_quantile(0.95, 
+        rate(messaging_external_api_duration_seconds_bucket[5m])
+      ) > 5.0
+    for: 10m
+    labels:
+      severity: low
+      category: external
+      team: messaging
+    annotations:
+      summary: "High latency for external API calls"
+      description: "95th percentile external API latency is {{ $value }}s. Consider timeout adjustments."
+
+- name: shared-messaging-business-hours
+  rules:
+  - alert: SharedMessagingBusinessHoursFailure
+    expr: |
+      (
+        rate(messaging_messages_failed_total[5m]) > 0.01
+      ) and on() (
+        hour() >= 9 and hour() <= 17 and 
+        day_of_week() >= 1 and day_of_week() <= 5
+      )
+    for: 1m
+    labels:
+      severity: high
+      category: business-hours
+      team: messaging
+    annotations:
+      summary: "Message failures during business hours"
+      description: "Message failures detected during business hours when impact is highest."
+      escalation: "business-hours-oncall"
+
+- name: shared-messaging-predictive
+  rules:
+  - alert: SharedMessagingCapacityPrediction
+    expr: |
+      predict_linear(messaging_queue_depth[1h], 3600) > 5000
+    for: 15m
+    labels:
+      severity: low
+      category: predictive
+      team: platform
+    annotations:
+      summary: "Queue capacity may be exceeded within 1 hour"
+      description: "Based on current trends, message queue depth will exceed capacity in ~1 hour."
+      
+  - alert: SharedMessagingMemoryLeakPrediction
+    expr: |
+      predict_linear(java_lang_Memory_HeapMemoryUsage_used{job="shared-messaging"}[2h], 7200) > 
+      java_lang_Memory_HeapMemoryUsage_max{job="shared-messaging"}
+    for: 30m
+    labels:
+      severity: medium
+      category: predictive
+      team: platform
+    annotations:
+      summary: "Potential memory leak detected"
+      description: "Based on current memory growth rate, heap will be exhausted in ~2 hours."

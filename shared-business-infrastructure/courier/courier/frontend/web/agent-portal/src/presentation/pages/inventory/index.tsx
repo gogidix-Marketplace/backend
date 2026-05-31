@@ -1,0 +1,1 @@
+export default function inventoryPage() { return <div>inventory</div> }

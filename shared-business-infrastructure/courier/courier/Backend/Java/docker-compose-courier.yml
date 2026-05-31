@@ -1,0 +1,1302 @@
+version: '3.8'
+
+# ============================================================================
+# Gogidix Courier Services - Docker Compose Configuration
+# ============================================================================
+# This docker-compose file orchestrates all 20+ microservices in the
+# courier-services domain, including infrastructure components.
+#
+# Infrastructure Services:
+#   - MongoDB Replica Set (ports 27017-27019)
+#   - Zookeeper (port 2181)
+#   - Kafka (ports 9092-9093)
+#   - Redis (port 6379)
+#   - Eureka Server (port 8761)
+#
+# Usage:
+#   docker-compose -f docker-compose-courier.yml up -d
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # INFRASTRUCTURE SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # MongoDB Replica Set Configuration
+  # ------------------------------------------------------------------------
+  mongodb-primary:
+    image: mongo:7.0
+    container_name: mongodb-primary-courier
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_REPLICA_SET_NAME: rs0
+    volumes:
+      - mongodb-primary-data:/data/db
+      - mongodb-config:/data/configdb
+      - ./scripts/mongodb-init.sh:/docker-entrypoint-initdb.d/mongodb-init.sh:ro
+    command: mongod --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  mongodb-secondary-1:
+    image: mongo:7.0
+    container_name: mongodb-secondary-1-courier
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_REPLICA_SET_NAME: rs0
+    volumes:
+      - mongodb-secondary-1-data:/data/db
+      - mongodb-config:/data/configdb
+    command: mongod --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  mongodb-secondary-2:
+    image: mongo:7.0
+    container_name: mongodb-secondary-2-courier
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_REPLICA_SET_NAME: rs0
+    volumes:
+      - mongodb-secondary-2-data:/data/db
+      - mongodb-config:/data/configdb
+    command: mongod --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # MongoDB Replica Set Initialization
+  # ------------------------------------------------------------------------
+  mongodb-init:
+    image: mongo:7.0
+    container_name: mongodb-init-courier
+    depends_on:
+      - mongodb-primary
+      - mongodb-secondary-1
+      - mongodb-secondary-2
+    networks:
+      - courier-network
+    volumes:
+      - ./scripts/mongodb-init.sh:/mongodb-init.sh:ro
+    command: >
+      bash -c "
+        sleep 20 &&
+        mongosh --host mongodb-primary:27017 -u admin -p admin123 --authenticationDatabase admin --eval '
+        rs.initiate({
+          _id: \"rs0\",
+          members: [
+            {_id: 0, host: \"mongodb-primary:27017\"},
+            {_id: 1, host: \"mongodb-secondary-1:27017\"},
+            {_id: 2, host: \"mongodb-secondary-2:27017\"}
+          ]
+        })
+        ' &&
+        sleep 10 &&
+        mongosh --host mongodb-primary:27017 -u admin -p admin123 --authenticationDatabase admin --eval 'rs.status()'
+      "
+    restart: "no"
+
+  # ------------------------------------------------------------------------
+  # Zookeeper - Required for Kafka
+  # ------------------------------------------------------------------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper-courier
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 0
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Kafka - Message Broker
+  # ------------------------------------------------------------------------
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-courier
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_NUM_PARTITIONS: 3
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Kafka UI - Optional Management Interface
+  # ------------------------------------------------------------------------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-courier
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: courier-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Redis - Caching and Session Store
+  # ------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis-courier
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redis123
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Redis Commander - Optional Management Interface
+  # ------------------------------------------------------------------------
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander-courier
+    depends_on:
+      - redis
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:redis123
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Eureka Server - Service Discovery
+  # ------------------------------------------------------------------------
+  eureka-server:
+    image: springcloud/eureka:latest
+    container_name: eureka-server-courier
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+      SPRING_CLOUD_CONFIG_ENABLED: "false"
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false"
+      EUREKA_INSTANCE_HOSTNAME: eureka-server
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JAVA_OPTS: "-Xms512m -Xmx512m"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # COURIER SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # Tenant Config Service - Multi-tenant Configuration Management
+  # ------------------------------------------------------------------------
+  tenant-config-service:
+    build:
+      context: ./TenantConfig/tenant-config-service
+      dockerfile: Dockerfile
+    container_name: tenant-config-service
+    ports:
+      - "8100:8100"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: tenant-config-service
+      SERVER_PORT: 8100
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,tenant-config-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: tenant-config-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Dispatch Core Service - Central Dispatch Logic
+  # ------------------------------------------------------------------------
+  dispatch-core-service:
+    build:
+      context: ./Dispatch/dispatch-core-service
+      dockerfile: Dockerfile
+    container_name: dispatch-core-service
+    ports:
+      - "8101:8101"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: dispatch-core-service
+      SERVER_PORT: 8101
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,dispatch-core-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: dispatch-core-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      ASSIGNMENT_SERVICE_URL: http://assignment-service:8102
+      ROUTING_SERVICE_URL: http://routing-service:8104
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8101/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Assignment Service - Driver-Order Assignment
+  # ------------------------------------------------------------------------
+  assignment-service:
+    build:
+      context: ./Dispatch/assignment-service
+      dockerfile: Dockerfile
+    container_name: assignment-service
+    ports:
+      - "8102:8102"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: assignment-service
+      SERVER_PORT: 8102
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,assignment-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: assignment-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      DRIVER_POOL_SERVICE_URL: http://driver-pool-service:8105
+      AVAILABILITY_SERVICE_URL: http://availability-service:8106
+      LOAD_BALANCING_SERVICE_URL: http://load-balancing-service:8103
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      driver-pool-service:
+        condition: service_healthy
+      availability-service:
+        condition: service_healthy
+      load-balancing-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8102/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Load Balancing Service - Workload Distribution
+  # ------------------------------------------------------------------------
+  load-balancing-service:
+    build:
+      context: ./Dispatch/load-balancing-service
+      dockerfile: Dockerfile
+    container_name: load-balancing-service
+    ports:
+      - "8103:8103"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: load-balancing-service
+      SERVER_PORT: 8103
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,load-balancing-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: load-balancing-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      PERFORMANCE_SERVICE_URL: http://performance-service:8107
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      performance-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8103/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Routing Service - Route Optimization
+  # ------------------------------------------------------------------------
+  routing-service:
+    build:
+      context: ./Routing/routing-service
+      dockerfile: Dockerfile
+    container_name: routing-service
+    ports:
+      - "8104:8104"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: routing-service
+      SERVER_PORT: 8104
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,routing-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: routing-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      LOCATION_SERVICE_URL: http://location-service:8110
+      ETA_SERVICE_URL: http://eta-service:8108
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      location-service:
+        condition: service_healthy
+      eta-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8104/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Driver Pool Service - Driver Management
+  # ------------------------------------------------------------------------
+  driver-pool-service:
+    build:
+      context: ./Drivers/driver-pool-service
+      dockerfile: Dockerfile
+    container_name: driver-pool-service
+    ports:
+      - "8105:8105"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: driver-pool-service
+      SERVER_PORT: 8105
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,driver-pool-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: driver-pool-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      AVAILABILITY_SERVICE_URL: http://availability-service:8106
+      PERFORMANCE_SERVICE_URL: http://performance-service:8107
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8105/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Availability Service - Driver Availability Tracking
+  # ------------------------------------------------------------------------
+  availability-service:
+    build:
+      context: ./Drivers/availability-service
+      dockerfile: Dockerfile
+    container_name: availability-service
+    ports:
+      - "8106:8106"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: availability-service
+      SERVER_PORT: 8106
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,availability-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: availability-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      DRIVER_POOL_SERVICE_URL: http://driver-pool-service:8105
+      GPS_TRACKING_SERVICE_URL: http://gps-tracking-service:8109
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      driver-pool-service:
+        condition: service_healthy
+      gps-tracking-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8106/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Performance Service - Driver Performance Analytics
+  # ------------------------------------------------------------------------
+  performance-service:
+    build:
+      context: ./Drivers/performance-service
+      dockerfile: Dockerfile
+    container_name: performance-service
+    ports:
+      - "8107:8107"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: performance-service
+      SERVER_PORT: 8107
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,performance-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: performance-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      DRIVER_POOL_SERVICE_URL: http://driver-pool-service:8105
+      GPS_TRACKING_SERVICE_URL: http://gps-tracking-service:8109
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      driver-pool-service:
+        condition: service_healthy
+      gps-tracking-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8107/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # ETA Service - Estimated Time of Arrival Calculation
+  # ------------------------------------------------------------------------
+  eta-service:
+    build:
+      context: ./Tracking/eta-service
+      dockerfile: Dockerfile
+    container_name: eta-service
+    ports:
+      - "8108:8108"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: eta-service
+      SERVER_PORT: 8108
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,eta-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: eta-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      ROUTING_SERVICE_URL: http://routing-service:8104
+      LOCATION_SERVICE_URL: http://location-service:8110
+      GPS_TRACKING_SERVICE_URL: http://gps-tracking-service:8109
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      routing-service:
+        condition: service_healthy
+      location-service:
+        condition: service_healthy
+      gps-tracking-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8108/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # GPS Tracking Service - Real-time GPS Tracking
+  # ------------------------------------------------------------------------
+  gps-tracking-service:
+    build:
+      context: ./Tracking/gps-tracking-service
+      dockerfile: Dockerfile
+    container_name: gps-tracking-service
+    ports:
+      - "8109:8109"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: gps-tracking-service
+      SERVER_PORT: 8109
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,gps-tracking-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: gps-tracking-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      LOCATION_SERVICE_URL: http://location-service:8110
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      location-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8109/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Location Service - Location Management
+  # ------------------------------------------------------------------------
+  location-service:
+    build:
+      context: ./Tracking/location-service
+      dockerfile: Dockerfile
+    container_name: location-service
+    ports:
+      - "8110:8110"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: location-service
+      SERVER_PORT: 8110
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,location-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: location-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      GPS_TRACKING_SERVICE_URL: http://gps-tracking-service:8109
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8110/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Notification Service - Notifications and Alerts
+  # ------------------------------------------------------------------------
+  notification-service:
+    build:
+      context: ./Common/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "8111:8111"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: notification-service
+      SERVER_PORT: 8111
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,notification-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: notification-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8111/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Pricing Engine Service - Base Pricing Calculations
+  # ------------------------------------------------------------------------
+  pricing-engine-service:
+    build:
+      context: ./Pricing/pricing-engine-service
+      dockerfile: Dockerfile
+    container_name: pricing-engine-service
+    ports:
+      - "8112:8112"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: pricing-engine-service
+      SERVER_PORT: 8112
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,pricing-engine-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: pricing-engine-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      ROUTING_SERVICE_URL: http://routing-service:8104
+      DYNAMIC_PRICING_SERVICE_URL: http://dynamic-pricing-service:8114
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      routing-service:
+        condition: service_healthy
+      dynamic-pricing-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8112/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Discount Service - Discount and Promotion Management
+  # ------------------------------------------------------------------------
+  discount-service:
+    build:
+      context: ./Pricing/discount-service
+      dockerfile: Dockerfile
+    container_name: discount-service
+    ports:
+      - "8113:8113"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: discount-service
+      SERVER_PORT: 8113
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,discount-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: discount-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      PRICING_ENGINE_SERVICE_URL: http://pricing-engine-service:8112
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      pricing-engine-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8113/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Dynamic Pricing Service - Surge and Dynamic Pricing
+  # ------------------------------------------------------------------------
+  dynamic-pricing-service:
+    build:
+      context: ./Pricing/dynamic-pricing-service
+      dockerfile: Dockerfile
+    container_name: dynamic-pricing-service
+    ports:
+      - "8114:8114"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: dynamic-pricing-service
+      SERVER_PORT: 8114
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,dynamic-pricing-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: dynamic-pricing-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      PRICING_ENGINE_SERVICE_URL: http://pricing-engine-service:8112
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      pricing-engine-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8114/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Commission Service - Commission Calculations
+  # ------------------------------------------------------------------------
+  commission-service:
+    build:
+      context: ./Pricing/commission-service
+      dockerfile: Dockerfile
+    container_name: commission-service
+    ports:
+      - "8115:8115"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: commission-service
+      SERVER_PORT: 8115
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,commission-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: commission-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      PRICING_ENGINE_SERVICE_URL: http://pricing-engine-service:8112
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      pricing-engine-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8115/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Partner Portal Service - Partner Management Portal
+  # ------------------------------------------------------------------------
+  partner-portal-service:
+    build:
+      context: ./Partners/partner-portal-service
+      dockerfile: Dockerfile
+    container_name: partner-portal-service
+    ports:
+      - "8116:8116"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: partner-portal-service
+      SERVER_PORT: 8116
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,partner-portal-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: partner-portal-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      COMMISSION_SERVICE_URL: http://commission-service:8115
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      commission-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8116/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Public Booking Service - Public API for Bookings
+  # ------------------------------------------------------------------------
+  public-booking-service:
+    build:
+      context: ./PublicAPI/public-booking-service
+      dockerfile: Dockerfile
+    container_name: public-booking-service
+    ports:
+      - "8117:8117"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: public-booking-service
+      SERVER_PORT: 8117
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,public-booking-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: public-booking-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      DISPATCH_CORE_SERVICE_URL: http://dispatch-core-service:8101
+      PRICING_ENGINE_SERVICE_URL: http://pricing-engine-service:8112
+      NOTIFICATION_SERVICE_URL: http://notification-service:8111
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      dispatch-core-service:
+        condition: service_healthy
+      pricing-engine-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8117/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Public Quote Service - Public API for Price Quotes
+  # ------------------------------------------------------------------------
+  public-quote-service:
+    build:
+      context: ./PublicAPI/public-quote-service
+      dockerfile: Dockerfile
+    container_name: public-quote-service
+    ports:
+      - "8118:8118"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: public-quote-service
+      SERVER_PORT: 8118
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,public-quote-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: public-quote-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      PRICING_ENGINE_SERVICE_URL: http://pricing-engine-service:8112
+      DYNAMIC_PRICING_SERVICE_URL: http://dynamic-pricing-service:8114
+      DISCOUNT_SERVICE_URL: http://discount-service:8113
+      ROUTING_SERVICE_URL: http://routing-service:8104
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      pricing-engine-service:
+        condition: service_healthy
+      dynamic-pricing-service:
+        condition: service_healthy
+      discount-service:
+        condition: service_healthy
+      routing-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8118/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Public Tracking Service - Public API for Shipment Tracking
+  # ------------------------------------------------------------------------
+  public-tracking-service:
+    build:
+      context: ./PublicAPI/public-tracking-service
+      dockerfile: Dockerfile
+    container_name: public-tracking-service
+    ports:
+      - "8119:8119"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: public-tracking-service
+      SERVER_PORT: 8119
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,public-tracking-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      X-TENANT-ID: public-tracking-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8100
+      GPS_TRACKING_SERVICE_URL: http://gps-tracking-service:8109
+      ETA_SERVICE_URL: http://eta-service:8108
+      LOCATION_SERVICE_URL: http://location-service:8110
+      NOTIFICATION_SERVICE_URL: http://notification-service:8111
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+      gps-tracking-service:
+        condition: service_healthy
+      eta-service:
+        condition: service_healthy
+      location-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8119/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - courier-network
+    restart: unless-stopped
+
+# ============================================================================
+# VOLUMES - Persistent Data Storage
+# ============================================================================
+volumes:
+  # MongoDB Data Volumes
+  mongodb-primary-data:
+    driver: local
+  mongodb-secondary-1-data:
+    driver: local
+  mongodb-secondary-2-data:
+    driver: local
+  mongodb-config:
+    driver: local
+
+  # Kafka/Zookeeper Data Volumes
+  kafka-data:
+    driver: local
+  zookeeper-data:
+    driver: local
+  zookeeper-logs:
+    driver: local
+
+  # Redis Data Volume
+  redis-data:
+    driver: local
+
+# ============================================================================
+# NETWORKS - Container Communication
+# ============================================================================
+networks:
+  courier-network:
+    name: courier-network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.29.0.0/16

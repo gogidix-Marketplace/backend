@@ -1,0 +1,214 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shared-messaging-config
+  namespace: gogidix-infrastructure
+  labels:
+    app: shared-messaging
+    component: messaging
+    tier: infrastructure
+data:
+  # Database Configuration
+  db.host: "postgres-service.gogidix-infrastructure.svc.cluster.local"
+  db.port: "5432"
+  db.name: "gogidix_messaging"
+  
+  # Redis Configuration
+  redis.host: "redis-service.gogidix-infrastructure.svc.cluster.local"
+  redis.port: "6379"
+  redis.database: "1"
+  
+  # Kafka Configuration
+  kafka.bootstrap.servers: "kafka-service.gogidix-infrastructure.svc.cluster.local:9092"
+  kafka.consumer.group.id: "shared-messaging-consumer-k8s"
+  
+  # Application Configuration
+  server.port: "8501"
+  management.port: "8501"
+  
+  # Logging Configuration
+  logging.level.com.gogidix: "INFO"
+  logging.level.org.springframework.kafka: "WARN"
+  
+  # Messaging Configuration
+  messaging.async.core-pool-size: "5"
+  messaging.async.max-pool-size: "20"
+  messaging.async.queue-capacity: "1000"
+  messaging.delivery.retry.max-attempts: "5"
+  messaging.rate-limit.requests-per-minute: "1000"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shared-messaging-k8s-config
+  namespace: gogidix-infrastructure
+  labels:
+    app: shared-messaging
+    component: messaging
+    tier: infrastructure
+data:
+  application-kubernetes.yml: |
+    # Kubernetes Profile Configuration for Shared Messaging Library
+    # Optimized for Kubernetes deployment with service discovery
+    
+    server:
+      port: ${SERVER_PORT:8501}
+      servlet:
+        context-path: /api/messaging
+      compression:
+        enabled: true
+        mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+      http2:
+        enabled: true
+    
+    spring:
+      application:
+        name: shared-messaging
+      
+      # Database Configuration for Kubernetes
+      datasource:
+        url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME:gogidx_messaging}
+        username: ${DB_USERNAME}
+        password: ${DB_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+        hikari:
+          maximum-pool-size: 20
+          minimum-idle: 5
+          idle-timeout: 300000
+          connection-timeout: 20000
+          validation-timeout: 5000
+          leak-detection-threshold: 60000
+      
+      # JPA Configuration for Kubernetes
+      jpa:
+        hibernate:
+          ddl-auto: validate
+          naming:
+            physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        show-sql: false
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+            format_sql: false
+            jdbc:
+              batch_size: 20
+            order_inserts: true
+            order_updates: true
+      
+      # Redis Configuration for Kubernetes
+      data:
+        redis:
+          host: ${REDIS_HOST}
+          port: ${REDIS_PORT}
+          password: ${REDIS_PASSWORD}
+          database: ${REDIS_DATABASE:1}
+          timeout: 5000ms
+          lettuce:
+            pool:
+              max-active: 8
+              max-idle: 8
+              min-idle: 0
+              max-wait: -1ms
+      
+      # Cache Configuration
+      cache:
+        type: redis
+        redis:
+          time-to-live: 600000
+          cache-null-values: false
+      
+      # Kafka Configuration for Kubernetes
+      kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+        consumer:
+          group-id: ${KAFKA_CONSUMER_GROUP_ID:shared-messaging-consumer-k8s}
+          auto-offset-reset: earliest
+          key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          properties:
+            session.timeout.ms: 30000
+            heartbeat.interval.ms: 10000
+        producer:
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.apache.kafka.common.serialization.StringSerializer
+          properties:
+            batch.size: 16384
+            linger.ms: 10
+            compression.type: snappy
+      
+      # Security Configuration for Kubernetes
+      security:
+        user:
+          name: ${SECURITY_USER:admin}
+          password: ${SECURITY_PASSWORD:admin123}
+          roles: ADMIN
+    
+    # Management Configuration for Kubernetes
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus,env
+      endpoint:
+        health:
+          show-details: always
+          show-components: always
+          probes:
+            enabled: true
+      health:
+        db:
+          enabled: true
+        redis:
+          enabled: true
+        kafka:
+          enabled: true
+        livenessstate:
+          enabled: true
+        readinessstate:
+          enabled: true
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+        distribution:
+          percentiles-histogram:
+            http.server.requests: true
+          sla:
+            http.server.requests: 100ms,500ms,1s
+    
+    # Logging Configuration for Kubernetes
+    logging:
+      level:
+        com.gogidix.infrastructure.sharedlibraries.sharedmessaging: ${LOGGING_LEVEL_GOGIDIX:INFO}
+        org.springframework.kafka: ${LOGGING_LEVEL_KAFKA:INFO}
+        org.springframework.data.redis: ${LOGGING_LEVEL_REDIS:INFO}
+        org.hibernate.SQL: WARN
+        org.hibernate.type.descriptor.sql.BasicBinder: WARN
+      pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] [%X{traceId:-},%X{spanId:-}] - %msg%n"
+    
+    # Custom Application Properties for Kubernetes
+    messaging:
+      async:
+        core-pool-size: ${MESSAGING_ASYNC_CORE_POOL_SIZE:5}
+        max-pool-size: ${MESSAGING_ASYNC_MAX_POOL_SIZE:20}
+        queue-capacity: ${MESSAGING_ASYNC_QUEUE_CAPACITY:1000}
+      delivery:
+        retry:
+          max-attempts: ${MESSAGING_RETRY_MAX_ATTEMPTS:5}
+          initial-delay: 1000
+          multiplier: 2.0
+      rate-limit:
+        enabled: true
+        requests-per-minute: ${MESSAGING_RATE_LIMIT_RPM:1000}
+    
+    # Kubernetes-specific settings
+    kubernetes:
+      namespace: gogidix-infrastructure
+      service:
+        name: shared-messaging-service
+      pod:
+        name: ${HOSTNAME:shared-messaging}
+      cluster:
+        name: gogidx-cluster

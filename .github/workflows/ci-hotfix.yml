@@ -121,7 +121,7 @@ jobs:
           - Global-business-management/Backend/Java
           - Human-resource/Human-resource/Backend/Java
           - Sales-department/Backend/Java
-          - System-Administrator/Backend
+          - System-Administrator/Backend/Java
           - Customer-support/Customer-support/Backend/Java
           - Digital-marketing/Backend/Java
           - Executive-domain-X/Executive-domain-X/Backend/Java

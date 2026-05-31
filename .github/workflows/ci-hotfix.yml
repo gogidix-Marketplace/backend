@@ -1,0 +1,159 @@
+name: CI - Hotfix
+
+on:
+  pull_request:
+    branches: [production]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ci-hotfix-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '17'
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  install-shared-libraries:
+    name: Install Shared Libraries (Mandatory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Install all shared-libraries modules to .m2
+        working-directory: foundation-domain/shared-libraries/shared-libraries/Backend/Java
+        run: mvn install -DskipTests -B
+      - name: Cache .m2 for downstream jobs
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-hotfix-${{ github.sha }}
+
+  detect-hotfix-changes:
+    name: Detect Hotfix Scope
+    runs-on: ubuntu-latest
+    needs: install-shared-libraries
+    if: startsWith(github.head_ref, 'hotfix/')
+    outputs:
+      foundation: ${{ steps.filter.outputs.foundation }}
+      management: ${{ steps.filter.outputs.management }}
+      shared-logics: ${{ steps.filter.outputs.shared-logics }}
+      shared-infra: ${{ steps.filter.outputs.shared-infra }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: production
+          filters: |
+            foundation:
+              - 'foundation-domain/**'
+            management:
+              - 'management-domain/**'
+            shared-logics:
+              - 'shared-business-logics/**'
+            shared-infra:
+              - 'shared-business-infrastructure/**'
+
+  build-hotfix:
+    name: Build Hotfix - ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    needs: detect-hotfix-changes
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: foundation-domain
+            path: foundation-domain
+            changed: ${{ needs.detect-hotfix-changes.outputs.foundation == 'true' }}
+          - module: management-domain
+            path: management-domain
+            changed: ${{ needs.detect-hotfix-changes.outputs.management == 'true' }}
+          - module: shared-business-logics
+            path: shared-business-logics
+            changed: ${{ needs.detect-hotfix-changes.outputs.shared-logics == 'true' }}
+          - module: shared-business-infrastructure
+            path: shared-business-infrastructure
+            changed: ${{ needs.detect-hotfix-changes.outputs.shared-infra == 'true' }}
+    if: matrix.changed
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Restore shared-libraries from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-hotfix-${{ github.sha }}
+      - name: Fast-track Build & Test
+        working-directory: ${{ matrix.path }}
+        run: mvn verify -B
+
+  docker-hotfix:
+    name: Docker Build & Push (Hotfix)
+    runs-on: ubuntu-latest
+    needs: build-hotfix
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & Push Hotfix Images
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          VERSION="hotfix-${SHORT_SHA}"
+          for jar in $(find . -path "*/target/*.jar" -not -path "*/gogidix-source/*" -not -path "*/core-shared-infrastructure/*" -not -path "*/shared-libraries/*" -not -name "*-sources.jar" -not -name "*-javadoc.jar"); do
+            service_dir=$(dirname $(dirname "$jar"))
+            service_name=$(basename "$service_dir")
+            if [[ "$service_name" != "target" && "$service_name" != "classes" ]]; then
+              IMAGE_TAG="ghcr.io/${{ github.repository }}/${service_name}:${VERSION}"
+              echo "::group::Building hotfix $service_name"
+              if [ -f "$service_dir/Dockerfile" ]; then
+                docker build -t "$IMAGE_TAG" "$service_dir"
+              elif [ -f "docker/Dockerfile.springboot" ]; then
+                docker build -t "$IMAGE_TAG" \
+                  -f docker/Dockerfile.springboot \
+                  --build-arg JAR_FILE=target/*.jar \
+                  "$service_dir"
+              else
+                continue
+              fi
+              docker push "$IMAGE_TAG"
+              echo "::endgroup::"
+            fi
+          done
+      - name: Trivy Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          severity: "CRITICAL"
+          exit-code: "1"
+
+  approve-hotfix:
+    name: Hotfix Production Approval
+    runs-on: ubuntu-latest
+    needs: [build-hotfix, docker-hotfix]
+    environment: production
+    steps:
+      - run: echo "Hotfix deployment approved"
+
+  deploy-hotfix:
+    name: Deploy Hotfix to Production (Disabled)
+    runs-on: ubuntu-latest
+    needs: approve-hotfix
+    if: false
+    environment: production
+    steps:
+      - run: echo "SAE deployment disabled until Alibaba Cloud is configured"

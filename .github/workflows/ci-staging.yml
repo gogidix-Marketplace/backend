@@ -1,0 +1,270 @@
+name: CI - Staging/UAT
+
+on:
+  pull_request:
+    branches: [staging/uat]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ci-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  install-shared-libraries:
+    name: Install Shared Libraries (Mandatory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Install all shared-libraries modules to .m2
+        working-directory: foundation-domain/shared-libraries/shared-libraries/Backend/Java
+        run: mvn install -DskipTests -B
+      - name: Cache .m2 for downstream jobs
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-staging-${{ github.sha }}
+
+  full-build:
+    name: Full Build - ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    needs: install-shared-libraries
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - foundation-domain
+          - management-domain
+          - shared-business-logics
+          - shared-business-infrastructure
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Restore shared-libraries from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-staging-${{ github.sha }}
+      - name: Build & Test ${{ matrix.module }}
+        working-directory: ${{ matrix.module }}
+        run: mvn verify -B
+      - name: Upload JaCoCo Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-${{ matrix.module }}-staging
+          path: ${{ matrix.module }}/**/target/site/jacoco/
+          retention-days: 14
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.module }}-staging
+          path: ${{ matrix.module }}/**/target/surefire-reports/
+          retention-days: 14
+
+  full-build-domains:
+    name: Full Build - All Domains
+    runs-on: ubuntu-latest
+    needs: install-shared-libraries
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Restore shared-libraries from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-staging-${{ github.sha }}
+      - name: Build All Domains
+        run: |
+          FAILED=0
+          # Build management domain services
+          for service_dir in management-domain/*/; do
+            service_name=$(basename "$service_dir")
+            echo "::group::Building $service_name"
+            if [ -f "$service_dir/pom.xml" ]; then
+              if ! (cd "$service_dir" && mvn verify -B); then
+                echo "::error::$service_name build FAILED"
+                FAILED=1
+              fi
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-domains-staging
+          path: management-domain/**/target/surefire-reports/
+          retention-days: 14
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [full-build, full-build-domains]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Restore shared-libraries from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-staging-${{ github.sha }}
+      - name: Run Integration Tests
+        run: |
+          FAILED=0
+          echo "::group::Running Testcontainers integration tests"
+          find . -name "*IT.java" -o -name "*IntegrationTest.java" | head -20 | while read f; do
+            dir=$(dirname "$f" | sed 's|/src/test.*||')
+            if [ -f "$dir/pom.xml" ]; then
+              echo "Integration tests in $dir"
+              if ! (cd "$dir" && mvn verify -Pintegration-tests -B); then
+                echo "::error::Integration tests FAILED in $dir"
+                FAILED=1
+              fi
+            fi
+          done
+          echo "::endgroup::"
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
+
+  api-contract-tests:
+    name: API Contract Tests (Full)
+    runs-on: ubuntu-latest
+    needs: [full-build, full-build-domains]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Restore shared-libraries from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-shared-libs-staging-${{ github.sha }}
+      - name: Run All Contract Tests
+        run: |
+          FAILED=0
+          find . -name "pom.xml" -path "*/contract-tests/*" -maxdepth 6 -exec dirname {} \; | sort -u | while read dir; do
+            echo "Contract tests in $dir"
+            if ! (cd "$dir" && mvn verify -Pcontract-tests -B); then
+              echo "::error::Contract tests FAILED in $dir"
+              FAILED=1
+            fi
+          done
+          if [ "$FAILED" -ne 0 ]; then exit 1; fi
+
+  semgrep-deep:
+    name: Semgrep Deep Scan
+    runs-on: ubuntu-latest
+    needs: [full-build, full-build-domains]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/java
+            p/spring-boot
+            p/owasp-top-ten
+            p/sql-injection
+            p/xss
+            p/command-injection
+            p/insecure-transport
+            p/jwt
+            p/secrets
+            .github/semgrep.yml
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          publishDeployment: ${{ secrets.SEMGREP_DEPLOYMENT_ID }}
+
+  owasp-deep:
+    name: OWASP Deep Scan
+    runs-on: ubuntu-latest
+    needs: [full-build, full-build-domains]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: OWASP Full Scan
+        run: mvn org.owasp:dependency-check-maven:aggregate -DfailBuildOnCVSS=4 -B
+      - name: Upload OWASP Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-report-staging
+          path: target/dependency-check-report.html
+          retention-days: 30
+
+  docker-build-push:
+    name: Docker Build & Push (All Services)
+    runs-on: ubuntu-latest
+    needs: [integration-tests, api-contract-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate RC Version
+        id: version
+        run: |
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=staging-RC-${TIMESTAMP}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+      - name: Build & Push All Docker Images
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          for jar in $(find . -path "*/target/*.jar" -not -path "*/gogidix-source/*" -not -path "*/core-shared-infrastructure/*" -not -path "*/shared-libraries/*" -not -name "*-sources.jar" -not -name "*-javadoc.jar"); do
+            service_dir=$(dirname $(dirname "$jar"))
+            service_name=$(basename "$service_dir")
+            if [[ "$service_name" != "target" && "$service_name" != "classes" ]]; then
+              IMAGE_TAG="ghcr.io/${{ github.repository }}/${service_name}:${VERSION}"
+              echo "::group::Building $service_name"
+              if [ -f "$service_dir/Dockerfile" ]; then
+                docker build -t "$IMAGE_TAG" "$service_dir"
+              elif [ -f "docker/Dockerfile.springboot" ]; then
+                docker build -t "$IMAGE_TAG" \
+                  -f docker/Dockerfile.springboot \
+                  --build-arg JAR_FILE=target/*.jar \
+                  "$service_dir"
+              else
+                echo "::error::No Dockerfile for $service_name"
+                exit 1
+              fi
+              docker push "$IMAGE_TAG"
+              echo "::endgroup::"
+            fi
+          done
+      - name: Trivy Scan All Images
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"

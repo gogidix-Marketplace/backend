@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gogidix.marketplace</groupId>
+    <artifactId>backend-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Gogidix Marketplace Backend</name>
+    <description>Parent POM for Gogidix Marketplace Backend - Multi-module Maven Project</description>
+    <url>https://github.com/ggidix/backend</url>
+
+    <organization>
+        <name>Gogidix Technology</name>
+        <url>https://gogidix.com</url>
+    </organization>
+
+    <modules>
+        <!-- Foundation Domain -->
+        <module>foundation-domain/shared-libraries/shared-libraries/Backend/Java</module>
+        <module>foundation-domain/infrastructure-config</module>
+        <module>foundation-domain/infrastructure-database</module>
+        <module>foundation-domain/infrastructure-devtools</module>
+        <module>foundation-domain/infrastructure-lock-service</module>
+        <module>foundation-domain/platform</module>
+        <module>foundation-domain/Shared-infrastructure-Hexgonal</module>
+        <module>foundation-domain/ai-platform</module>
+        <module>foundation-domain/centralized-configuration</module>
+
+        <!-- Management Domain -->
+        <module>management-domain/Foundation-Services-Monitoring</module>
+        <module>management-domain/Global-business-management</module>
+        <module>management-domain/Human-resource</module>
+        <module>management-domain/Pricing-Compliance</module>
+        <module>management-domain/Sales-department</module>
+        <module>management-domain/System-Administrator</module>
+        <module>management-domain/Vendor-Client-Services</module>
+        <module>management-domain/Country-management</module>
+        <module>management-domain/Customer-support</module>
+        <module>management-domain/Digital-marketing</module>
+        <module>management-domain/Executive-domain-X</module>
+        <module>management-domain/Finance-department</module>
+        <module>management-domain/_Foundation</module>
+
+        <!-- Shared Business Logics -->
+        <module>shared-business-logics/api-gateway</module>
+        <module>shared-business-logics/services</module>
+
+        <!-- Shared Business Infrastructure -->
+        <module>shared-business-infrastructure/Backend</module>
+        <module>shared-business-infrastructure/api-gateway</module>
+        <module>shared-business-infrastructure/courier/courier</module>
+        <module>shared-business-infrastructure/warehousing/warehousing</module>
+
+        <!-- Shared Modules -->
+        <module>shared-constants</module>
+        <module>shared-data-access</module>
+        <module>shared-types</module>
+        <module>shared-utilities</module>
+        <module>business-orchestrator-domain</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Gogidix Shared Libraries Version -->
+        <gogidix.shared.version>1.0.0</gogidix.shared.version>
+
+        <!-- Spring Framework Versions -->
+        <spring.boot.version>3.1.5</spring.boot.version>
+        <spring.cloud.version>2022.0.4</spring.cloud.version>
+
+        <!-- Testing Versions -->
+        <junit.version>5.10.0</junit.version>
+        <mockito.version>5.5.0</mockito.version>
+        <testcontainers.version>1.19.1</testcontainers.version>
+
+        <!-- Other Dependencies -->
+        <lombok.version>1.18.30</lombok.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <jackson.version>2.15.2</jackson.version>
+        <slf4j.version>2.0.9</slf4j.version>
+        <logback.version>1.4.11</logback.version>
+
+        <!-- Code Coverage -->
+        <jacoco.version>0.8.10</jacoco.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Import Gogidix Shared Libraries BOM -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-libraries-bom</artifactId>
+                <version>${gogidix.shared.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Boot BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Lombok for all modules -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring.boot.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.0.0</version>
+                    <configuration>
+                        <argLine>-Xmx512m -XX:+UseG1GC</argLine>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages - Gogidix Marketplace</name>
+            <url>https://maven.pkg.github.com/ggidix/backend</url>
+        </repository>
+    </distributionManagement>
+
+    <profiles>
+        <!-- CI Profile -->
+        <profile>
+            <id>ci</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skipTests>false</skipTests>
+            </properties>
+        </profile>
+
+        <!-- Local Development Profile -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+    </profiles>
+
+    <repositories>
+        <repository>
+            <id>github-gogidix-shared</id>
+            <name>GitHub Packages - Gogidix Shared Libraries</name>
+            <url>https://maven.pkg.github.com/ggidix/shared-libraries</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo1.maven.org/maven2</url>
+        </repository>
+    </repositories>
+
+</project>

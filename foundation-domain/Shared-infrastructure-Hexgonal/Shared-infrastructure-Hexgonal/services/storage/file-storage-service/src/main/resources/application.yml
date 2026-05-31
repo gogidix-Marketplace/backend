@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: file-storage-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_files
+
+server:
+  port: 8084
+
+aws:
+  access-key-id: ${AWS_ACCESS_KEY_ID}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+  region: ${AWS_REGION:us-east-1}
+
+storage:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME:gogidix-files}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: DEBUG

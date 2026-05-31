@@ -1,0 +1,92 @@
+# =============================================================================
+# Mongock Configuration
+# Management-Domain - Database Migration Framework
+# =============================================================================
+
+spring:
+  mongock:
+    # Enable Mongock migrations
+    enabled: true
+
+    # Migration scan package
+    migration-scan-package:
+      - com.gogidix.management.database.mongock
+
+    # ChangeLogs lock acquisition
+    # Prevents multiple instances from running migrations simultaneously
+    lock-acquired-for-minutes: 10
+
+    # Throw exception if cannot acquire lock
+    throw-exception-if-cannot-acquire-lock: true
+
+    # Transactional mode (MongoDB 4.0+)
+    transaction-enabled: false  # MongoDB transactions require replica set
+
+# =============================================================================
+# Mongock Settings
+# =============================================================================
+# enabled: Set to false to disable migrations (useful for testing)
+# migration-scan-package: Package containing @ChangeUnit classes
+# lock-acquired-for-minutes: How long to hold migration lock
+# throw-exception-if-cannot-acquire-lock: Fail if another migration is running
+# transaction-enabled: Use MongoDB transactions (requires replica set)
+
+# =============================================================================
+# Migration Naming Convention
+# =============================================================================
+# Migrations should be named: V{number}__Description.java
+# Examples:
+#   V1__Base_Setup.java
+#   V2__Executive_Domain_Setup.java
+#   V3__HR_Domain_Setup.java
+#   V4__Create_Indexes.java
+#   V5__Populate_Reference_Data.java
+
+# =============================================================================
+# @ChangeUnit Annotation
+# =============================================================================
+# @ChangeUnit(
+#   id = "unique_id",           // Unique identifier for this migration
+#   order = "001",               // Execution order
+#   author = "system"            // Author name
+# )
+
+# Required methods:
+#   @Execution - Runs the migration
+#   @RollbackExecution - Rolls back the migration (optional)
+
+# =============================================================================
+# Running Migrations
+# =============================================================================
+# Migrations run automatically on application startup if enabled.
+#
+# To run migrations manually:
+#   mvn mongock:run
+#
+# To check migration status:
+#   mvn mongock:info
+#
+# To rollback (use with caution):
+#   mvn mongock:rollback
+
+# =============================================================================
+# Mongock Tracking Collection
+# =============================================================================
+# Mongock creates a collection named "mongockChangeLog" to track migrations.
+# This collection stores:
+#   - Migration ID
+#   - Execution timestamp
+#   - State (EXECUTED, ROLLED_BACK, FAILED)
+#   - Author
+#   - Execution time
+
+# =============================================================================
+# Best Practices
+# =============================================================================
+# 1. Always use unique IDs for migrations
+# 2. Order migrations sequentially (001, 002, 003...)
+# 3. Make migrations idempotent (can run multiple times safely)
+# 4. Test migrations in development before production
+# 5. Never modify a migration once it's been committed
+# 6. Create a new migration for changes instead
+# 7. Use rollback only in development (dangerous in production)

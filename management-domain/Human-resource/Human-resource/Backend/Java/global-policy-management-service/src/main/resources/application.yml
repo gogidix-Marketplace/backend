@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: global-policy-management-service
+  data:
+    mongodb:
+      database: global-policy-management-service_db

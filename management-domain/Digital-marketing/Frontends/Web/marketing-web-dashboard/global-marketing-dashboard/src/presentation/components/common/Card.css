@@ -1,0 +1,81 @@
+/* Card Styles */
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.card-default {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-bordered {
+  border: 1px solid #e5e7eb;
+}
+
+.card-elevated {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.card-outlined {
+  border: 2px solid #e5e7eb;
+  background-color: transparent;
+}
+
+.card-padding-none > .card-body {
+  padding: 0;
+}
+
+.card-padding-sm > .card-body {
+  padding: 0.75rem;
+}
+
+.card-padding-md > .card-body {
+  padding: 1rem;
+}
+
+.card-padding-lg > .card-body {
+  padding: 1.5rem;
+}
+
+.card-hoverable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-hoverable:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.card-header-content {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.card-header-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+.card-footer {
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

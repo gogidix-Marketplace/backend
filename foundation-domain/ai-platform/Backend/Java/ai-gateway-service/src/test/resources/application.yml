@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: ai-gateway-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/test
+
+  cloud:
+    gateway:
+      enabled: false
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.gogidix: DEBUG

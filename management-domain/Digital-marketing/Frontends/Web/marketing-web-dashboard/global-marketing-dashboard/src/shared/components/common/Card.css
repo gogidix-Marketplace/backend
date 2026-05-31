@@ -1,0 +1,235 @@
+/* Card Component Styles */
+
+.card {
+  background-color: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  transition: all 0.2s ease;
+}
+
+.card--bordered {
+  border: 1px solid var(--color-border);
+}
+
+.card--hoverable:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card--clickable {
+  cursor: pointer;
+}
+
+.card--clickable:hover {
+  border-color: var(--color-primary);
+}
+
+.card--padding-none .card__body {
+  padding: 0;
+}
+
+.card--padding-sm .card__body {
+  padding: var(--spacing-sm);
+}
+
+.card--padding-md .card__body {
+  padding: var(--spacing-md);
+}
+
+.card--padding-lg .card__body {
+  padding: var(--spacing-lg);
+}
+
+.card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card__header-content {
+  flex: 1;
+}
+
+.card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.card__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.card__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-left: var(--spacing-md);
+}
+
+.card__body {
+  flex: 1;
+}
+
+/* CardMetric Styles */
+
+.card-metric {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.card-metric--sm {
+  padding: var(--spacing-sm);
+  gap: var(--spacing-sm);
+}
+
+.card-metric--lg {
+  padding: var(--spacing-lg);
+  gap: var(--spacing-lg);
+}
+
+.card-metric__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.card-metric--sm .card-metric__icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.125rem;
+}
+
+.card-metric--lg .card-metric__icon {
+  width: 4rem;
+  height: 4rem;
+  font-size: 2rem;
+}
+
+.card-metric__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-metric__label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-metric__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  margin-top: 0.25rem;
+}
+
+.card-metric__value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.card-metric--sm .card-metric__value {
+  font-size: 1.125rem;
+}
+
+.card-metric--lg .card-metric__value {
+  font-size: 2rem;
+}
+
+.card-metric__unit {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-left: 0.125rem;
+}
+
+.card-metric__change {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Skeleton loading */
+
+.card-metric__skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.card-metric__skeleton-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--border-radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton) 0%,
+    var(--color-skeleton-highlight) 50%,
+    var(--color-skeleton) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.card-metric__skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.card-metric__skeleton-label {
+  height: 0.875rem;
+  width: 60%;
+  border-radius: var(--border-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton) 0%,
+    var(--color-skeleton-highlight) 50%,
+    var(--color-skeleton) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.card-metric__skeleton-value {
+  height: 1.5rem;
+  width: 40%;
+  border-radius: var(--border-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton) 0%,
+    var(--color-skeleton-highlight) 50%,
+    var(--color-skeleton) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

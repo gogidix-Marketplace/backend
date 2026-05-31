@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: search-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_search
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        searchEvents-out-0:
+          destination: search-events
+          content-type: application/json
+server:
+  port: 8091
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.search: DEBUG

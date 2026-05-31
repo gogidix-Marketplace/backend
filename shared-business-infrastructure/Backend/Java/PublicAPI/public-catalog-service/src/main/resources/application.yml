@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: public-catalog-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_public_catalog
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        productEvents-out-0:
+          destination: product-events
+          content-type: application/json
+        inventoryEvents-out-0:
+          destination: inventory-events
+          content-type: application/json
+
+server:
+  port: 8301
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.catalog: DEBUG

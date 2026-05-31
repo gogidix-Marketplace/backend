@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "centralized-real-time-platform",
+    "location": "Backend/Java/platform-services/centralized-real-time-platform",
+    "totalGaps": 1,
+    "criticalGaps": 0,
+    "highGaps": 1,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "centralized-real-time-platform/src/main/java",
+      "type": "Missing Implementation",
+      "line": 0,
+      "description": "No Java source files found. Platform service directory exists but contains no implementation.",
+      "severity": "HIGH",
+      "recommendation": "Define the platform services to be provided (e.g., streaming infrastructure, event bus, real-time coordination) and implement or remove if not needed."
+    }
+  ]
+}

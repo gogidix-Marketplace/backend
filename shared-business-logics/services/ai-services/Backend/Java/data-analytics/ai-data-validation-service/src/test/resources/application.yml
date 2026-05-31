@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ai-data-validation-service-test
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/ai-data-validation-service-db-test?connectTimeoutMS=60000&serverSelectionTimeoutMS=60000&socketTimeoutMS=60000}
+      auto-index-creation: true
+  test:
+    context:
+      cache:
+        enabled: false
+
+server:
+  port: 0  # Random port for tests
+
+logging:
+  level:
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG

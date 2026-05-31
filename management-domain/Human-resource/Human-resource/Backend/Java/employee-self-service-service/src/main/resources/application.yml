@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: employee-self-service-service
+  data:
+    mongodb:
+      database: employee-self-service-service_db

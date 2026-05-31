@@ -1,0 +1,47 @@
+server:
+  port: 8100
+  shutdown: graceful
+spring:
+  application:
+    name: global-support-dashboard-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: global_support_dashboard_db
+      auto-index-creation: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# Management endpoints for health checks and monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.customersupport: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Application specific configuration
+app:
+  support-dashboard:
+    cache:
+      ttl: 300 # 5 minutes cache TTL for metrics
+    aggregation:
+      interval: 60 # aggregation interval in seconds
+    timezone: UTC

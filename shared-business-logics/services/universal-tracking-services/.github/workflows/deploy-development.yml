@@ -1,0 +1,76 @@
+name: Deploy Universal Tracking Service to Development
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+  DOCKER_REGISTRY: ghcr.io
+  DEPLOYMENT_ENVIRONMENT: development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and push universal-tracking-service
+      run: |
+        mvn clean package -DskipTests
+        docker build -t ${{ secrets.ECR_REGISTRY }}/universal-tracking-service:${{ github.sha }} .
+        docker tag ${{ secrets.ECR_REGISTRY }}/universal-tracking-service:${{ github.sha }} ${{ secrets.ECR_REGISTRY }}/universal-tracking-service:development
+        docker push ${{ secrets.ECR_REGISTRY }}/universal-tracking-service:${{ github.sha }}
+        docker push ${{ secrets.ECR_REGISTRY }}/universal-tracking-service:development
+      working-directory: Backend/Java/universal-tracking-service
+
+    - name: Deploy to Kubernetes cluster
+      uses: azure/k8s-deploy@v4
+      with:
+        manifests: |
+          k8s/development/universal-tracking-service.yaml
+        images: |
+          ${{ secrets.ECR_REGISTRY }}/universal-tracking-service:${{ github.sha }}
+        kubectl-version: 'latest'
+
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/universal-tracking-service -n development
+
+    - name: Notify deployment status
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: |
+          Universal Tracking Service deployment to ${{ env.DEPLOYMENT_ENVIRONMENT }}
+          Status: ${{ job.status }}
+          Commit: ${{ github.sha }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}

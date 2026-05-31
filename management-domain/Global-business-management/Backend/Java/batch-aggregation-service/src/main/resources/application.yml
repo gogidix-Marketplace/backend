@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: batch-aggregation-service
+  data:
+    mongodb:
+      database: batch-aggregation-service_db

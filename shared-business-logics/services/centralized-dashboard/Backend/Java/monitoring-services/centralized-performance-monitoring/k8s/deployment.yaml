@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: centralized-performance-monitoring
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-performance-monitoring
+    team: team-f-centralized-dashboard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: centralized-performance-monitoring
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-performance-monitoring
+    team: team-f-centralized-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: centralized-performance-monitoring
+  template:
+    metadata:
+      labels:
+        app: centralized-performance-monitoring
+        team: team-f-centralized-dashboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8910"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: centralized-performance-monitoring
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: centralized-performance-monitoring
+        image: ghcr.io/gogidix/centralized-performance-monitoring:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8910
+          protocol: TCP
+        env:
+        - name: MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-performance-monitoring-config
+              key: mongodb-host
+        - name: MONGODB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-performance-monitoring-config
+              key: mongodb-port
+        - name: MONGODB_DB
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-performance-monitoring-config
+              key: mongodb-db
+        - name: MONGODB_USER
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-monitoring-secrets
+              key: mongodb-user
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-monitoring-secrets
+              key: mongodb-password
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-performance-monitoring-config
+              key: redis-host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-performance-monitoring-config
+              key: redis-port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-monitoring-secrets
+              key: redis-password
+        - name: KAFKA_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-performance-monitoring-config
+              key: kafka-bootstrap-servers
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-monitoring-secrets
+              key: jwt-secret
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/liveness
+            port: 8910
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/readiness
+            port: 8910
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8910
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      restartPolicy: Always

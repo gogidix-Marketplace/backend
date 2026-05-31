@@ -1,0 +1,176 @@
+/* LeadsTable Styles */
+.leads-table {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.selected-count {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6366f1;
+}
+
+.table-info {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.data-table thead {
+  background-color: #f9fafb;
+}
+
+.data-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.data-table th:hover {
+  background-color: #f3f4f6;
+}
+
+.sort-indicator {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+  color: #6366f1;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.data-table tbody tr.row-selected {
+  background-color: #eef2ff;
+}
+
+.data-table td {
+  padding: 0.875rem 1rem;
+  color: #4b5563;
+}
+
+.checkbox-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.checkbox-cell input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.lead-name .name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.lead-name .email {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.125rem;
+}
+
+.lead-name .company {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.125rem;
+}
+
+.value {
+  font-weight: 600;
+  color: #111827;
+}
+
+.score-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.score-hot {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.score-warm {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.score-cold {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.actions-cell {
+  width: 80px;
+  text-align: center;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.375rem;
+  font-size: 1rem;
+  color: #6b7280;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.action-btn-danger:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+}

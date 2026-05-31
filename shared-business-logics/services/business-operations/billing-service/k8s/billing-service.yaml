@@ -1,0 +1,200 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: billing-service-config
+  namespace: billing
+data:
+  application.yml: |
+    spring:
+      application:
+        name: billing-service
+      datasource:
+        url: jdbc:postgresql://postgresql.infrastructure.svc.cluster.local:5432/gogidix_billing_db
+      jpa:
+        hibernate:
+          ddl-auto: validate
+    server:
+      port: 8080
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: billing
+  labels:
+    name: billing
+    domain: foundation
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: billing-service-secrets
+  namespace: billing
+type: Opaque
+stringData:
+  database-password: "change_this_password"
+  stripe-api-key: "sk_test_your_stripe_api_key"
+  stripe-webhook-secret: "whsec_your_webhook_secret"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-service
+  namespace: billing
+  labels:
+    app: billing-service
+    component: billing
+    domain: foundation
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: billing-service
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-service
+  namespace: billing
+  labels:
+    app: billing-service
+    component: billing
+    domain: foundation
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: billing-service
+  template:
+    metadata:
+      labels:
+        app: billing-service
+        component: billing
+        domain: foundation
+        tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: billing-service
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: billing-service
+        image: billing-service:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx1g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: billing-service-secrets
+              key: database-password
+        - name: STRIPE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: billing-service-secrets
+              key: stripe-api-key
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: billing-service-secrets
+              key: stripe-webhook-secret
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: billing-service
+  namespace: billing
+  labels:
+    app: billing-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: billing-service-pdb
+  namespace: billing
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: billing-service
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: billing-service-hpa
+  namespace: billing
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: billing-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

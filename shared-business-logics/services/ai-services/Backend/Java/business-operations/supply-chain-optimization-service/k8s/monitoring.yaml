@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: supply-chain-optimization-service-metrics
+  namespace: ai-services
+  labels:
+    app: supply-chain-optimization-service
+    app.kubernetes.io/name: supply-chain-optimization-service
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: ai-services
+    team: team-ai-business-ops
+    domain: business-operations
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8081"
+    prometheus.io/path: "/actuator/prometheus"
+    prometheus.io/scheme: "http"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  selector:
+    app: supply-chain-optimization-service
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: supply-chain-optimization-service
+  namespace: ai-services
+  labels:
+    app: supply-chain-optimization-service
+    app.kubernetes.io/name: supply-chain-optimization-service
+    app.kubernetes.io/component: servicemonitor
+    app.kubernetes.io/part-of: ai-services
+    team: team-ai-business-ops
+    domain: business-operations
+    release: prometheus
+  annotations:
+    description: "Prometheus ServiceMonitor for Supply Chain Optimization Service metrics"
+spec:
+  selector:
+    matchLabels:
+      app: supply-chain-optimization-service
+      app.kubernetes.io/name: supply-chain-optimization-service
+  endpoints:
+  - port: metrics
+    path: /actuator/prometheus
+    scheme: http
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      action: replace
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+      action: replace
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'jvm_.*|http_.*|process_.*|system_.*|spring_.*|application_.*|supply_chain_.*'
+      action: keep
+  namespaceSelector:
+    matchNames:
+    - ai-services
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: supply-chain-optimization-service
+  namespace: ai-services
+  labels:
+    app: supply-chain-optimization-service
+    app.kubernetes.io/component: podmonitor
+    team: team-ai-business-ops
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: supply-chain-optimization-service
+  podMetricsEndpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+  namespaceSelector:
+    matchNames:
+    - ai-services
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: supply-chain-optimization-service
+  namespace: ai-services
+  labels:
+    app: supply-chain-optimization-service
+    app.kubernetes.io/component: prometheus-rule
+    team: team-ai-business-ops
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: supply-chain-optimization-service
+    interval: 30s
+    rules:
+    - alert: SupplyChainOptimizationServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{job="supply-chain-optimization-service",status=~"5.."}[5m]) > 10
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-business-ops
+      annotations:
+        summary: "High error rate for Supply Chain Optimization Service"
+        description: "Error rate is {{ $value }} errors/sec for the last 5 minutes"
+    - alert: SupplyChainOptimizationServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="supply-chain-optimization-service"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-business-ops
+      annotations:
+        summary: "High latency for Supply Chain Optimization Service"
+        description: "P95 latency is {{ $value }} seconds"
+    - alert: SupplyChainOptimizationServicePodDown
+      expr: up{job="supply-chain-optimization-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-business-ops
+      annotations:
+        summary: "Supply Chain Optimization Service pod is down"
+        description: "Pod {{ $labels.instance }} has been down for more than 5 minutes"
+    - alert: SupplyChainOptimizationServiceHighMemoryUsage
+      expr: jvm_memory_used_bytes{job="supply-chain-optimization-service",area="heap"} / jvm_memory_max_bytes{job="supply-chain-optimization-service",area="heap"} > 0.9
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-business-ops
+      annotations:
+        summary: "High memory usage for Supply Chain Optimization Service"
+        description: "Heap memory usage is {{ $value | humanizePercentage }}"
+    - alert: SupplyChainOptimizationServiceHighCPUUsage
+      expr: rate(process_cpu_seconds_total{job="supply-chain-optimization-service"}[5m]) > 0.8
+      for: 15m
+      labels:
+        severity: warning
+        team: team-ai-business-ops
+      annotations:
+        summary: "High CPU usage for Supply Chain Optimization Service"
+        description: "CPU usage is {{ $value | humanizePercentage }}"
+    - alert: SupplyChainOptimizationFailedRequests
+      expr: rate(supply_chain_optimization_failed_total{job="supply-chain-optimization-service"}[5m]) > 5
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-business-ops
+      annotations:
+        summary: "High failed optimization requests"
+        description: "{{ $value }} failed optimization requests per second"

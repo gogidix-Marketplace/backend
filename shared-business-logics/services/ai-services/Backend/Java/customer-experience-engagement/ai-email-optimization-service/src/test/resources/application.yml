@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ai-email-optimization-service-test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/ai_email_optimization_test?connectTimeoutMS=60000&serverSelectionTimeoutMS=60000&socketTimeoutMS=60000
+      auto-index-creation: true
+  test:
+    context:
+      cache:
+        enabled: false
+
+server:
+  port: 0
+
+logging:
+  level:
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG

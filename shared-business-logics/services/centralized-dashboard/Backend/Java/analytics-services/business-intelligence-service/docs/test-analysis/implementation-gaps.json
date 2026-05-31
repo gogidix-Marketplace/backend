@@ -1,0 +1,12 @@
+{
+  "summary": {
+    "service": "business-intelligence-service",
+    "location": "Backend/Java/analytics-services/business-intelligence-service",
+    "totalGaps": 0,
+    "criticalGaps": 0,
+    "highGaps": 0,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": []
+}

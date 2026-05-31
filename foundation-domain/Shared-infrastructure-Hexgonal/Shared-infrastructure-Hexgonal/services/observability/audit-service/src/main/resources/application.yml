@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: audit-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_audit
+
+server:
+  port: 8085
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: DEBUG

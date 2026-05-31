@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: centralized-reporting-service-ingress
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-reporting-service
+    team: team-f-centralized-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - reporting.gogidix.com
+    secretName: centralized-reporting-service-tls
+  rules:
+  - host: reporting.gogidix.com
+    http:
+      paths:
+      - path: /api/reporting(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: centralized-reporting-service
+            port:
+              number: 8922
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: centralized-reporting-service
+            port:
+              number: 8922

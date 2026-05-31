@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "discovery-service.fullname" . }}-config
+  namespace: {{ include "discovery-service.namespace" . }}
+  labels:
+    {{- include "discovery-service.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    spring:
+      application:
+        name: {{ include "discovery-service.name" . }}
+      profiles:
+        active: {{ .Values.env.springProfile | default "prod" }}
+    server:
+      port: {{ .Values.service.port }}
+    eureka:
+      client:
+        register-with-eureka: {{ .Values.eureka.client.registerWithEureka }}
+        fetch-registry: {{ .Values.eureka.client.fetchRegistry }}
+        registry-fetch-interval-seconds: {{ .Values.eureka.client.registryFetchIntervalSeconds }}
+        service-url:
+          defaultZone: {{ .Values.eureka.client.serviceUrl | quote }}
+      server:
+        enable-self-preservation: {{ .Values.eureka.server.enableSelfPreservation }}
+        eviction-interval-timer-in-ms: {{ .Values.eureka.server.evictionIntervalTimerInMs }}
+        renewal-percent-threshold: {{ .Values.eureka.server.renewalPercentThreshold }}
+        response-cache-update-interval-ms: {{ .Values.eureka.server.responseCacheUpdateIntervalMs }}
+        wait-time-in-ms-when-sync-empty: 5000
+        registry-sync-retry-wait-ms: {{ .Values.eureka.server.registrySyncRetryWaitMs }}
+        peer-eureka-nodes-refresh-interval-seconds: {{ .Values.eureka.server.peerEurekaNodesRefreshIntervalSeconds }}
+        peer-node-read-timeout-ms: 5000
+        rate-limiter-enabled: {{ .Values.eureka.server.rateLimiterEnabled }}
+        rate-limiter-burst-size: {{ .Values.eureka.server.rateLimiterBurstSize }}
+        rate-limiter-full-fetch-average-rate: {{ .Values.eureka.server.rateLimiterFullFetchAverageRate }}
+        disable-delta: {{ .Values.eureka.server.disableDelta | default false }}
+      instance:
+        hostname: ${HOST_NAME}
+        prefer-ip-address: {{ .Values.eureka.instance.preferIpAddress }}
+        lease-renewal-interval-in-seconds: {{ .Values.eureka.instance.leaseRenewalIntervalInSeconds }}
+        lease-expiration-duration-in-seconds: {{ .Values.eureka.instance.leaseExpirationDurationInSeconds }}
+        metadata:
+          zone: {{ .Values.eureka.zone | default "zone1" }}
+          environment: {{ .Values.env.springProfile | default "prod" }}
+          datacenter: {{ .Values.eureka.datacenter | default "ProductionDataCenter" }}
+          region: {{ .Values.eureka.region | default "us-east-1" }}
+      dashboard:
+        enabled: {{ .Values.eureka.dashboard.enabled }}
+        path: {{ .Values.eureka.dashboard.path | default "/eureka" }}
+      datacenter: {{ .Values.eureka.datacenter | default "ProductionDataCenter" }}
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          probes:
+            enabled: true
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+    logging:
+      level:
+        com.netflix.eureka: {{ .Values.logLevel.eureka | default "INFO" }}
+        com.gogidix: {{ .Values.logLevel.application | default "INFO" }}
+        org.springframework: {{ .Values.logLevel.spring | default "WARN" }}

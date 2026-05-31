@@ -1,0 +1,112 @@
+# =============================================================================
+# Sales Analytics Service Configuration - Sales Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8090}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: sales-analytics-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:sales-analytics-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      analytics-events: sales-analytics-service.events
+      domain-events: sales.domain-events
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.sales.analytics.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.analytics: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/sales-analytics-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+sales-analytics-service:
+  analytics:
+    report:
+      formats:
+        - PDF
+        - EXCEL
+        - CSV
+        - JSON
+      retention-days: 365
+      max-concurrent-reports: 10
+    metrics:
+      cache-ttl-minutes: 15
+      aggregation-interval-minutes: 60
+    performance:
+      target-quota-achievement: 100
+      target-conversion-rate: 20
+      target-velocity-days: 30

@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: user-provisioning-service
+  data:
+    mongodb:
+      database: user-provisioning-service_db

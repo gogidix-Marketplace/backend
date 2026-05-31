@@ -1,0 +1,62 @@
+name: Domain CI - Production
+
+on:
+  push:
+    branches: [production]
+
+concurrency:
+  group: ci-production-${{ github.repository }}
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+  MAVEN_ARGS: '-B -V -ntp -e'
+
+jobs:
+  production-gate:
+    name: Production Readiness Gate
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Configure Maven for GitHub Packages
+        uses: s4u/maven-settings-action@v3
+        with:
+          servers: |
+            [{
+              "id": "github",
+              "username": "${{ github.actor }}",
+              "password": "${{ secrets.GITHUB_TOKEN }}"
+            }]
+          repositories: |
+            [{
+              "id": "github",
+              "name": "GitHub Packages - CargoNexus Platform",
+              "url": "https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Africa",
+              "snapshots": { "enabled": "true" }
+            }]
+
+      - name: Build and Test
+        run: mvn verify ${{ env.MAVEN_ARGS }}
+
+      - name: Semgrep SAST Scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/java
+            p/spring-boot
+            p/owasp-top-ten
+            p/xss
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}

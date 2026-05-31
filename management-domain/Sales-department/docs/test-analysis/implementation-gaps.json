@@ -1,0 +1,84 @@
+{
+  "serviceName": "Sales-department",
+  "analysisDate": "2026-03-02T00:00:00Z",
+  "basePath": "C:/Users/TEMP.LAPTOP-1QDBFFCA/Desktop/Gogidix-ecosystem/x-gogidix-domain/Management-domain/Sales-department",
+  "summary": {
+    "totalFiles": 467,
+    "filesWithGaps": 3,
+    "totalGaps": 4,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "EMPTY_METHOD": 0,
+      "MOCK": 0,
+      "PLACEHOLDER": 4,
+      "XXX": 0,
+      "HACK": 0,
+      "STUB": 0,
+      "NotImplementedError": 0,
+      "UnsupportedOperationException": 0
+    }
+  },
+  "gaps": [
+    {
+      "service": "notification-service",
+      "filePath": "Backend/Java/notification-service/src/main/java/com/gogidix/sales/notification/infrastructure/messaging/sms/SmsNotificationSender.java",
+      "line": 41,
+      "type": "PLACEHOLDER",
+      "methodName": "send",
+      "description": "SMS notification sending is not implemented - only logging occurs",
+      "severity": "HIGH",
+      "category": "FUNCTIONALITY",
+      "actionRequired": "Implement actual SMS sending functionality using SMS gateway API"
+    },
+    {
+      "service": "notification-service",
+      "filePath": "Backend/Java/notification-service/src/main/java/com/gogidix/sales/notification/infrastructure/messaging/push/PushNotificationSender.java",
+      "line": 35,
+      "type": "PLACEHOLDER",
+      "methodName": "send",
+      "description": "Push notification sending is not implemented - only logging occurs",
+      "severity": "HIGH",
+      "category": "FUNCTIONALITY",
+      "actionRequired": "Implement actual push notification sending using FCM/APNS"
+    },
+    {
+      "service": "sales-analytics-service",
+      "filePath": "Backend/Java/sales-analytics-service/src/main/java/com/gogidix/sales/analytics/application/service/DashboardService.java",
+      "line": 303,
+      "type": "PLACEHOLDER",
+      "methodName": "generateWidgetData",
+      "description": "Widget data generation returns placeholder/mock data instead of real analytics",
+      "severity": "MEDIUM",
+      "category": "DATA",
+      "actionRequired": "Replace placeholder data with real analytics queries"
+    },
+    {
+      "service": "revenue-tracking-service",
+      "filePath": "Backend/Java/revenue-tracking-service/src/main/java/com/gogidix/sales/revenue/domain/model/RevenueRecognitionSchedule.java",
+      "line": 187,
+      "type": "PLACEHOLDER",
+      "description": "Milestone-based revenue recognition creates placeholder entries",
+      "severity": "LOW",
+      "category": "FEATURE",
+      "actionRequired": "Implement proper milestone-based revenue recognition tracking"
+    }
+  ],
+  "testCoverage": {
+    "totalServices": 12,
+    "overallCoveragePercentage": 15,
+    "servicesWithZeroCoverage": [
+      "forecast-management-service",
+      "lead-management-service",
+      "notification-service",
+      "sales-analytics-service"
+    ],
+    "servicesWithPlaceholderGaps": [
+      "notification-service",
+      "sales-analytics-service",
+      "revenue-tracking-service"
+    ],
+    "bestCoveredService": "territory-management-service",
+    "bestCoveragePercentage": 100
+  }
+}

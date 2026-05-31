@@ -1,0 +1,205 @@
+/* OverviewPage Styles */
+
+.overview-page {
+  min-height: 100vh;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Alert Badge */
+.alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-danger-bg, rgba(239, 68, 68, 0.1));
+  color: var(--color-danger);
+  border-radius: var(--border-radius-md);
+  font-weight: 500;
+}
+
+.alert-badge__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: var(--color-danger);
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+/* Campaign List */
+.campaign-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.campaign-list-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  transition: background-color 0.15s ease;
+}
+
+.campaign-list-item:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.campaign-item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.campaign-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.campaign-item-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaign-item-metrics {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.campaign-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
+.campaign-metric-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.campaign-metric-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.campaign-item-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.campaign-progress-bar {
+  flex: 1;
+  height: 6px;
+  background-color: var(--color-border);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+}
+
+.campaign-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.campaign-progress-text {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Alerts List */
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.alerts-empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--color-text-secondary);
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid transparent;
+}
+
+.alert-item--error {
+  border-left-color: var(--color-danger);
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.alert-item--warning {
+  border-left-color: var(--color-warning);
+  background-color: rgba(245, 158, 11, 0.05);
+}
+
+.alert-item--success {
+  border-left-color: var(--color-success);
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.alert-item--info {
+  border-left-color: var(--color-info);
+  background-color: rgba(6, 182, 212, 0.05);
+}
+
+.alert-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.alert-title {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+}
+
+.alert-message {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alert-time {
+  font-size: 0.75rem;
+  color: var(--color-text-placeholder);
+  white-space: nowrap;
+}

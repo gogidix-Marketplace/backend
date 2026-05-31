@@ -1,0 +1,188 @@
+name: AI Services CI
+
+on:
+  push:
+    branches: [ main, develop, dev ]
+  pull_request:
+    branches: [ main, develop, dev ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Java Services CI
+  java-services-test:
+    name: Java Services Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven packages
+        uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Run tests
+        run: |
+          find Backend/Java -name "pom.xml" -type f -execdir mvn clean test {} \;
+        # FAIL on test failures - do NOT continue on error
+
+      - name: Generate test report
+        if: always()
+        uses: dorny/test-reporter@31d2709a2c8dd9a676293445a22b9449df6ac703
+        with:
+          name: Java Tests Report
+          path: '**/target/surefire-reports/*.xml'
+          reporter: java-junit
+          fail-on-error: true  # FAIL when tests fail
+          max-errors: 0
+          max-failures: 0
+
+      - name: Coverage check
+        run: |
+          find Backend/Java -name "pom.xml" -type f -execdir mvn jacoco:check {} \;
+        # FAIL on coverage failures - do NOT continue on error
+
+  # Python Services CI
+  python-services-test:
+    name: Python Services Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - ml-model-training-service
+          - nlp-service
+          - predictive-analytics-service
+          - computer-vision-service
+          - anomaly-detection-service
+          - recommendation-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@b874de564041f4e0b65b4bc14fdb4db7aa9c34f0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: Backend/Nodes/${{ matrix.service }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Run tests
+        working-directory: Backend/Nodes/${{ matrix.service }}
+        run: |
+          if [ -d "tests" ]; then
+            pytest tests/ -v --cov=app --cov-report=xml --cov-report=term --cov-fail-under=70
+          else
+            echo "❌ ERROR: No tests directory found for ${{ matrix.service }}"
+            exit 1
+          fi
+        # FAIL on test failures - do NOT continue on error
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@ab904c41d6ece7705aeb9a60b392016e95e53396
+        with:
+          files: Backend/Nodes/${{ matrix.service }}/coverage.xml
+          flags: ${{ matrix.service }}
+          name: codecov-${{ matrix.service }}
+          fail_ci_if_error: true  # FAIL if coverage upload fails
+
+  # Linting
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Python Lint
+        run: |
+          pip install flake8 black mypy
+          find Backend/Nodes -name "*.py" -exec flake8 {} +
+          find Backend/Nodes -name "*.py" -exec black --check {} +
+        # FAIL on lint errors - do NOT continue on error
+
+      - name: Java Checkstyle
+        run: |
+          # Add checkstyle verification
+          echo "Java code quality check"
+
+  # Security Scanning
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6896a38fa877f2db34aa4fff10fa944dbbf9357c
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+        # FAIL on critical vulnerabilities - do NOT continue on error
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@435327b1c2fef2aa9df534fdf274590a098c19f4
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Docker Build
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - ml-model-training-service
+          - nlp-service
+          - predictive-analytics-service
+          - computer-vision-service
+          - anomaly-detection-service
+          - recommendation-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@2b512430cf1c4c7fe9b7815b4c7d761f6e893f6b
+
+      - name: Build Docker image
+        uses: docker/build-push-action@af5a7ed5ba88268de6df9df61a84dfe726b25e69
+        with:
+          context: Backend/Nodes/${{ matrix.service }}
+          push: false
+          tags: gogidix/${{ matrix.service }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        # FAIL on build failures - do NOT continue on error

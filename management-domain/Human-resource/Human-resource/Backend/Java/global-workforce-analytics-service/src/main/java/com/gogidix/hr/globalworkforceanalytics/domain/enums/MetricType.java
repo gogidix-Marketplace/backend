@@ -1,0 +1,75 @@
+package com.gogidix.hr.globalworkforceanalytics.domain.enums;
+
+/**
+ * MetricType enum for workforce metrics
+ */
+public enum MetricType {
+    // Headcount Metrics
+    HEADCOUNT_TOTAL,
+    HEADCOUNT_ACTIVE,
+    HEADCOUNT_NEW_HIRES,
+    HEADCOUNT_TERMINATIONS,
+    HEADCOUNT_NET_CHANGE,
+
+    // Turnover Metrics
+    TURNOVER_RATE,
+    TURNOVER_VOLUNTARY,
+    TURNOVER_INVOLUNTARY,
+    RETENTION_RATE,
+
+    // Recruitment Metrics
+    TIME_TO_HIRE,
+    TIME_TO_FILL,
+    COST_PER_HIRE,
+    OFFER_ACCEPTANCE_RATE,
+    QUALITY_OF_HIRE,
+
+    // Performance Metrics
+    PERFORMANCE_SCORE,
+    GOAL_COMPLETION_RATE,
+    PROMOTION_RATE,
+    HIGH_PERFORMER_RATIO,
+
+    // Compensation Metrics
+    AVERAGE_SALARY,
+    SALARY_RANGE_COMPARISON,
+    COMPENSATION_COST,
+    BENEFITS_COST,
+    TOTAL_COMPENSATION,
+
+    // Engagement Metrics
+    EMPLOYEE_SATISFACTION,
+    ENGAGEMENT_SCORE,
+    E_NPS_SCORE,
+    SURVEY_PARTICIPATION_RATE,
+
+    // Attendance Metrics
+    ATTENDANCE_RATE,
+    ABSENTEEISM_RATE,
+    LATE_ARRIVAL_RATE,
+    OVERTIME_HOURS,
+
+    // Training Metrics
+    TRAINING_HOURS_PER_EMPLOYEE,
+    TRAINING_COMPLETION_RATE,
+    TRAINING_COST_PER_EMPLOYEE,
+    SKILL_GAP_INDEX,
+
+    // Diversity Metrics
+    DIVERSITY_RATIO,
+    GENDER_DISTRIBUTION,
+    AGE_DISTRIBUTION,
+    DEMOGRAPHIC_PARITY,
+
+    // Productivity Metrics
+    REVENUE_PER_EMPLOYEE,
+    PROFIT_PER_EMPLOYEE,
+    OUTPUT_PER_EMPLOYEE,
+    PRODUCTIVITY_INDEX,
+
+    // Compliance Metrics
+    COMPLIANCE_RATE,
+    POLICY_ADHERENCE,
+    TRAINING_COMPLIANCE,
+    CERTIFICATION_RATE
+}

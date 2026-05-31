@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-feature-store-service-ingress
+  namespace: ai-services
+  labels:
+    app: ai-feature-store-service
+    team: team-ai-mlops
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ai-feature-store.gogidix.com
+    secretName: ai-feature-store-service-tls
+  rules:
+  - host: ai-feature-store.gogidix.com
+    http:
+      paths:
+      - path: /api/feature-store(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-feature-store-service
+            port:
+              number: 8081

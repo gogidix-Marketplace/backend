@@ -1,0 +1,916 @@
+package com.gogidix.shared.validation.domain.model;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
+/**
+ * Pure domain entity representing a validation rule with zero external dependencies.
+ * Defines comprehensive validation logic and metadata for various data types with business rules.
+ */
+public class ValidationRuleClean {
+    
+    // Core identification and metadata
+    private final UUID id;
+    private final String name;
+    private final String description;
+    private final ValidationType validationType;
+    private final ValidationSeverity severity;
+    private final String fieldName;
+    
+    // Validation configuration
+    private final String regex;
+    private final Pattern compiledPattern;
+    private final Object minValue;
+    private final Object maxValue;
+    private final Integer minLength;
+    private final Integer maxLength;
+    private final Set<String> allowedValues;
+    private final Map<String, Object> parameters;
+    
+    // Error handling
+    private final String errorMessage;
+    private final String errorCode;
+    private final String helpText;
+    private final String warningMessage;
+    
+    // Rule management
+    private final boolean enabled;
+    private final int priority;
+    private final Set<String> tags;
+    private final ValidationRuleGroupClean group;
+    private final Set<String> applicableContexts;
+    
+    // Audit information
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
+    private final String createdBy;
+    private final String updatedBy;
+    private final String version;
+    
+    // Performance and execution
+    private final boolean cacheable;
+    private final long maxExecutionTimeMs;
+    private final boolean failFast;
+    
+    public ValidationRuleClean(UUID id, String name, String description, ValidationType validationType,
+                              ValidationSeverity severity, String fieldName, String regex, Object minValue,
+                              Object maxValue, Integer minLength, Integer maxLength, Set<String> allowedValues,
+                              Map<String, Object> parameters, String errorMessage, String errorCode,
+                              String helpText, String warningMessage, boolean enabled, int priority,
+                              Set<String> tags, ValidationRuleGroupClean group, Set<String> applicableContexts,
+                              LocalDateTime createdAt, LocalDateTime updatedAt, String createdBy,
+                              String updatedBy, String version, boolean cacheable, long maxExecutionTimeMs,
+                              boolean failFast) {
+        
+        // Domain validation
+        this.id = Objects.requireNonNull(id, "Rule ID cannot be null");
+        this.name = validateName(name);
+        this.description = description;
+        this.validationType = Objects.requireNonNull(validationType, "Validation type cannot be null");
+        this.severity = Objects.requireNonNull(severity, "Severity cannot be null");
+        this.fieldName = fieldName;
+        
+        // Validation configuration
+        this.regex = regex;
+        this.compiledPattern = regex != null ? Pattern.compile(regex) : null;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+        this.minLength = validateLength(minLength, "minLength");
+        this.maxLength = validateLength(maxLength, "maxLength");
+        this.allowedValues = allowedValues != null ? new HashSet<>(allowedValues) : new HashSet<>();
+        this.parameters = parameters != null ? new HashMap<>(parameters) : new HashMap<>();
+        
+        // Error handling
+        this.errorMessage = validateErrorMessage(errorMessage);
+        this.errorCode = errorCode;
+        this.helpText = helpText;
+        this.warningMessage = warningMessage;
+        
+        // Rule management
+        this.enabled = enabled;
+        this.priority = validatePriority(priority);
+        this.tags = tags != null ? new HashSet<>(tags) : new HashSet<>();
+        this.group = group;
+        this.applicableContexts = applicableContexts != null ? new HashSet<>(applicableContexts) : new HashSet<>();
+        
+        // Audit information
+        this.createdAt = Objects.requireNonNull(createdAt, "Created time cannot be null");
+        this.updatedAt = updatedAt;
+        this.createdBy = createdBy;
+        this.updatedBy = updatedBy;
+        this.version = version != null ? version : "1.0";
+        
+        // Performance settings
+        this.cacheable = cacheable;
+        this.maxExecutionTimeMs = Math.max(100, maxExecutionTimeMs);
+        this.failFast = failFast;
+        
+        // Validate rule consistency
+        validateRuleConsistency();
+    }
+    
+    // ==============================================
+    // BUSINESS LOGIC METHODS - VALIDATION EXECUTION
+    // ==============================================
+    
+    /**
+     * Business Rule: Validates if this validation rule is properly configured
+     */
+    public boolean isValid() {
+        return name != null && !name.trim().isEmpty() &&
+               validationType != null &&
+               severity != null &&
+               hasRequiredParameters() &&
+               errorMessage != null && !errorMessage.trim().isEmpty() &&
+               isParameterConfigurationValid();
+    }
+    
+    /**
+     * Business Logic: Executes this validation rule against the given value
+     */
+    public ValidationResultClean executeValidation(Object value, ValidationContextClean context) {
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            // Pre-execution checks
+            if (!enabled) {
+                return ValidationResultClean.skipped(this, value, "Rule is disabled");
+            }
+            
+            if (!isApplicableToContext(context)) {
+                return ValidationResultClean.skipped(this, value, "Rule not applicable to context");
+            }
+            
+            if (shouldSkipForValue(value)) {
+                return ValidationResultClean.skipped(this, value, "Value type not applicable");
+            }
+            
+            // Execute validation with timeout protection
+            boolean passed = executeWithTimeout(() -> performValidation(value, context));
+            
+            long executionTime = System.currentTimeMillis() - startTime;
+            
+            if (passed) {
+                ValidationResultClean result = ValidationResultClean.passed(this, value);
+                return addPerformanceMetadata(result, executionTime);
+            } else {
+                String errorMsg = getContextualErrorMessage(value, context);
+                ValidationResultClean result = ValidationResultClean.failed(this, value, errorMsg);
+                return addPerformanceMetadata(result, executionTime);
+            }
+            
+        } catch (ValidationTimeoutException e) {
+            return ValidationResultClean.timeout(this, value, maxExecutionTimeMs);
+        } catch (Exception e) {
+            return ValidationResultClean.error(this, value, 
+                "Validation error: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Business Logic: Batch validation for multiple values
+     */
+    public ValidationResultClean[] executeBatchValidation(Object[] values, ValidationContextClean context) {
+        ValidationResultClean[] results = new ValidationResultClean[values.length];
+        
+        for (int i = 0; i < values.length; i++) {
+            results[i] = executeValidation(values[i], context);
+            
+            // Fail fast if enabled and we encounter an error
+            if (failFast && results[i].isFailed()) {
+                // Fill remaining results with skipped
+                for (int j = i + 1; j < values.length; j++) {
+                    results[j] = ValidationResultClean.skipped(this, values[j], "Fail-fast triggered");
+                }
+                break;
+            }
+        }
+        
+        return results;
+    }
+    
+    // ==============================================
+    // VALIDATION IMPLEMENTATION METHODS
+    // ==============================================
+    
+    /**
+     * Core validation logic dispatch
+     */
+    private boolean performValidation(Object value, ValidationContextClean context) {
+        // Handle null/empty checks first
+        if (value == null) {
+            return handleNullValue();
+        }
+        
+        String stringValue = String.valueOf(value).trim();
+        if (stringValue.isEmpty()) {
+            return handleEmptyValue();
+        }
+        
+        return switch (validationType) {
+            case EMAIL -> validateEmail(stringValue);
+            case URL -> validateUrl(stringValue);
+            case PHONE -> validatePhone(stringValue);
+            case CREDIT_CARD -> validateCreditCard(stringValue);
+            case SSN -> validateSSN(stringValue);
+            case REGEX -> validateRegex(stringValue);
+            case NUMERIC_RANGE -> validateNumericRange(value);
+            case LENGTH_RANGE -> validateLengthRange(stringValue);
+            case ENUM_VALUES -> validateEnumValues(stringValue);
+            case DATE_RANGE -> validateDateRange(value, context);
+            case DATE_FORMAT -> validateDateFormat(stringValue);
+            case REQUIRED, NOT_NULL -> true; // Already handled null above
+            case NOT_EMPTY, NOT_BLANK -> true; // Already handled empty above
+            case CUSTOM -> validateCustom(value, context);
+            case BUSINESS_LOGIC -> validateBusinessLogic(value, context);
+            case CROSS_FIELD -> validateCrossField(value, context);
+            case JSON_SCHEMA -> validateJsonSchema(stringValue);
+            case XML_SCHEMA -> validateXmlSchema(stringValue);
+            case PASSWORD_STRENGTH -> validatePasswordStrength(stringValue);
+            case IP_ADDRESS -> validateIpAddress(stringValue);
+            case UUID_FORMAT -> validateUuidFormat(stringValue);
+        };
+    }
+    
+    private boolean handleNullValue() {
+        return validationType != ValidationType.REQUIRED && validationType != ValidationType.NOT_NULL;
+    }
+    
+    private boolean handleEmptyValue() {
+        return validationType != ValidationType.NOT_EMPTY && 
+               validationType != ValidationType.NOT_BLANK &&
+               validationType != ValidationType.REQUIRED;
+    }
+    
+    private boolean validateEmail(String value) {
+        // Comprehensive email validation
+        if (value.length() > 254) return false; // RFC 5321 limit
+        
+        Pattern emailPattern = Pattern.compile(
+            "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+        );
+        
+        return emailPattern.matcher(value).matches();
+    }
+    
+    private boolean validateUrl(String value) {
+        try {
+            new java.net.URL(value);
+            
+            // Additional business rules
+            if (hasParameter("allowedProtocols")) {
+                Set<?> allowed = (Set<?>) getParameter("allowedProtocols");
+                String protocol = value.substring(0, value.indexOf(':')).toLowerCase();
+                return allowed.contains(protocol);
+            }
+            
+            return true;
+        } catch (java.net.MalformedURLException e) {
+            return false;
+        }
+    }
+    
+    private boolean validatePhone(String value) {
+        // Remove all non-digit characters
+        String digits = value.replaceAll("\\D", "");
+        
+        // Basic length check (7-15 digits as per ITU-T E.164)
+        if (digits.length() < 7 || digits.length() > 15) {
+            return false;
+        }
+        
+        // Country-specific validation if specified
+        if (hasParameter("countryCode")) {
+            String countryCode = (String) getParameter("countryCode");
+            return validatePhoneForCountry(digits, countryCode);
+        }
+        
+        return true;
+    }
+    
+    private boolean validatePhoneForCountry(String digits, String countryCode) {
+        return switch (countryCode.toUpperCase()) {
+            case "US", "CA" -> digits.length() == 10 || (digits.length() == 11 && digits.startsWith("1"));
+            case "UK" -> digits.length() == 10 || digits.length() == 11;
+            case "DE" -> digits.length() >= 11 && digits.length() <= 12;
+            default -> true; // Generic validation
+        };
+    }
+    
+    private boolean validateCreditCard(String value) {
+        String digits = value.replaceAll("\\D", "");
+        
+        if (digits.length() < 13 || digits.length() > 19) {
+            return false;
+        }
+        
+        // Luhn algorithm
+        int sum = 0;
+        boolean alternate = false;
+        
+        for (int i = digits.length() - 1; i >= 0; i--) {
+            int n = Integer.parseInt(digits.substring(i, i + 1));
+            if (alternate) {
+                n *= 2;
+                if (n > 9) n = (n % 10) + 1;
+            }
+            sum += n;
+            alternate = !alternate;
+        }
+        
+        return sum % 10 == 0;
+    }
+    
+    private boolean validateSSN(String value) {
+        String digits = value.replaceAll("\\D", "");
+        
+        if (digits.length() != 9) return false;
+        
+        // SSN cannot be all zeros or follow certain invalid patterns
+        if (digits.equals("000000000")) return false;
+        if (digits.startsWith("666")) return false;
+        if (digits.startsWith("9")) return false;
+        if (digits.substring(3, 5).equals("00")) return false;
+        if (digits.substring(5).equals("0000")) return false;
+        
+        return true;
+    }
+    
+    private boolean validateRegex(String value) {
+        return compiledPattern != null && compiledPattern.matcher(value).matches();
+    }
+    
+    private boolean validateNumericRange(Object value) {
+        double numValue;
+        
+        if (value instanceof Number num) {
+            numValue = num.doubleValue();
+        } else {
+            try {
+                numValue = Double.parseDouble(String.valueOf(value));
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        
+        if (minValue instanceof Number min && numValue < min.doubleValue()) {
+            return false;
+        }
+        
+        if (maxValue instanceof Number max && numValue > max.doubleValue()) {
+            return false;
+        }
+        
+        // Check for special numeric constraints
+        if (hasParameter("allowDecimals")) {
+            boolean allowDecimals = (Boolean) getParameter("allowDecimals");
+            if (!allowDecimals && numValue != Math.floor(numValue)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    private boolean validateLengthRange(String value) {
+        int length = value.length();
+        
+        if (minLength != null && length < minLength) return false;
+        if (maxLength != null && length > maxLength) return false;
+        
+        return true;
+    }
+    
+    private boolean validateEnumValues(String value) {
+        boolean caseSensitive = getBooleanParameter("caseSensitive", true);
+        
+        if (caseSensitive) {
+            return allowedValues.contains(value);
+        } else {
+            return allowedValues.stream()
+                .anyMatch(allowed -> allowed.equalsIgnoreCase(value));
+        }
+    }
+    
+    private boolean validateDateRange(Object value, ValidationContextClean context) {
+        try {
+            LocalDateTime dateValue;
+            
+            if (value instanceof LocalDateTime) {
+                dateValue = (LocalDateTime) value;
+            } else if (value instanceof String) {
+                String format = getStringParameter("dateFormat", "yyyy-MM-dd'T'HH:mm:ss");
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                dateValue = LocalDateTime.parse((String) value, formatter);
+            } else {
+                return false;
+            }
+            
+            LocalDateTime minDate = (LocalDateTime) getParameter("minDate");
+            LocalDateTime maxDate = (LocalDateTime) getParameter("maxDate");
+            
+            if (minDate != null && dateValue.isBefore(minDate)) return false;
+            if (maxDate != null && dateValue.isAfter(maxDate)) return false;
+            
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    private boolean validateDateFormat(String value) {
+        String format = getStringParameter("dateFormat");
+        if (format == null) return false;
+        
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+            formatter.parse(value);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+    
+    private boolean validateJsonSchema(String value) {
+        // Basic JSON validation - would integrate with JSON schema library in real implementation
+        try {
+            // Simple JSON syntax check
+            if (!value.trim().startsWith("{") && !value.trim().startsWith("[")) {
+                return false;
+            }
+            
+            return value.trim().endsWith("}") || value.trim().endsWith("]");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    private boolean validateXmlSchema(String value) {
+        // Basic XML validation
+        return value.trim().startsWith("<") && value.trim().endsWith(">");
+    }
+    
+    private boolean validatePasswordStrength(String value) {
+        int score = 0;
+        
+        if (value.length() >= 8) score++;
+        if (value.matches(".*[a-z].*")) score++;
+        if (value.matches(".*[A-Z].*")) score++;
+        if (value.matches(".*\\d.*")) score++;
+        if (value.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) score++;
+        
+        int requiredScore = getIntParameter("minimumScore", 3);
+        return score >= requiredScore;
+    }
+    
+    private boolean validateIpAddress(String value) {
+        // IPv4 validation
+        String ipv4Pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+        if (Pattern.compile(ipv4Pattern).matcher(value).matches()) {
+            return true;
+        }
+        
+        // IPv6 validation (simplified)
+        String ipv6Pattern = "^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$";
+        return Pattern.compile(ipv6Pattern).matcher(value).matches();
+    }
+    
+    private boolean validateUuidFormat(String value) {
+        try {
+            UUID.fromString(value);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private boolean validateCustom(Object value, ValidationContextClean context) {
+        Object validator = getParameter("validator");
+        if (validator instanceof Predicate<?> predicate) {
+            return ((Predicate<Object>) predicate).test(value);
+        }
+        
+        // Support for custom validation class
+        String validatorClass = getStringParameter("validatorClass");
+        if (validatorClass != null) {
+            try {
+                Class<?> clazz = Class.forName(validatorClass);
+                Object instance = clazz.getDeclaredConstructor().newInstance();
+                if (instance instanceof Predicate<?> pred) {
+                    return ((Predicate<Object>) pred).test(value);
+                }
+            } catch (Exception e) {
+                // Log error in real implementation
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean validateBusinessLogic(Object value, ValidationContextClean context) {
+        String businessRule = getStringParameter("businessRule");
+        if (businessRule == null) return true;
+        
+        return switch (businessRule.toLowerCase()) {
+            case "unique_email" -> validateUniqueEmail(value, context);
+            case "valid_account_number" -> validateAccountNumber(value, context);
+            case "sufficient_balance" -> validateSufficientBalance(value, context);
+            case "valid_promotion_code" -> validatePromotionCode(value, context);
+            default -> true;
+        };
+    }
+    
+    private boolean validateCrossField(Object value, ValidationContextClean context) {
+        @SuppressWarnings("unchecked")
+        Set<String> relatedFields = (Set<String>) getParameter("relatedFields");
+        if (relatedFields == null || context == null) return true;
+        
+        // Cross-field validation logic would be implemented here
+        // This would require access to other field values from the context
+        return true;
+    }
+    
+    // ==============================================
+    // BUSINESS RULE HELPER METHODS
+    // ==============================================
+    
+    private boolean validateUniqueEmail(Object value, ValidationContextClean context) {
+        // Would integrate with repository to check uniqueness
+        return true;
+    }
+    
+    private boolean validateAccountNumber(Object value, ValidationContextClean context) {
+        String accountNumber = String.valueOf(value);
+        return accountNumber.length() >= 8 && accountNumber.matches("\\d+");
+    }
+    
+    private boolean validateSufficientBalance(Object value, ValidationContextClean context) {
+        // Would integrate with account service to check balance
+        return true;
+    }
+    
+    private boolean validatePromotionCode(Object value, ValidationContextClean context) {
+        // Would integrate with promotion service to validate code
+        return true;
+    }
+    
+    // ==============================================
+    // CONTEXT AND APPLICABILITY METHODS
+    // ==============================================
+    
+    private boolean isApplicableToContext(ValidationContextClean context) {
+        if (applicableContexts.isEmpty()) {
+            return true;
+        }
+        
+        if (context == null || context.getContextName() == null) {
+            return false;
+        }
+        
+        return applicableContexts.contains(context.getContextName()) ||
+               applicableContexts.contains("*") ||
+               matchesContextPattern(context);
+    }
+    
+    private boolean matchesContextPattern(ValidationContextClean context) {
+        String contextName = context.getContextName();
+        
+        return applicableContexts.stream()
+            .anyMatch(pattern -> {
+                if (pattern.contains("*")) {
+                    String regex = pattern.replace("*", ".*");
+                    return contextName.matches(regex);
+                }
+                return false;
+            });
+    }
+    
+    private boolean shouldSkipForValue(Object value) {
+        // Skip validation for certain value types based on configuration
+        if (hasParameter("skipForNullValues") && value == null) {
+            return getBooleanParameter("skipForNullValues", false);
+        }
+        
+        if (hasParameter("applicableTypes")) {
+            @SuppressWarnings("unchecked")
+            Set<String> applicableTypes = (Set<String>) getParameter("applicableTypes");
+            String valueType = value != null ? value.getClass().getSimpleName() : "null";
+            return !applicableTypes.contains(valueType);
+        }
+        
+        return false;
+    }
+    
+    // ==============================================
+    // ERROR MESSAGE AND HELP TEXT METHODS
+    // ==============================================
+    
+    private String getContextualErrorMessage(Object value, ValidationContextClean context) {
+        String message = errorMessage;
+        
+        // Replace placeholders
+        message = message.replace("${value}", String.valueOf(value))
+                        .replace("${field}", fieldName != null ? fieldName : "field")
+                        .replace("${minLength}", String.valueOf(minLength))
+                        .replace("${maxLength}", String.valueOf(maxLength))
+                        .replace("${minValue}", String.valueOf(minValue))
+                        .replace("${maxValue}", String.valueOf(maxValue));
+        
+        // Add context-specific information
+        if (context != null && context.hasContextData()) {
+            for (Map.Entry<String, Object> entry : context.getContextData().entrySet()) {
+                message = message.replace("${" + entry.getKey() + "}", String.valueOf(entry.getValue()));
+            }
+        }
+        
+        return message;
+    }
+    
+    public String getHelpText() {
+        if (helpText != null) return helpText;
+        
+        // Generate contextual help based on validation type
+        return switch (validationType) {
+            case EMAIL -> "Please enter a valid email address (e.g., user@example.com)";
+            case PHONE -> "Please enter a valid phone number";
+            case LENGTH_RANGE -> String.format("Must be between %d and %d characters", 
+                minLength != null ? minLength : 0, maxLength != null ? maxLength : Integer.MAX_VALUE);
+            case NUMERIC_RANGE -> String.format("Must be between %s and %s", 
+                minValue != null ? minValue : "any", maxValue != null ? maxValue : "any");
+            case REQUIRED -> "This field is required";
+            default -> "Please enter a valid value";
+        };
+    }
+    
+    // ==============================================
+    // PERFORMANCE AND UTILITY METHODS
+    // ==============================================
+    
+    private boolean executeWithTimeout(Runnable validation) throws ValidationTimeoutException {
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            validation.run();
+            return true;
+        } finally {
+            long executionTime = System.currentTimeMillis() - startTime;
+            if (executionTime > maxExecutionTimeMs) {
+                throw new ValidationTimeoutException("Validation exceeded maximum execution time: " + executionTime + "ms");
+            }
+        }
+    }
+    
+    private ValidationResultClean addPerformanceMetadata(ValidationResultClean result, long executionTime) {
+        return result.withAdditionalMetadata("executionTimeMs", executionTime)
+                    .withAdditionalMetadata("rulePriority", priority)
+                    .withAdditionalMetadata("ruleVersion", version);
+    }
+    
+    // ==============================================
+    // PARAMETER ACCESS HELPERS
+    // ==============================================
+    
+    public Object getParameter(String key) {
+        return parameters.get(key);
+    }
+    
+    public String getStringParameter(String key) {
+        Object value = getParameter(key);
+        return value != null ? value.toString() : null;
+    }
+    
+    public String getStringParameter(String key, String defaultValue) {
+        String value = getStringParameter(key);
+        return value != null ? value : defaultValue;
+    }
+    
+    public Integer getIntParameter(String key) {
+        Object value = getParameter(key);
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+    
+    public Integer getIntParameter(String key, Integer defaultValue) {
+        Integer value = getIntParameter(key);
+        return value != null ? value : defaultValue;
+    }
+    
+    public Boolean getBooleanParameter(String key) {
+        Object value = getParameter(key);
+        if (value instanceof Boolean) return (Boolean) value;
+        if (value instanceof String) {
+            return Boolean.parseBoolean((String) value);
+        }
+        return null;
+    }
+    
+    public Boolean getBooleanParameter(String key, Boolean defaultValue) {
+        Boolean value = getBooleanParameter(key);
+        return value != null ? value : defaultValue;
+    }
+    
+    public boolean hasParameter(String key) {
+        return parameters.containsKey(key);
+    }
+    
+    // ==============================================
+    // CONFIGURATION VALIDATION METHODS
+    // ==============================================
+    
+    private boolean hasRequiredParameters() {
+        return switch (validationType) {
+            case EMAIL, URL, PHONE, CREDIT_CARD, SSN, UUID_FORMAT, IP_ADDRESS, PASSWORD_STRENGTH -> true;
+            case REGEX -> regex != null && !regex.trim().isEmpty();
+            case NUMERIC_RANGE -> minValue != null || maxValue != null;
+            case LENGTH_RANGE -> minLength != null || maxLength != null;
+            case ENUM_VALUES -> !allowedValues.isEmpty();
+            case DATE_RANGE, DATE_FORMAT -> hasParameter("dateFormat") || hasParameter("minDate") || hasParameter("maxDate");
+            case CUSTOM -> hasParameter("validator") || hasParameter("validatorClass");
+            case BUSINESS_LOGIC -> hasParameter("businessRule");
+            case CROSS_FIELD -> hasParameter("relatedFields");
+            case JSON_SCHEMA -> hasParameter("schema");
+            case XML_SCHEMA -> hasParameter("xsdSchema");
+            case REQUIRED, NOT_NULL, NOT_EMPTY, NOT_BLANK -> true;
+        };
+    }
+    
+    private boolean isParameterConfigurationValid() {
+        // Validate min/max constraints
+        if (minLength != null && maxLength != null && minLength > maxLength) {
+            return false;
+        }
+        
+        if (minValue instanceof Number min && maxValue instanceof Number max) {
+            if (min.doubleValue() > max.doubleValue()) {
+                return false;
+            }
+        }
+        
+        // Validate regex compilation
+        if (validationType == ValidationType.REGEX && compiledPattern == null) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // ==============================================
+    // STATIC FACTORY METHODS
+    // ==============================================
+    
+    public static ValidationRuleClean required(String fieldName) {
+        return new ValidationRuleClean(
+            UUID.randomUUID(), "Required " + fieldName, "Field is required", 
+            ValidationType.REQUIRED, ValidationSeverity.ERROR, fieldName, null, null, null, null, null, 
+            new HashSet<>(), new HashMap<>(), fieldName + " is required", "FIELD_REQUIRED", 
+            "This field must be filled out", null, true, 1, new HashSet<>(), null, new HashSet<>(),
+            LocalDateTime.now(), null, "system", null, "1.0", true, 1000, false
+        );
+    }
+    
+    public static ValidationRuleClean email(String fieldName) {
+        return new ValidationRuleClean(
+            UUID.randomUUID(), "Email " + fieldName, "Email format validation",
+            ValidationType.EMAIL, ValidationSeverity.ERROR, fieldName, null, null, null, null, null,
+            new HashSet<>(), new HashMap<>(), "Invalid email format for " + fieldName, "INVALID_EMAIL",
+            "Please enter a valid email address", null, true, 2, new HashSet<>(), null, new HashSet<>(),
+            LocalDateTime.now(), null, "system", null, "1.0", true, 1000, false
+        );
+    }
+    
+    public static ValidationRuleClean lengthRange(String fieldName, Integer minLength, Integer maxLength) {
+        String message = String.format("%s must be between %d and %d characters", 
+                                      fieldName, minLength != null ? minLength : 0, 
+                                      maxLength != null ? maxLength : Integer.MAX_VALUE);
+        
+        return new ValidationRuleClean(
+            UUID.randomUUID(), "Length Range " + fieldName, "Length range validation",
+            ValidationType.LENGTH_RANGE, ValidationSeverity.ERROR, fieldName, null, null, null, 
+            minLength, maxLength, new HashSet<>(), new HashMap<>(), message, "INVALID_LENGTH",
+            "Check the length of your input", null, true, 3, new HashSet<>(), null, new HashSet<>(),
+            LocalDateTime.now(), null, "system", null, "1.0", true, 1000, false
+        );
+    }
+    
+    // ==============================================
+    // DOMAIN VALIDATION METHODS
+    // ==============================================
+    
+    private String validateName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Rule name cannot be null or empty");
+        }
+        if (name.length() > 100) {
+            throw new IllegalArgumentException("Rule name cannot exceed 100 characters");
+        }
+        return name.trim();
+    }
+    
+    private Integer validateLength(Integer length, String fieldName) {
+        if (length != null && length < 0) {
+            throw new IllegalArgumentException(fieldName + " cannot be negative");
+        }
+        return length;
+    }
+    
+    private String validateErrorMessage(String errorMessage) {
+        if (errorMessage == null || errorMessage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Error message cannot be null or empty");
+        }
+        return errorMessage.trim();
+    }
+    
+    private int validatePriority(int priority) {
+        if (priority < 1 || priority > 100) {
+            throw new IllegalArgumentException("Priority must be between 1 and 100");
+        }
+        return priority;
+    }
+    
+    private void validateRuleConsistency() {
+        if (!isValid()) {
+            throw new IllegalArgumentException("Validation rule configuration is invalid");
+        }
+    }
+    
+    // ==============================================
+    // GETTERS (NO LOMBOK DEPENDENCY)
+    // ==============================================
+    
+    public UUID getId() { return id; }
+    public String getName() { return name; }
+    public String getDescription() { return description; }
+    public ValidationType getValidationType() { return validationType; }
+    public ValidationSeverity getSeverity() { return severity; }
+    public String getFieldName() { return fieldName; }
+    public String getRegex() { return regex; }
+    public Object getMinValue() { return minValue; }
+    public Object getMaxValue() { return maxValue; }
+    public Integer getMinLength() { return minLength; }
+    public Integer getMaxLength() { return maxLength; }
+    public Set<String> getAllowedValues() { return new HashSet<>(allowedValues); }
+    public Map<String, Object> getParameters() { return new HashMap<>(parameters); }
+    public String getErrorMessage() { return errorMessage; }
+    public String getErrorCode() { return errorCode; }
+    public String getWarningMessage() { return warningMessage; }
+    public boolean isEnabled() { return enabled; }
+    public int getPriority() { return priority; }
+    public Set<String> getTags() { return new HashSet<>(tags); }
+    public ValidationRuleGroupClean getGroup() { return group; }
+    public Set<String> getApplicableContexts() { return new HashSet<>(applicableContexts); }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public String getCreatedBy() { return createdBy; }
+    public String getUpdatedBy() { return updatedBy; }
+    public String getVersion() { return version; }
+    public boolean isCacheable() { return cacheable; }
+    public long getMaxExecutionTimeMs() { return maxExecutionTimeMs; }
+    public boolean isFailFast() { return failFast; }
+    
+    // ==============================================
+    // OBJECT METHODS
+    // ==============================================
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ValidationRuleClean that = (ValidationRuleClean) o;
+        return Objects.equals(id, that.id);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("ValidationRule{id=%s, name='%s', type=%s, severity=%s, enabled=%s}", 
+                           id, name, validationType, severity, enabled);
+    }
+}
+
+// Custom exception for validation timeouts
+class ValidationTimeoutException extends RuntimeException {
+    public ValidationTimeoutException(String message) {
+        super(message);
+    }
+}

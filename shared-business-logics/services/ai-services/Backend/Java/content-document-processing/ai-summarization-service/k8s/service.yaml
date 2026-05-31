@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-summarization-service
+  namespace: ai-services
+  labels:
+    app: ai-summarization-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-summarization-service
+  ports:
+  - name: http
+    port: 8224
+    targetPort: 8224
+    protocol: TCP

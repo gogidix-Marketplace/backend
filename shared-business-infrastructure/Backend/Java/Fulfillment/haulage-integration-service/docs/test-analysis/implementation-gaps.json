@@ -1,0 +1,14 @@
+{
+  "serviceName": "haulage-integration-service",
+  "analysisDate": "2026-03-06T13:13:26Z",
+  "summary": {
+    "totalFiles": 0,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

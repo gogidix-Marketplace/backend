@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: vendor-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_vendors
+
+server:
+  port: 8405
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.vendor: DEBUG

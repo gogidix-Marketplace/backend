@@ -1,0 +1,25 @@
+{
+  "serviceName": "notification-service",
+  "analysisDate": "2026-03-01T17:24:00Z",
+  "summary": {
+    "totalFiles": 10,
+    "filesWithGaps": 1,
+    "totalGaps": 2
+  },
+  "gaps": [
+    {
+      "filePath": "src/main/java/com/gogidix/centralconfiguration/notificationservice/application/service/NotificationService.java",
+      "type": "TODO",
+      "lineNumber": 104,
+      "description": "sendWebhook method contains TODO: Implement webhook sending logic",
+      "severity": "MEDIUM"
+    },
+    {
+      "filePath": "src/main/java/com/gogidix/centralconfiguration/notificationservice/application/service/NotificationService.java",
+      "type": "TODO",
+      "lineNumber": 112,
+      "description": "sendSlack method contains TODO: Implement Slack notification logic",
+      "severity": "MEDIUM"
+    }
+  ]
+}

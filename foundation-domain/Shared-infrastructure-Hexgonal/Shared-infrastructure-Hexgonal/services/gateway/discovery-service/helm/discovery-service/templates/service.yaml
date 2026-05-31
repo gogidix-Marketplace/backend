@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "discovery-service.fullname" . }}
+  namespace: {{ include "discovery-service.namespace" . }}
+  labels:
+    {{- include "discovery-service.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    targetPort: http
+    protocol: TCP
+  selector:
+    {{- include "discovery-service.selectorLabels" . | nindent 4 }}
+  sessionAffinity: ClientIP
+  {{- if .Values.service.sessionAffinityConfig }}
+  sessionAffinityConfig:
+    {{- toYaml .Values.service.sessionAffinityConfig | nindent 4 }}
+  {{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "discovery-service.headlessServiceName" . }}
+  namespace: {{ include "discovery-service.namespace" . }}
+  labels:
+    {{- include "discovery-service.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    targetPort: http
+    protocol: TCP
+  selector:
+    {{- include "discovery-service.selectorLabels" . | nindent 4 }}

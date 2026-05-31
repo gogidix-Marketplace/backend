@@ -1,0 +1,91 @@
+/* BudgetChart Styles */
+.budget-chart {
+  width: 100%;
+  padding: 1rem;
+}
+
+.budget-summary {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.summary-item {
+  text-align: center;
+}
+
+.summary-label {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.summary-value-spent {
+  color: #6366f1;
+}
+
+.summary-value-remaining {
+  color: #10b981;
+}
+
+.chart-container {
+  position: relative;
+}
+
+.budget-bar-spent {
+  transition: opacity 0.2s ease;
+}
+
+.budget-bar-spent:hover {
+  opacity: 0.8;
+}
+
+.budget-segment {
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.budget-segment:hover {
+  opacity: 0.8;
+}
+
+.budget-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.legend-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+.legend-label {
+  color: #374151;
+}
+
+.legend-value {
+  font-weight: 600;
+  color: #111827;
+}

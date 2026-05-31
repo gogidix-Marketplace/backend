@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: voice-recognition-service
+  namespace: ai-services
+  labels:
+    app: voice-recognition-service
+    version: v1
+    team: team-ai-customer-experience
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: voice-recognition-service

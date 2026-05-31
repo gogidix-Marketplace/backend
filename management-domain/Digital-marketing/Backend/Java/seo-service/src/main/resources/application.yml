@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: seo-service
+  data:
+    mongodb:
+      database: seo-service_db

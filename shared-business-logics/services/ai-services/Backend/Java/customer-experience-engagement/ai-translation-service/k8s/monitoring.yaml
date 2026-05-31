@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ai-translation-service
+  namespace: ai-services
+  labels:
+    app: ai-translation-service
+    team: team-ai-customer-experience
+spec:
+  selector:
+    matchLabels:
+      app: ai-translation-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s

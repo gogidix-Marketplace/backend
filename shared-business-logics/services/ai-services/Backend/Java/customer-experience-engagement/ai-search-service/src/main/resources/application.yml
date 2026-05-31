@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: ai-search-service
+
+server:
+  port: 8084
+
+logging:
+  level:
+    com.gogidix.aiservices.aisearchservice: INFO

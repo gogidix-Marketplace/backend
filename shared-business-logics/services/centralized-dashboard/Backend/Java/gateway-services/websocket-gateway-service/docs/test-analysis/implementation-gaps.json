@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "websocket-gateway-service",
+    "location": "Backend/Java/gateway-services/websocket-gateway-service",
+    "totalGaps": 1,
+    "criticalGaps": 1,
+    "highGaps": 0,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "websocket-gateway-service/src/main/java",
+      "type": "Missing Implementation",
+      "line": 0,
+      "description": "No Java source files found. This service is referenced in api-gateway-service (websocketGatewayUrl property) but has no implementation. Critical for real-time dashboard functionality.",
+      "severity": "CRITICAL",
+      "recommendation": "Implement WebSocket gateway with: 1) WebSocket endpoint configuration, 2) Connection management, 3) Message broadcasting to subscribers, 4) Integration with real-time data services"
+    }
+  ]
+}

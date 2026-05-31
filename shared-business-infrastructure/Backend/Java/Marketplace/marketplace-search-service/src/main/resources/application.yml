@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: marketplace-search-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_marketplace_search
+
+server:
+  port: 8301
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.marketplace: DEBUG

@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: gift-card-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_giftcard
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        giftcardEvents-out-0:
+          destination: giftcard-events
+          content-type: application/json
+server:
+  port: 8078
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.giftcard: DEBUG

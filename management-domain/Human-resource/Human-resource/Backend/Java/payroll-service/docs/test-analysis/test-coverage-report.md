@@ -1,0 +1,122 @@
+# Test Coverage Report - payroll-service
+
+## Overview
+- **Service**: payroll-service
+- **Domain**: Human Resource
+- **Analysis Date**: 2026-03-06T06:19:02Z
+- **Total Classes**: 53
+- **Test Files**: 1
+- **Classes with Tests**: 1
+- **Test Coverage**: 1%
+
+## Source Files
+- `com.gogidix.hr.payroll.application.dto.response.PayrollSummaryResponse`
+- `com.gogidix.hr.payroll.application.service.PayrollCommandService`
+- `com.gogidix.hr.payroll.application.service.PayrollEntryCommandService`
+- `com.gogidix.hr.payroll.application.service.PayrollEntryQueryService`
+- `com.gogidix.hr.payroll.application.service.PayrollQueryService`
+- `com.gogidix.hr.payroll.application.service.PayslipService`
+- `com.gogidix.hr.payroll.domain.enums.PaymentMethod`
+- `com.gogidix.hr.payroll.domain.enums.PayrollStatus`
+- `com.gogidix.hr.payroll.domain.enums.SalaryFrequency`
+- `com.gogidix.hr.payroll.domain.enums.TaxType`
+- `com.gogidix.hr.payroll.domain.event.PayrollApprovedEvent`
+- `com.gogidix.hr.payroll.domain.event.PayrollCreatedEvent`
+- `com.gogidix.hr.payroll.domain.event.PayrollPaidEvent`
+- `com.gogidix.hr.payroll.domain.event.PayrollProcessedEvent`
+- `com.gogidix.hr.payroll.domain.event.PayslipGeneratedEvent`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.payroll.domain.model.Payroll`
+- `com.gogidix.hr.payroll.domain.model.PayrollEntry`
+- `com.gogidix.hr.payroll.domain.model.PayrollRun`
+- `com.gogidix.hr.payroll.domain.model.Payslip`
+- `com.gogidix.hr.payroll.domain.model.SalaryComponent`
+- `com.gogidix.hr.payroll.domain.model.TaxRule`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollCommand`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollCommandPort`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollEntryCommand`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollEntryCommandPort`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollQueryPort`
+- `com.gogidix.hr.payroll.domain.port.out.EventPublisher`
+- `com.gogidix.hr.payroll.domain.repository.PayrollEntryRepository`
+- `com.gogidix.hr.payroll.domain.repository.PayrollRepository`
+- `com.gogidix.hr.payroll.domain.repository.PayslipRepository`
+- `com.gogidix.hr.payroll.domain.repository.TaxRuleRepository`
+- `com.gogidix.hr.payroll.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.payroll.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.payroll.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.payroll.infrastructure.config.WebConfig`
+- `com.gogidix.hr.payroll.infrastructure.messaging.kafka.KafkaEventPublisher`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoPayrollEntryRepository`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoPayrollRepository`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoPayslipRepository`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoTaxRuleRepository`
+- `com.gogidix.hr.payroll.infrastructure.security.SecurityConfig`
+- `com.gogidix.hr.payroll.interfaces.rest.GlobalExceptionHandler`
+- `com.gogidix.hr.payroll.interfaces.rest.PayrollController`
+- `com.gogidix.hr.payroll.interfaces.rest.PayrollEntryController`
+- `com.gogidix.hr.payroll.interfaces.rest.PayslipController`
+- `com.gogidix.hr.payroll.PayrollServiceApplication`
+- `com.gogidix.hr.payroll.shared.base.BaseEntity`
+- `com.gogidix.hr.payroll.shared.exception.PayrollException`
+- `com.gogidix.hr.payroll.shared.exception.PayrollNotFoundException`
+- `com.gogidix.hr.payroll.shared.exception.PayrollValidationException`
+- `com.gogidix.hr.payroll.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.payroll.shared.requestcontext.RequestContextHolder`
+
+## Test Files
+- `PayrollTest` (43 test methods) - `src/test/java/com/gogidix/hr/payroll/domain/model/PayrollTest.java`
+
+## Classes Without Tests
+- `com.gogidix.hr.payroll.application.dto.response.PayrollSummaryResponse`
+- `com.gogidix.hr.payroll.application.service.PayrollCommandService`
+- `com.gogidix.hr.payroll.application.service.PayrollEntryCommandService`
+- `com.gogidix.hr.payroll.application.service.PayrollEntryQueryService`
+- `com.gogidix.hr.payroll.application.service.PayrollQueryService`
+- `com.gogidix.hr.payroll.application.service.PayslipService`
+- `com.gogidix.hr.payroll.domain.enums.PaymentMethod`
+- `com.gogidix.hr.payroll.domain.enums.PayrollStatus`
+- `com.gogidix.hr.payroll.domain.enums.SalaryFrequency`
+- `com.gogidix.hr.payroll.domain.enums.TaxType`
+- `com.gogidix.hr.payroll.domain.event.PayrollApprovedEvent`
+- `com.gogidix.hr.payroll.domain.event.PayrollCreatedEvent`
+- `com.gogidix.hr.payroll.domain.event.PayrollPaidEvent`
+- `com.gogidix.hr.payroll.domain.event.PayrollProcessedEvent`
+- `com.gogidix.hr.payroll.domain.event.PayslipGeneratedEvent`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.payroll.domain.model.PayrollEntry`
+- `com.gogidix.hr.payroll.domain.model.PayrollRun`
+- `com.gogidix.hr.payroll.domain.model.Payslip`
+- `com.gogidix.hr.payroll.domain.model.SalaryComponent`
+- `com.gogidix.hr.payroll.domain.model.TaxRule`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollCommand`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollCommandPort`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollEntryCommand`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollEntryCommandPort`
+- `com.gogidix.hr.payroll.domain.port.in.PayrollQueryPort`
+- `com.gogidix.hr.payroll.domain.port.out.EventPublisher`
+- `com.gogidix.hr.payroll.domain.repository.PayrollEntryRepository`
+- `com.gogidix.hr.payroll.domain.repository.PayrollRepository`
+- `com.gogidix.hr.payroll.domain.repository.PayslipRepository`
+- `com.gogidix.hr.payroll.domain.repository.TaxRuleRepository`
+- `com.gogidix.hr.payroll.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.payroll.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.payroll.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.payroll.infrastructure.config.WebConfig`
+- `com.gogidix.hr.payroll.infrastructure.messaging.kafka.KafkaEventPublisher`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoPayrollEntryRepository`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoPayrollRepository`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoPayslipRepository`
+- `com.gogidix.hr.payroll.infrastructure.persistence.mongo.MongoTaxRuleRepository`
+- `com.gogidix.hr.payroll.infrastructure.security.SecurityConfig`
+- `com.gogidix.hr.payroll.interfaces.rest.GlobalExceptionHandler`
+- `com.gogidix.hr.payroll.interfaces.rest.PayrollController`
+- `com.gogidix.hr.payroll.interfaces.rest.PayrollEntryController`
+- `com.gogidix.hr.payroll.interfaces.rest.PayslipController`
+- `com.gogidix.hr.payroll.PayrollServiceApplication`
+- `com.gogidix.hr.payroll.shared.base.BaseEntity`
+- `com.gogidix.hr.payroll.shared.exception.PayrollException`
+- `com.gogidix.hr.payroll.shared.exception.PayrollNotFoundException`
+- `com.gogidix.hr.payroll.shared.exception.PayrollValidationException`
+- `com.gogidix.hr.payroll.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.payroll.shared.requestcontext.RequestContextHolder`

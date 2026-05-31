@@ -1,0 +1,1204 @@
+# ============================================================================
+# Gogidix AI Services Helm Chart
+# ============================================================================
+# This values.yaml file includes a representative sample of AI services from
+# each category. It can be extended to include all 40+ AI services.
+#
+# Sample services included:
+# - customer-experience-engagement: ai-personalization-service (8080), ai-search-service (8084)
+# - data-analytics: ai-analytics-dashboard-service (8081), ai-data-processing-service (8082)
+# - machine-learning-operations: ai-feature-extraction-service (8080), ai-inference-service (8082), ai-model-management-service (8083)
+# - security-fraud-prevention: ai-authentication-service (8082), ai-security-service (8085)
+# - business-operations: lead-generation-ai-service (8080)
+# - content-document-processing: nlp-processing-service (8080)
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Global Configuration
+# ----------------------------------------------------------------------------
+global:
+  # Environment name (dev, staging, prod)
+  environment: prod
+
+  # Domain for ingress routes
+  domain: ai-services.gogidix.com
+
+  # Docker registry
+  imageRegistry: gogidix
+
+  # Image pull policy
+  imagePullPolicy: Always
+
+  # Resource defaults
+  resources:
+    requests:
+      memory: 768Mi
+      cpu: 250m
+    limits:
+      memory: 1536Mi
+      cpu: 1000m
+
+  # Java options for Spring Boot services
+  javaOpts: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+
+  # Common environment variables
+  env:
+    SPRING_PROFILES_ACTIVE: "prod"
+    MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: "true"
+    MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+    LOGGING_LEVEL_ROOT: "INFO"
+    LOGGING_LEVEL_IO_GOGIDIX: "DEBUG"
+
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    tls:
+      - hosts:
+          - "*.ai-services.gogidix.com"
+        secretName: ai-services-tls
+
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      scrape: true
+      path: "/actuator/prometheus"
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+
+  # Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  # Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+# ----------------------------------------------------------------------------
+# Namespace Configuration
+# ----------------------------------------------------------------------------
+namespace:
+  name: ai-services
+  create: true
+  labels:
+    name: ai-services
+    environment: production
+    team: ai-platform
+    cost-center: engineering-ai
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+# ----------------------------------------------------------------------------
+# Resource Quota
+# ----------------------------------------------------------------------------
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    persistentvolumeclaims: "20"
+    services.loadbalancers: "2"
+    services.nodeports: "0"
+
+# ----------------------------------------------------------------------------
+# Limit Range
+# ----------------------------------------------------------------------------
+limitRange:
+  enabled: true
+  default:
+    cpu: 1000m
+    memory: 1536Mi
+  defaultRequest:
+    cpu: 250m
+    memory: 768Mi
+
+# ----------------------------------------------------------------------------
+# Service Account Configuration
+# ----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}
+  automountToken: false
+
+# ============================================================================
+# Customer Experience & Engagement Services
+# ============================================================================
+customerExperienceEngagement:
+  enabled: true
+
+  # AI Personalization Service
+  aiPersonalizationService:
+    enabled: true
+    nameOverride: ai-personalization-service
+    team: team-ai-customer-experience
+
+    image:
+      repository: gogidix/ai-personalization-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+
+    ingress:
+      enabled: true
+      host: personalization.ai-services.gogidix.com
+      path: /
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: 768Mi
+        cpu: 250m
+      limits:
+        memory: 1536Mi
+        cpu: 1000m
+
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 60
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 30
+            - type: Pods
+              value: 2
+              periodSeconds: 60
+          selectPolicy: Max
+
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: null
+
+    env:
+      AI_INFERENCE_BASE_URL: "http://ai-inference-service.ai-services.svc.cluster.local:8082"
+      AI_RECOMMENDATION_CACHE_TTL: "3600"
+      PERSONALIZATION_ALGORITHM: "collaborative-filtering"
+      MAX_RECOMMENDATIONS: "50"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - ai-personalization-service
+              topologyKey: kubernetes.io/hostname
+
+    volumeMounts:
+      - name: tmp
+        mountPath: /tmp
+    volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+
+  # AI Search Service
+  aiSearchService:
+    enabled: true
+    nameOverride: ai-search-service
+    team: team-ai-customer-experience
+
+    image:
+      repository: gogidix/ai-search-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8084
+      targetPort: 8084
+
+    ingress:
+      enabled: true
+      host: search.ai-services.gogidix.com
+      path: /
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: 1024Mi
+        cpu: 500m
+      limits:
+        memory: 2048Mi
+        cpu: 1500m
+
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: null
+
+    env:
+      ELASTICSEARCH_HOST: "elasticsearch.observability.svc.cluster.local"
+      ELASTICSEARCH_PORT: "9200"
+      SEARCH_INDEX_PREFIX: "ai-search"
+      MAX_SEARCH_RESULTS: "100"
+      FUZZY_SEARCH_ENABLED: "true"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# ============================================================================
+# Data Analytics Services
+# ============================================================================
+dataAnalytics:
+  enabled: true
+
+  # AI Analytics Dashboard Service
+  aiAnalyticsDashboardService:
+    enabled: true
+    nameOverride: ai-analytics-dashboard-service
+    team: team-ai-analytics
+
+    image:
+      repository: gogidix/ai-analytics-dashboard-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8081
+      targetPort: 8081
+
+    ingress:
+      enabled: true
+      host: analytics-dashboard.ai-services.gogidix.com
+      path: /
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: 1024Mi
+        cpu: 500m
+      limits:
+        memory: 2048Mi
+        cpu: 1500m
+
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: null
+
+    env:
+      ANALYTICS_DATA_SOURCE: "postgresql://analytics-db.ai-services.svc.cluster.local:5432/analytics"
+      DASHBOARD_REFRESH_INTERVAL: "300"
+      MAX_CHART_DATA_POINTS: "1000"
+      CACHE_ENABLED: "true"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+  # AI Data Processing Service
+  aiDataProcessingService:
+    enabled: true
+    nameOverride: ai-data-processing-service
+    team: team-ai-analytics
+
+    image:
+      repository: gogidix/ai-data-processing-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8082
+      targetPort: 8082
+
+    ingress:
+      enabled: false
+
+    replicas: 3
+
+    resources:
+      requests:
+        memory: 1536Mi
+        cpu: 500m
+      limits:
+        memory: 3072Mi
+        cpu: 2000m
+
+    hpa:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 15
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 2
+      maxUnavailable: null
+
+    env:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka.kafka.svc.cluster.local:9092"
+      DATA_PROCESSING_BATCH_SIZE: "1000"
+      PROCESSING_THREADS: "4"
+      MAX_QUEUE_SIZE: "10000"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# ============================================================================
+# Machine Learning Operations Services
+# ============================================================================
+machineLearningOperations:
+  enabled: true
+
+  # AI Feature Extraction Service
+  aiFeatureExtractionService:
+    enabled: true
+    nameOverride: ai-feature-extraction-service
+    team: team-ai-mlops
+
+    image:
+      repository: gogidix/ai-feature-extraction-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+
+    ingress:
+      enabled: false
+
+    replicas: 3
+
+    resources:
+      requests:
+        memory: 2048Mi
+        cpu: 1000m
+      limits:
+        memory: 4096Mi
+        cpu: 2000m
+
+    hpa:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 20
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 2
+      maxUnavailable: null
+
+    env:
+      FEATURE_MODEL_PATH: "/models/feature-extractor"
+      FEATURE_CACHE_ENABLED: "true"
+      FEATURE_EXTRACTION_THREADS: "4"
+      MAX_FEATURE_DIMENSIONS: "512"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+  # AI Inference Service
+  aiInferenceService:
+    enabled: true
+    nameOverride: ai-inference-service
+    team: team-ai-mlops
+
+    image:
+      repository: gogidix/ai-inference-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8082
+      targetPort: 8082
+
+    ingress:
+      enabled: true
+      host: inference.ai-services.gogidix.com
+      path: /
+
+    replicas: 4
+
+    resources:
+      requests:
+        memory: 2048Mi
+        cpu: 1000m
+      limits:
+        memory: 4096Mi
+        cpu: 2000m
+        nvidia.com/gpu: "1"
+
+    hpa:
+      enabled: true
+      minReplicas: 4
+      maxReplicas: 20
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+      customMetrics:
+        - type: External
+          external:
+            metric:
+              name: inference_requests_per_second
+            target:
+              type: AverageValue
+              averageValue: "100"
+
+    pdb:
+      enabled: true
+      minAvailable: 2
+      maxUnavailable: null
+
+    env:
+      MODEL_REGISTRY_URL: "http://ai-model-management-service.ai-services.svc.cluster.local:8083"
+      INFERENCE_ENGINE: "tensorflow"
+      MAX_BATCH_SIZE: "32"
+      INFERENCE_TIMEOUT: "5000"
+      GPU_ENABLED: "true"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 90
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 60
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 30
+
+    nodeSelector:
+      accelerator: nvidia-tesla-v100
+
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+
+    affinity: {}
+
+  # AI Model Management Service
+  aiModelManagementService:
+    enabled: true
+    nameOverride: ai-model-management-service
+    team: team-ai-mlops
+
+    image:
+      repository: gogidix/ai-model-management-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8083
+      targetPort: 8083
+
+    ingress:
+      enabled: true
+      host: model-registry.ai-services.gogidix.com
+      path: /
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: 1024Mi
+        cpu: 500m
+      limits:
+        memory: 2048Mi
+        cpu: 1000m
+
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: null
+
+    env:
+      MODEL_STORAGE_PATH: "/models"
+      MODEL_VERSIONING_ENABLED: "true"
+      ARTIFACT_STORAGE_TYPE: "s3"
+      S3_BUCKET: "gogidix-ai-models"
+      MAX_MODEL_SIZE: "5GB"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+    volumeMounts:
+      - name: models
+        mountPath: /models
+    volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: ai-models-pvc
+
+# ============================================================================
+# Security & Fraud Prevention Services
+# ============================================================================
+securityFraudPrevention:
+  enabled: true
+
+  # AI Authentication Service
+  aiAuthenticationService:
+    enabled: true
+    nameOverride: ai-authentication-service
+    team: team-ai-security
+
+    image:
+      repository: gogidix/ai-authentication-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8082
+      targetPort: 8082
+
+    ingress:
+      enabled: true
+      host: auth.ai-services.gogidix.com
+      path: /
+
+    replicas: 3
+
+    resources:
+      requests:
+        memory: 768Mi
+        cpu: 250m
+      limits:
+        memory: 1536Mi
+        cpu: 1000m
+
+    hpa:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 2
+      maxUnavailable: null
+
+    env:
+      JWT_SECRET: "{{ .Values.secrets.jwtSecret }}"
+      TOKEN_EXPIRATION: "3600"
+      REFRESH_TOKEN_EXPIRATION: "604800"
+      MFA_ENABLED: "true"
+      AUTH_ATTEMPT_LIMIT: "5"
+
+    secrets:
+      jwtSecret: change-this-in-production
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - ai-authentication-service
+            topologyKey: kubernetes.io/hostname
+
+  # AI Security Service
+  aiSecurityService:
+    enabled: true
+    nameOverride: ai-security-service
+    team: team-ai-security
+
+    image:
+      repository: gogidix/ai-security-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8085
+      targetPort: 8085
+
+    ingress:
+      enabled: true
+      host: security.ai-services.gogidix.com
+      path: /
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: 1024Mi
+        cpu: 500m
+      limits:
+        memory: 2048Mi
+        cpu: 1500m
+
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: null
+
+    env:
+      THREAT_DETECTION_ENABLED: "true"
+      ANOMALY_THRESHOLD: "0.8"
+      SECURITY_SCAN_INTERVAL: "300"
+      INCIDENT_NOTIFICATION_ENABLED: "true"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# ============================================================================
+# Business Operations Services
+# ============================================================================
+businessOperations:
+  enabled: true
+
+  # Lead Generation AI Service
+  leadGenerationAiService:
+    enabled: true
+    nameOverride: lead-generation-ai-service
+    team: team-ai-business-ops
+
+    image:
+      repository: gogidix/lead-generation-ai-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+
+    ingress:
+      enabled: true
+      host: lead-gen.ai-services.gogidix.com
+      path: /
+
+    replicas: 2
+
+    resources:
+      requests:
+        memory: 1024Mi
+        cpu: 500m
+      limits:
+        memory: 2048Mi
+        cpu: 1500m
+
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 1
+      maxUnavailable: null
+
+    env:
+      LEAD_SCORING_MODEL: "xgboost-v2"
+      LEAD_QUALIFICATION_THRESHOLD: "0.7"
+      CRM_INTEGRATION_ENABLED: "true"
+      CRM_API_ENDPOINT: "https://api.crm.gogidix.com"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# ============================================================================
+# Content & Document Processing Services
+# ============================================================================
+contentDocumentProcessing:
+  enabled: true
+
+  # NLP Processing Service
+  nlpProcessingService:
+    enabled: true
+    nameOverride: nlp-processing-service
+    team: team-ai-content-processing
+
+    image:
+      repository: gogidix/nlp-processing-service
+      tag: "1.0.0"
+      pullPolicy: Always
+
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+
+    ingress:
+      enabled: true
+      host: nlp.ai-services.gogidix.com
+      path: /
+
+    replicas: 3
+
+    resources:
+      requests:
+        memory: 1536Mi
+        cpu: 500m
+      limits:
+        memory: 3072Mi
+        cpu: 2000m
+
+    hpa:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 15
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    pdb:
+      enabled: true
+      minAvailable: 2
+      maxUnavailable: null
+
+    env:
+      NLP_MODEL: "bert-base-uncased"
+      MAX_DOCUMENT_SIZE: "10485760"
+      SUPPORTED_LANGUAGES: "en,es,fr,de,pt"
+      SENTIMENT_ANALYSIS_ENABLED: "true"
+      ENTITY_RECOGNITION_ENABLED: "true"
+
+    probes:
+      liveness:
+        enabled: true
+        path: /actuator/health/liveness
+        initialDelaySeconds: 60
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readiness:
+        enabled: true
+        path: /actuator/health/readiness
+        initialDelaySeconds: 45
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startup:
+        enabled: true
+        path: /actuator/health/startup
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 30
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# ============================================================================
+# Shared Dependencies
+# ============================================================================
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: mongo-root-password
+    usernames:
+      - ai_services
+    passwords:
+      - ai_services_password
+    databases:
+      - ai_services_db
+  architecture: replicaset
+  replicaCount: 3
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: fast-ssd
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: redis-password
+  architecture: standalone
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: fast-ssd
+
+kafka:
+  enabled: true
+  listeners:
+    liveness:
+      enabled: true
+    readiness:
+      enabled: true
+  controller:
+    replicaCount: 3
+    persistence:
+      size: 50Gi
+      storageClass: fast-ssd
+
+# ============================================================================
+# Persistent Volume Claims
+# ============================================================================
+persistence:
+  enabled: true
+  storageClass: fast-ssd
+
+  # AI Models Storage
+  aiModelsPvc:
+    enabled: true
+    name: ai-models-pvc
+    accessModes:
+      - ReadWriteMany
+    size: 100Gi
+    storageClass: nfs-client
+
+  # Analytics Data Storage
+  analyticsDataPvc:
+    enabled: true
+    name: analytics-data-pvc
+    accessModes:
+      - ReadWriteOnce
+    size: 200Gi
+    storageClass: fast-ssd
+
+# ============================================================================
+# Secrets Configuration
+# ============================================================================
+secrets:
+  jwtSecret: change-this-in-production
+  apiKey: change-this-in-production
+  databasePassword: change-this-in-production
+  redisPassword: change-this-in-production
+  s3AccessKey: change-this-in-production
+  s3SecretKey: change-this-in-production
+
+# ============================================================================
+# Network Policies
+# ============================================================================
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53

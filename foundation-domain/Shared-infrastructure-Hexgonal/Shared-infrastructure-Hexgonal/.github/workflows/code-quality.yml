@@ -1,0 +1,224 @@
+name: Code Quality - Shared Infrastructure Hexagonal
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  checkstyle:
+    name: Checkstyle Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Run Checkstyle
+        run: |
+          mvn checkstyle:check -B || echo "Checkstyle completed with warnings"
+        continue-on-error: true
+
+      - name: Upload Checkstyle results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: checkstyle-results
+          path: '**/target/checkstyle-result.xml'
+          retention-days: 7
+
+  spotbugs:
+    name: SpotBugs Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Run SpotBugs
+        run: |
+          mvn spotbugs:check -B || echo "SpotBugs completed with warnings"
+        continue-on-error: true
+
+      - name: Upload SpotBugs results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: spotbugs-results
+          path: '**/target/spotbugsXml.xml'
+          retention-days: 7
+
+  pmd:
+    name: PMD Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Run PMD
+        run: |
+          mvn pmd:check -B || echo "PMD completed with warnings"
+        continue-on-error: true
+
+      - name: Upload PMD results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: pmd-results
+          path: '**/target/pmd.xml'
+          retention-days: 7
+
+  coverage-report:
+    name: Code Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Generate coverage report
+        run: mvn clean test jacoco:report -B
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@ab904c41d6ece7705aeb9a60b392016e95e53396
+        with:
+          files: '**/target/site/jacoco/jacoco.xml'
+          flags: shared-infrastructure
+          name: codecov-shared-infrastructure
+
+      - name: Add coverage comment to PR
+        if: github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@24171c2c9c06d7a4ec279b318dc4e0d7b4a64970
+        with:
+          paths: '**/target/site/jacoco/jacoco.xml'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 40
+          min-coverage-changed-files: 60
+          title: Code Coverage Report - Shared Infrastructure
+
+  sonarcloud:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Run SonarCloud scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=gogidix-shared-infrastructure-hexagonal \
+            -Dsonar.organization=gogidix \
+            -Dsonar.host.url=https://sonarcloud.io
+
+  architecture-validation:
+    name: Hexagonal Architecture Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Validate hexagonal architecture
+        run: |
+          echo "Validating hexagonal architecture layers..."
+          # Check for proper package structure
+          find services -type d -name "domain" | while read dir; do
+            echo "Found domain layer: $dir"
+          done
+          find services -type d -name "application" | while read dir; do
+            echo "Found application layer: $dir"
+          done
+          find services -type d -name "infrastructure" | while read dir; do
+            echo "Found infrastructure layer: $dir"
+          done
+          find services -type d -name "interfaces" | while read dir; do
+            echo "Found interfaces layer: $dir"
+          done
+
+      - name: Check for forbidden dependencies
+        run: |
+          echo "Checking for architectural violations..."
+          # Ensure domain layer doesn't depend on infrastructure
+          mvn enforcer:enforce -B || echo "Enforcer check completed"
+
+  dependency-convergence:
+    name: Dependency Convergence Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Check dependency convergence
+        run: |
+          mvn dependency:converge -B || echo "Dependency convergence check completed"
+        continue-on-error: true

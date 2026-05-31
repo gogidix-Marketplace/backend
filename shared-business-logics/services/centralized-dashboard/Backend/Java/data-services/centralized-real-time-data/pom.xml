@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<parent>
+		<groupId>com.gogidix.cargo.businesslogics.dashboard</groupId>
+		<artifactId>data-services</artifactId>
+		<version>1.0.0</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<artifactId>centralized-real-time-data</artifactId>
+	<version>1.0.0</version>
+	<name>centralized-real-time-data</name>
+	<description>Microservice for centralized-real-time-data functionality</description>
+
+	<properties>
+		<java.version>17</java.version>
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<spring-cloud.version>2022.0.3</spring-cloud.version>
+		<skipTests>true</skipTests>
+	
+        <!-- Financial-Grade Testing: Coverage Thresholds -->
+        <jacoco.version>0.8.10</jacoco.version>
+        <pitest.version>1.15.2</pitest.version>
+        <pitest.junit5.version>1.2.1</pitest.junit5.version>
+        <fg.coverage.minimum>0.60</fg.coverage.minimum>
+        <fg.mutation.minimum>60</fg.mutation.minimum>
+
+        <!-- Memory Configuration for CI/Standard Environments -->
+        <surefire.heap.min>128m</surefire.heap.min>
+        <surefire.heap.max>512m</surefire.heap.max>
+        <pitest.heap.min>128m</pitest.heap.min>
+        <pitest.heap.max>512m</pitest.heap.max>
+
+        <!-- Test Parallelism -->
+        <surefire.parallel.tests>1</surefire.parallel.tests>
+        <surefire.parallel.methods>1</surefire.parallel.methods>
+
+        <!-- Test timeout for integration tests -->
+        <surefire.timeout>180</surefire.timeout>
+
+        <!-- JVM Arguments -->
+        <surefire.jvm.args>-Xms${surefire.heap.min} -Xmx${surefire.heap.max} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:CompressedClassSpaceSize=64m -Xss256k -Djava.awt.headless=true</surefire.jvm.args>
+
+    </properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- Database - MongoDB -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb</artifactId>
+		</dependency>
+		
+		<!-- Spring Cloud -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-config</artifactId>
+		</dependency>
+		
+		<!-- Security -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+		
+		<!-- API Documentation -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.1.0</version>
+		</dependency>
+		
+		<!-- Utility -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+		</dependency>
+		
+		<!-- Testing -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mongodb</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+	
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>1.18.1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*Builder*</exclude>
+                                <exclude>**/*_$*</exclude>
+                                <exclude>**/security/**</exclude>
+                                <exclude>**/config/**</exclude>
+                                <exclude>**/*Application*</exclude>
+                            </excludes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+<limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${fg.coverage.minimum}</minimum>
+                                        </limit>                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.60</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                            <haltOnFailure>true</haltOnFailure>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <argLine>${surefire.jvm.args} @{argLine} -Dsurefire.timeout=${surefire.timeout}</argLine>
+                    <parallel>methods</parallel>
+                    <threadCount>${surefire.parallel.methods}</threadCount>
+                    <perCoreThreadCount>false</perCoreThreadCount>
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                    </includes>
+                    <forkCount>1</forkCount>
+                    <reuseForks>false</reuseForks>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>${pitest.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>${pitest.junit5.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <mutationThreshold>60</mutationThreshold>
+                    <coverageThreshold>85</coverageThreshold>
+                    <timeoutConstant>5000</timeoutConstant>
+                    <features>+CLASSLIMIT(limit[200])</features>
+                    <jvmArgs>
+                        <jvmArg>-Xms256m</jvmArg>
+                        <jvmArg>-Xmx768m</jvmArg>
+                        <jvmArg>-XX:+UseG1GC</jvmArg>
+                    </jvmArgs>
+                    <targetClasses>
+                        <param>com.gogidix.centralizeddashboard.centralizedrealtimedata.domain.**</param>
+                        <param>com.gogidix.centralizeddashboard.centralizedrealtimedata.application.**</param>
+                        <param>com.gogidix.centralizeddashboard.centralizedrealtimedata.infrastructure.**</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>com.gogidix.centralizeddashboard.centralizedrealtimedata.**</param>
+                    </targetTests>
+                    <excludedClasses>
+                        <param>*.*Test*</param>
+                        <param>*.*Config*</param>
+                        <param>*.*Application*</param>
+                    </excludedClasses>
+                    <outputFormats>
+                        <param>HTML</param>
+                        <param>XML</param>
+                    </outputFormats>
+                    <withHistory>true</withHistory>
+                    <historyInputFile>${project.build.directory}/pitest-history.bin</historyInputFile>
+                    <historyOutputFile>${project.build.directory}/pitest-history.bin</historyOutputFile>
+                    <timestampedReports>true</timestampedReports>
+                    <failWhenNoMutations>false</failWhenNoMutations>
+                    <detectInlinedCode>false</detectInlinedCode>
+                </configuration>
+            </plugin>
+</plugins>
+	</build>
+
+    <!-- Financial-Grade Testing: CI Profiles -->
+    <profiles>
+        <!-- CI Profile: Coverage-focused -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+        <!-- Local Development Profile -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+        <!-- Certification Profile: Full testing including mutation -->
+        <profile>
+            <id>certification</id>
+            <properties>
+                <pitest.skip>false</pitest.skip>
+            </properties>
+        </profile>
+    </profiles>
+</project>

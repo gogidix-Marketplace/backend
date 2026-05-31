@@ -1,0 +1,50 @@
+{
+  "common": {
+    "appName": "Gogidix",
+    "tagline": "Transforme suas operações de negócios",
+    "description": "Soluções de nível empresarial para logística, comércio eletrônico, compras e operações de negócios.",
+    "loading": "Carregando...",
+    "search": "Pesquisar",
+    "searchPlaceholder": "Pesquisar produtos, soluções, documentação...",
+    "language": "Idioma",
+    "region": "Região"
+  },
+  "nav": {
+    "home": "Início",
+    "products": "Produtos",
+    "solutions": "Soluções",
+    "developers": "Desenvolvedores",
+    "partners": "Parceiros",
+    "company": "Empresa",
+    "resources": "Recursos",
+    "pricing": "Preços",
+    "login": "Entrar",
+    "signup": "Cadastrar-se",
+    "contact": "Contato"
+  },
+  "home": {
+    "hero": {
+      "title": "Transforme suas operações de negócios com automação inteligente",
+      "subtitle": "Simplifique a logística, comércio eletrônico, compras e operações com nossa plataforma empresarial unificada.",
+      "cta": {
+        "primary": "Iniciar Teste Gratuito",
+        "secondary": "Ver Demo"
+      },
+      "trust": "Confiado por mais de 10.000 empresas em todo o mundo"
+    }
+  },
+  "footer": {
+    "products": "Produtos",
+    "solutions": "Soluções",
+    "developers": "Desenvolvedores",
+    "partners": "Parceiros",
+    "company": "Empresa",
+    "resources": "Recursos",
+    "legal": "Legal",
+    "privacy": "Política de Privacidade",
+    "terms": "Termos de Serviço",
+    "security": "Segurança",
+    "status": "Status do Sistema",
+    "copyright": "© 2024 Gogidix. Todos os direitos reservados."
+  }
+}

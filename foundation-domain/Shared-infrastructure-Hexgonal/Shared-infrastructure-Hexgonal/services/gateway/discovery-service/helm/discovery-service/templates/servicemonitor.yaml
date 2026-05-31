@@ -1,0 +1,23 @@
+{{- if .Values.monitoring.enabled -}}
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "discovery-service.fullname" . }}
+  namespace: {{ include "discovery-service.namespace" . }}
+  labels:
+    {{- include "discovery-service.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "discovery-service.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: {{ .Values.monitoring.serviceMonitor.interval }}
+    scheme: http
+{{- end }}
+{{- end }}

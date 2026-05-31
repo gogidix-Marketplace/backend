@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-fraud-detection-service
+  namespace: ai-services
+  labels:
+    app: ai-fraud-detection-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-fraud-detection-service
+  ports:
+  - name: http
+    port: 8261
+    targetPort: 8261
+    protocol: TCP

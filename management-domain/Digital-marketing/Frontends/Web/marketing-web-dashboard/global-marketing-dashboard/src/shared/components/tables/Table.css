@@ -1,0 +1,130 @@
+/* Table Component Styles */
+
+.table-container {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg-primary);
+}
+
+.table thead {
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.table__sortable-header {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.table__sortable-header:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.table__header-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.table__sort-icon {
+  font-size: 0.75rem;
+  color: var(--color-text-placeholder);
+}
+
+.table__checkbox-cell {
+  width: 40px;
+  text-align: center !important;
+}
+
+.table__checkbox-cell input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.15s ease;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table__clickable-row {
+  cursor: pointer;
+}
+
+.table__clickable-row:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.table__selected-row {
+  background-color: var(--color-primary-bg);
+}
+
+.table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+
+.table__loading-cell,
+.table__empty-cell {
+  text-align: center;
+  padding: var(--spacing-xl) !important;
+  color: var(--color-text-secondary);
+}
+
+.table__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.table__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Table responsive */
+
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.875rem;
+  }
+}

@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: ai-inference-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/inference
+  redis:
+    host: localhost
+    port: 6379
+
+server:
+  port: 8082
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: INFO

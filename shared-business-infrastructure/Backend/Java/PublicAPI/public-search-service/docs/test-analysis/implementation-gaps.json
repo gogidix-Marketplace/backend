@@ -1,0 +1,14 @@
+{
+  "serviceName": "public-search-service",
+  "analysisDate": "2026-03-06T13:23:09Z",
+  "summary": {
+    "totalFiles": 11,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

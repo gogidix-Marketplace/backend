@@ -1,0 +1,115 @@
+# =============================================================================
+# Complete Database Dependencies for MongoDB
+# Add to your service's pom.xml <dependencies> section
+# =============================================================================
+
+    <!-- ====================================================================
+         MongoDB Dependencies
+         ==================================================================== -->
+
+    <!-- Spring Data MongoDB -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
+
+    <!-- MongoDB Embedded for Fast Unit Tests -->
+    <dependency>
+        <groupId>de.flapdoodle.embed</groupId>
+        <artifactId>embed-mongo</artifactId>
+        <version>4.11.0</version>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- Mongock for Database Migrations -->
+    <dependency>
+        <groupId>io.mongock</groupId>
+        <artifactId>mongock-springboot</artifactId>
+        <version>5.4.0</version>
+    </dependency>
+
+    <dependency>
+        <groupId>io.mongock</groupId>
+        <artifactId>mongodb-springdata-v4-driver</artifactId>
+        <version>5.4.0</version>
+    </dependency>
+
+    <!-- MongoDB Sync Driver (Required for Mongock 5.x) -->
+    <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongodb-driver-sync</artifactId>
+    </dependency>
+
+# =============================================================================
+# Complete pom.xml Example for a Service
+# =============================================================================
+
+# <?xml version="1.0" encoding="UTF-8"?>
+# <project xmlns="http://maven.apache.org/POM/4.0.0"
+#          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+#          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+#          https://maven.apache.org/xsd/maven-4.0.0.xsd">
+#     <modelVersion>4.0.0</modelVersion>
+#
+#     <parent>
+#         <groupId>com.gogidix.management</groupId>
+#         <artifactId>management-domain</artifactId>
+#         <version>1.0.0</version>
+#     </parent>
+#
+#     <artifactId>executive-analytics-service</artifactId>
+#     <name>Executive Analytics Service</name>
+#
+#     <properties>
+#         <mongock.version>5.4.0</mongock.version>
+#         <embed-mongo.version>4.11.0</embed-mongo.version>
+#     </properties>
+#
+#     <dependencies>
+#         <!-- Spring Boot Starters -->
+#         <dependency>
+#             <groupId>org.springframework.boot</groupId>
+#             <artifactId>spring-boot-starter-web</artifactId>
+#         </dependency>
+#
+#         <!-- MongoDB -->
+#         <dependency>
+#             <groupId>org.springframework.boot</groupId>
+#             <artifactId>spring-boot-starter-data-mongodb</artifactId>
+#         </dependency>
+#
+#         <!-- Embedded MongoDB (Tests) -->
+#         <dependency>
+#             <groupId>de.flapdoodle.embed</groupId>
+#             <artifactId>embed-mongo</artifactId>
+#             <version>${embed-mongo.version}</version>
+#             <scope>test</scope>
+#         </dependency>
+#
+#         <!-- Mongock (Migrations) -->
+#         <dependency>
+#             <groupId>io.mongock</groupId>
+#             <artifactId>mongock-springboot</artifactId>
+#             <version>${mongock.version}</version>
+#         </dependency>
+#         <dependency>
+#             <groupId>io.mongock</groupId>
+#             <artifactId>mongodb-springdata-v4-driver</artifactId>
+#             <version>${mongock.version}</version>
+#         </dependency>
+#
+#         <!-- Shared Libraries -->
+#         <dependency>
+#             <groupId>com.gogidix.management</groupId>
+#             <artifactId>shared-request-context</artifactId>
+#             <version>${project.version}</version>
+#         </dependency>
+#         <dependency>
+#             <groupId>com.gogidix.management</groupId>
+#             <artifactId>shared-domain</artifactId>
+#             <version>${project.version}</version>
+#         </dependency>
+#
+#         <!-- Other dependencies... -->
+#     </dependencies>
+# </project>

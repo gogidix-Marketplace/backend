@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: access-request-service
+  data:
+    mongodb:
+      database: access-request-service_db

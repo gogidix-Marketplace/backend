@@ -1,0 +1,16 @@
+{
+  "service": "ai-fraud-detection-service",
+  "path": "ai-services\\Backend\\Java\\security-fraud-prevention\\ai-fraud-detection-service",
+  "main_classes": 1,
+  "test_classes": 1,
+  "existing_tests": 0,
+  "target_tests": 738,
+  "tests_needed": 738,
+  "class_breakdown": {
+    "unknown": 1
+  },
+  "test_breakdown": {
+    "unit": 1
+  },
+  "certified": false
+}

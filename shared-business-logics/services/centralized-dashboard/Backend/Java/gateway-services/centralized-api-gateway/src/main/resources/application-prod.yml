@@ -1,0 +1,89 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:redis-cluster}
+      port: ${REDIS_PORT:6379}
+      database: 0
+      password: ${REDIS_PASSWORD}
+      ssl: true
+      lettuce:
+        pool:
+          max-active: 50
+          max-wait: 5000ms
+          max-idle: 20
+          min-idle: 5
+  
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI}
+
+eureka:
+  instance:
+    hostname: ${HOSTNAME:centralized-api-gateway}
+    non-secure-port: 8080
+    metadata-map:
+      zone: ${ZONE:primary}
+      version: ${BUILD_VERSION:1.0.0}
+      instance-id: ${spring.application.name}:${HOSTNAME:localhost}:${server.port:8080}
+  
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL}
+    registry-fetch-interval-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  
+  endpoint:
+    health:
+      show-details: when-authorized
+      roles: ADMIN
+
+gateway:
+  custom:
+    security:
+      jwt:
+        verify-signature: true
+        verify-expiration: true
+        leeway: 5
+    
+    rate-limiting:
+      default-replenish-rate: 500
+      default-burst-capacity: 1000
+    
+    circuit-breaker:
+      default-failure-threshold: 30
+      metrics-enabled: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 50
+        minimumNumberOfCalls: 20
+        failureRateThreshold: 30
+        waitDurationInOpenState: 60s
+
+logging:
+  level:
+    com.gogidix: INFO
+    org.springframework.cloud.gateway: WARN
+    org.springframework.security: WARN
+    org.springframework.web.reactive: WARN
+    reactor.netty: WARN
+    root: WARN
+  
+  file:
+    name: /var/log/centralized-api-gateway/application.log
+  
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB

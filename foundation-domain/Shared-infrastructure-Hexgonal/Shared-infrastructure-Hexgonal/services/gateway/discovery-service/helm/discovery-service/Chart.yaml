@@ -1,0 +1,21 @@
+apiVersion: v2
+name: discovery-service
+description: A Helm chart for Eureka Discovery Service in Gogidix Ecosystem
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - eureka
+  - discovery
+  - service-registry
+  - microservices
+home: https://github.com/gogidix/discovery-service
+maintainers:
+  - name: Gogidix Infrastructure Team
+    email: infrastructure@gogidix.com
+sources:
+  - https://github.com/gogidix/discovery-service
+annotations:
+  - category: infrastructure
+  - critical: "true"
+  - tier: "critical-path"

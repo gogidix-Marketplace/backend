@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.gogidix.cargo.management.hr</groupId>
+    <artifactId>hr-services</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>Human Resource Services</name>
+    <description>Parent POM for Human Resource microservices</description>
+    <modules>
+        <module>benefits-administration-service</module>
+        <module>country-hr-management-service</module>
+        <module>document-management-service</module>
+        <module>employee-self-service-service</module>
+        <module>employee-service</module>
+        <module>global-compliance-monitoring-service</module>
+        <module>global-hr-dashboard-service</module>
+        <module>global-policy-management-service</module>
+        <module>global-workforce-analytics-service</module>
+        <module>leave-management-service</module>
+        <module>notification-service</module>
+        <module>payroll-service</module>
+        <module>performance-review-service</module>
+        <module>training-service</module>
+    </modules>
+</project>

@@ -1,0 +1,25 @@
+{{/*
+Generate ConfigMaps for all enabled AI services with config
+*/}}
+{{- range $category, $services := .Values }}
+{{- if and (ne $category "global") (ne $category "namespace") (ne $category "resourceQuota") (ne $category "limitRange") (ne $category "serviceAccount") (ne $category "monitoring") (ne $category "ingress") (ne $category "networkPolicy") (ne $category "persistence") (ne $category "secrets") (ne $category "mongodb") (ne $category "redis") (ne $category "kafka") }}
+{{- range $serviceName, $serviceConfig := $services }}
+{{- if and (ne $serviceName "enabled") (kindIs "map" $serviceConfig) }}
+{{- if or (not (hasKey $serviceConfig "enabled")) ($serviceConfig.enabled) }}
+{{- if $serviceConfig.config }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $serviceConfig.nameOverride | default $serviceName }}
+  namespace: {{ $.Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" $ | nindent 4 }}
+    {{- include "ai-services.serviceLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 4 }}
+data:
+  {{- toYaml $serviceConfig.config | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

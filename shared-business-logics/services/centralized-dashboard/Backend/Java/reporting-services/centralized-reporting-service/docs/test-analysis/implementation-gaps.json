@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "centralized-reporting-service",
+    "location": "Backend/Java/reporting-services/centralized-reporting-service",
+    "totalGaps": 1,
+    "criticalGaps": 0,
+    "highGaps": 1,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "centralized-reporting-service/src/main/java",
+      "type": "Duplicate Directory",
+      "line": 0,
+      "description": "No Java source files found. This appears to be a duplicate of centralized-reporting service in the same reporting-services directory.",
+      "severity": "HIGH",
+      "recommendation": "Remove this duplicate directory and use the centralized-reporting service."
+    }
+  ]
+}

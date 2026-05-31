@@ -1,0 +1,91 @@
+spring:
+  # Development Database Configuration
+  datasource:
+    url: jdbc:h2:file:./data/security-dev;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 10000
+      idle-timeout: 180000
+
+  # JPA Configuration for Development
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+        show_sql: true
+    show-sql: true
+
+  # H2 Console for Development
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+  # Cache Configuration for Development
+  cache:
+    redis:
+      time-to-live: 300000  # 5 minutes for faster development
+
+  # Session Configuration for Development
+  session:
+    timeout: 60m  # Longer session for development
+
+# Development Logging
+logging:
+  level:
+    com.gogidix.infrastructure.sharedlibraries.sharedsecurity: DEBUG
+    com.gogidix.security: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.session: DEBUG
+    io.jsonwebtoken: DEBUG
+    org.springframework.cache: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] - %msg%n'
+
+# Development-specific Security Configuration
+gogidix:
+  security:
+    jwt:
+      expiration: 3600000  # 1 hour for development
+      refresh-expiration: 86400000  # 1 day for development
+    session:
+      timeout: 3600  # 1 hour
+      max-sessions: 3  # Allow multiple sessions for development
+    rate-limiting:
+      enabled: false  # Disable rate limiting for development
+    audit:
+      log-successful-auth: true
+      log-failed-auth: true
+      log-access-denied: true
+
+# Development Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # Expose all endpoints for development
+  endpoint:
+    health:
+      show-details: always
+    beans:
+      enabled: true
+    env:
+      enabled: true
+    configprops:
+      enabled: true
+
+# Development-specific temp directory
+temp:
+  directory: ./temp-dev
+  cleanup-on-startup: true

@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: budget-management-service
+  data:
+    mongodb:
+      database: budget-management-service_db

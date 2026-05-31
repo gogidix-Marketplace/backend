@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: batch-aggregation-service
+  data:
+    mongodb:
+      database: batch-aggregation-service_test_db
+      host: localhost
+      port: 27017
+
+# Logging configuration for tests
+logging:
+  level:
+    com.gogidix.globalbusiness: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.test: DEBUG
+
+# Test-specific configurations
+batch:
+  aggregation:
+    enabled: true
+    chunk-size: 100
+    max-retry-attempts: 3
+
+# Scheduling configuration (disabled for tests)
+scheduling:
+  enabled: false

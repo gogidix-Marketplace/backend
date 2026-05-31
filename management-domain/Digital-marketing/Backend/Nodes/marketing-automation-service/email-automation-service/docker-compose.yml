@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  email-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: email-automation-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongodb:27017/email_automation
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+    networks:
+      - gogidix-network
+    volumes:
+      - ./logs:/app/logs
+      - ./templates:/app/templates
+
+  mongodb:
+    image: mongo:7
+    container_name: email-automation-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: email-automation-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
+  redis-data:
+
+networks:
+  gogidix-network:
+    driver: bridge

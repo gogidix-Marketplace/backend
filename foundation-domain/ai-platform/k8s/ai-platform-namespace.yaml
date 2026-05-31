@@ -1,0 +1,111 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-platform
+  labels:
+    name: ai-platform
+    domain: ai-shared-infrastructure-Platform
+    environment: production
+spec:
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-platform-network-policy
+  namespace: ai-platform
+spec:
+  podSelector:
+    matchLabels:
+      namespace: ai-platform
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: ai-platform
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: infrastructure
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: shared-business-logics
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              namespace: ai-platform
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              namespace: infrastructure
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              domain: kube-system
+          ports:
+            - protocol: TCP
+              port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:              kubernetes.io/cluster
+              domain: .svc.cluster.local
+        ports:
+            - protocol: TCP
+              port: 443
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ai-platform-resource-quota
+  namespace: ai-platform
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    persistentvolumeclaims: "50Gi"
+    pods: "50"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ai-platform-container-limits
+  namespace: ai-platform
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: "250m"
+        memory: "512Mi"
+      defaultLimit:
+        cpu: "1000m"
+        memory: "1Gi"
+      maxLimit:
+        cpu: "2000m"
+        memory: "2Gi"
+---
+apiVersion: v1
+kind: PriorityClass
+metadata:
+  name: ai-platform-gpu-priority-class
+  namespace: ai-platform
+spec:
+  value: 1000
+  globalDefault: false
+  description: "High priority for ML services requiring GPU"
+---
+apiVersion: v1
+kind: PriorityClass
+metadata:
+  name: ai-platform-cpu-priority-class
+  namespace: ai-platform
+spec:
+  value: 500
+  globalDefault: true
+  description: "Standard priority for CPU-only AI services"

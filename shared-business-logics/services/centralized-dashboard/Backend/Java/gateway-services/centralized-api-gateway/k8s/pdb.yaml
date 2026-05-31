@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: centralized-api-gateway-pdb
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-api-gateway
+    team: team-f-centralized-dashboard
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: centralized-api-gateway

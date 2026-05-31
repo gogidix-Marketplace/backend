@@ -1,0 +1,11 @@
+Blueprint Validation Report
+Generated: 20 Mar 2026 00:47:37
+
+Service: ai-services/Backend/Java/content-document-processing
+
+Architecture Compliance: 0%
+Configuration Compliance: 16%
+Overall Compliance: 6%
+
+Missing Folders: 21 / 21
+Missing Files: 5 / 6

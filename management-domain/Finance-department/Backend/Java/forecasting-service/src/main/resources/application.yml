@@ -1,0 +1,165 @@
+# =============================================================================
+# Forecasting Service Configuration - Finance Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8085}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: forecasting-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:forecasting-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      forecast-events: forecasting-service.events
+      domain-events: finance.domain-events
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.finance.forecasting.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.finance.forecasting: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/forecasting-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+forecasting-service:
+  cache:
+    ttl-seconds: 3600
+    max-entries: 1000
+
+  forecast:
+    default-method: LINEAR_REGRESSION
+    default-period: MONTHLY
+    default-horizon: 12
+    min-historical-periods: 3
+    max-historical-periods: 60
+
+  accuracy:
+    mape-threshold: 0.20
+    mad-threshold: 10000
+    mse-threshold: 1000000
+
+  supported-currencies:
+    - USD
+    - EUR
+    - GBP
+    - JPY
+    - CHF
+    - CAD
+    - AUD
+    - CNY
+    - INR
+    - SGD
+
+  forecast-types:
+    - REVENUE
+    - EXPENSE
+    - CASH_FLOW
+    - PROFIT
+
+  forecast-periods:
+    - MONTHLY
+    - QUARTERLY
+    - ANNUAL
+
+  forecast-methods:
+    - LINEAR_REGRESSION
+    - MOVING_AVERAGE
+    - EXPONENTIAL_SMOOTHING
+
+  forecast-status:
+    - DRAFT
+    - PENDING_REVIEW
+    - APPROVED
+    - REJECTED
+    - ARCHIVED
+
+  accuracy-metrics:
+    - MAPE
+    - MAD
+    - MSE
+    - RMSE

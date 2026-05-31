@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: centralized-real-time-data-pdb
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-real-time-data
+    team: team-f-centralized-dashboard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: centralized-real-time-data

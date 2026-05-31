@@ -1,0 +1,403 @@
+/* Customers Page Styles */
+
+.customers-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin: 0.25rem 0 0 0;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Filters */
+.customers-filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-select {
+  padding: 0.625rem 2rem 0.625rem 0.875rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+/* Metrics Section */
+.metrics-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Segment Section */
+.segment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.segment-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.segment-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.segment-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.segment-label {
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.875rem;
+}
+
+.segment-stats {
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+.segment-bar {
+  height: 8px;
+  background-color: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.segment-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.segment-bar-fill.segment-enterprise {
+  background-color: #7C3AED;
+}
+
+.segment-bar-fill.segment-mid-market {
+  background-color: #2563EB;
+}
+
+.segment-bar-fill.segment-smb {
+  background-color: #10B981;
+}
+
+/* Table Section */
+.table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.results-count {
+  font-size: 0.875rem;
+  color: #6B7280;
+}
+
+.customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.customer-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.customer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.customer-industry {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.segment-badge {
+  display: inline-flex;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.segment-badge.segment-enterprise {
+  background-color: #F3E8FF;
+  color: #7C3AED;
+}
+
+.segment-badge.segment-mid-market {
+  background-color: #DBEAFE;
+  color: #2563EB;
+}
+
+.segment-badge.segment-smb {
+  background-color: #D1FAE5;
+  color: #10B981;
+}
+
+.satisfaction-cell {
+  display: flex;
+  align-items: center;
+}
+
+.satisfaction-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.satisfaction-score.score-9,
+.satisfaction-score.score-10 {
+  background-color: #D1FAE5;
+  color: #10B981;
+}
+
+.satisfaction-score.score-7,
+.satisfaction-score.score-8 {
+  background-color: #DBEAFE;
+  color: #2563EB;
+}
+
+.satisfaction-score.score-5,
+.satisfaction-score.score-6 {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.satisfaction-score.score-4,
+.satisfaction-score.score-3,
+.satisfaction-score.score-2,
+.satisfaction-score.score-1 {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.status-badge {
+  display: inline-flex;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge.status-active {
+  background-color: #D1FAE5;
+  color: #10B981;
+}
+
+.status-badge.status-at-risk {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.status-badge.status-churned {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+/* Top Customers Section */
+.top-customers-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.top-customers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.top-customer-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #F9FAFB;
+  transition: background-color 0.2s;
+}
+
+.top-customer-item:hover {
+  background-color: #F3F4F6;
+}
+
+.customer-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+}
+
+.rank-badge {
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+.rank-badge.rank-1 {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: white;
+}
+
+.rank-badge.rank-2 {
+  background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
+  color: white;
+}
+
+.rank-badge.rank-3 {
+  background: linear-gradient(135deg, #CD7F32, #B87333);
+  color: white;
+}
+
+.customer-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.customer-details .customer-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.customer-meta {
+  font-size: 0.875rem;
+  color: #6B7280;
+}
+
+.customer-metrics {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.customer-metrics .metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
+.customer-metrics .metric-label {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.customer-metrics .metric-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.customer-owner {
+  text-align: right;
+}
+
+.owner-name {
+  font-size: 0.875rem;
+  color: #6B7280;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .customers-filters {
+    flex-direction: column;
+  }
+
+  .filter-search,
+  .filter-select {
+    width: 100%;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .top-customer-item {
+    flex-wrap: wrap;
+  }
+
+  .customer-metrics {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

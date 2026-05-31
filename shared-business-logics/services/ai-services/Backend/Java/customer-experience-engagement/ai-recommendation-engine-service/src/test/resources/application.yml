@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: ai-recommendation-engine-service-test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/${service//-}_test?connectTimeoutMS=60000&serverSelectionTimeoutMS=60000&socketTimeoutMS=60000
+      auto-index-creation: true
+  test:
+    context:
+      cache:
+        enabled: false
+
+server:
+  port: 0
+
+logging:
+  level:
+    com.gogidix: DEBUG

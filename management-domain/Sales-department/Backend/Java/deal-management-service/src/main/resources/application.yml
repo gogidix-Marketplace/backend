@@ -1,0 +1,142 @@
+# =============================================================================
+# Deal Management Service Configuration - Sales Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8090}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: deal-management-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:deal-management-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      deal-events: deal-management-service.events
+      domain-events: sales.domain-events
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.sales.dealmanagement.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.dealmanagement: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/deal-management-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+deal-management-service:
+  pipeline:
+    stages:
+      - name: LEAD
+        probability: 10
+        order: 1
+        default-duration-days: 7
+      - name: QUALIFIED
+        probability: 20
+        order: 2
+        default-duration-days: 14
+      - name: PROPOSAL
+        probability: 40
+        order: 3
+        default-duration-days: 21
+      - name: NEGOTIATION
+        probability: 60
+        order: 4
+        default-duration-days: 30
+      - name: VERBAL_COMMIT
+        probability: 80
+        order: 5
+        default-duration-days: 7
+      - name: CLOSED_WON
+        probability: 100
+        order: 6
+        default-duration-days: 0
+      - name: CLOSED_LOST
+        probability: 0
+        order: 7
+        default-duration-days: 0
+  approval:
+    enabled: true
+    thresholds:
+      manager-approval-above: 50000
+      executive-approval-above: 250000
+      board-approval-above: 1000000
+  forecasting:
+    method: WEIGHTED
+    weight-factor: STAGE_PROBABILITY
+    include-probability: true
+  collaboration:
+    max-team-members: 10
+    auto-notify-on-stage-change: true
+  competitor:
+    tracking-enabled: true
+    loss-reasons-required: true

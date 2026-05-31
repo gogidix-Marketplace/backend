@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: ai-content-generation-service
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8081
+
+ai:
+  service:
+    base-url: http://localhost:8080
+    generation-endpoint: /api/v1/generate
+    variations-endpoint: /api/v1/variations
+    optimization-endpoint: /api/v1/optimize
+    timeout: 30000
+    max-retries: 3
+    enabled: true
+
+logging:
+  level:
+    com.gogidix.aiservices.aicontentgenerationservice: INFO
+    org.springframework.web: INFO

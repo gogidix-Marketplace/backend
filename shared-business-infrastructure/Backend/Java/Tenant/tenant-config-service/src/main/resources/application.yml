@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: tenant-config-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_tenant_config
+
+server:
+  port: 8340
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.tenantconfig: DEBUG

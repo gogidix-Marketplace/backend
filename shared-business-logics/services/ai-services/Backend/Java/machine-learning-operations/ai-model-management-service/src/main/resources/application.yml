@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ai-model-management-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/model_management
+
+server:
+  port: 8083
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: INFO

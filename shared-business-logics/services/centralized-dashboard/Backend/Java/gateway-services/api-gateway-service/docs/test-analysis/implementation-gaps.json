@@ -1,0 +1,12 @@
+{
+  "summary": {
+    "service": "api-gateway-service",
+    "location": "Backend/Java/gateway-services/api-gateway-service",
+    "totalGaps": 0,
+    "criticalGaps": 0,
+    "highGaps": 0,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": []
+}

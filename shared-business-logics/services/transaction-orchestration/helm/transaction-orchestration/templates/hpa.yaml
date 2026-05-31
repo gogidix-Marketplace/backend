@@ -1,0 +1,71 @@
+{{- /*
+Copyright 2026 Gogidix
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/ -}}
+
+{{- if .Values.hpa.enabled }}
+{{- range $name, $service := dict "transactionCoordinator" .Values.transactionCoordinator "transactionManager" .Values.transactionManager "sagaOrchestration" .Values.sagaOrchestration "distributedTransaction" .Values.distributedTransaction "transactionOutbox" .Values.transactionOutbox "transactionRecovery" .Values.transactionRecovery }}
+{{- if and $service.enabled (or (eq $service.hpa.enabled true) (and (not (hasKey $service.hpa "enabled")) $.Values.hpa.enabled)) }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "transaction-orchestration.serviceName" (dict "root" $ "serviceName" $service.serviceName) }}
+  namespace: {{ include "transaction-orchestration.namespace" $ }}
+  labels:
+    {{- include "transaction-orchestration.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $service.serviceName }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "transaction-orchestration.serviceName" (dict "root" $ "serviceName" $service.serviceName) }}
+  {{- with $service.hpa.minReplicas }}
+  minReplicas: {{ . }}
+  {{- else }}
+  minReplicas: {{ $.Values.hpa.minReplicas }}
+  {{- end }}
+  {{- with $service.hpa.maxReplicas }}
+  maxReplicas: {{ . }}
+  {{- else }}
+  maxReplicas: {{ $.Values.hpa.maxReplicas }}
+  {{- end }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        {{- with $service.hpa.targetCPUUtilization }}
+        averageUtilization: {{ . }}
+        {{- else }}
+        averageUtilization: {{ $.Values.hpa.targetCPUUtilization }}
+        {{- end }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        {{- with $service.hpa.targetMemoryUtilization }}
+        averageUtilization: {{ . }}
+        {{- else }}
+        averageUtilization: {{ $.Values.hpa.targetMemoryUtilization }}
+        {{- end }}
+  {{- with $.Values.hpa.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

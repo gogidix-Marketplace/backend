@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: currency-conversion-service
+  data:
+    mongodb:
+      database: currency-conversion-service_test_db
+      host: localhost
+      port: 27017
+
+logging:
+  level:
+    com.gogidix.globalbusiness: DEBUG
+
+currency:
+  default-base: USD
+  cache-ttl-seconds: 3600
+  api-provider: FIXER_IO

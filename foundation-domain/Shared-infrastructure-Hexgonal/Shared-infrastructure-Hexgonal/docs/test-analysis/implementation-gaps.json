@@ -1,0 +1,435 @@
+{
+  "domain": "shared-infrastructure-hexgonal",
+  "generated_at": "2026-03-01T00:00:00Z",
+  "location": "C:\\Users\\TEMP.LAPTOP-1QDBFFCA\\Desktop\\Gogidix-ecosystem\\x-gogidix-domain\\Foundation-domain\\shared-infrastructure-hexgonal",
+  "summary": {
+    "total_gaps": 15,
+    "critical_gaps": 3,
+    "high_priority_gaps": 5,
+    "medium_priority_gaps": 4,
+    "low_priority_gaps": 3
+  },
+  "gaps": [
+    {
+      "service": "file-storage-service",
+      "file": "services/storage/file-storage-service/src/main/java/com/gogidix/shared/infrastructure/services/storage/filestorage/infrastructure/storage/S3StorageService.java",
+      "line": 115,
+      "type": "TODO",
+      "content": "Implement presigned URL generation",
+      "priority": "CRITICAL",
+      "impact": "S3 presigned URLs are commonly used for secure file access. The current implementation returns null, which will cause runtime errors when this feature is used.",
+      "recommendation": "Implement generatePresignedUrl method using S3Presigner from AWS SDK. Add tests for URL generation and expiration."
+    },
+    {
+      "service": "user-management-service",
+      "file": "services/security/user-management-service/src/main/java/com/gogidix/shared/infrastructure/services/security/usermanagement/application/service/UserManagementService.java",
+      "line": 148,
+      "type": "TODO",
+      "content": "Map preferences object to UserPreferences",
+      "priority": "MEDIUM",
+      "impact": "User preferences mapping is incomplete, may cause data loss when updating user profiles.",
+      "recommendation": "Implement proper mapping for UserPreferences object. Add test cases for preference updates."
+    },
+    {
+      "service": "security-management-service",
+      "file": "services/security/security-management-service/src/main/java/com/gogidix/shared/infrastructure/services/security/management/infrastructure/sharedinfrastructure/securitymanagementservice/service/ThreatDetectionService.java",
+      "line": 322,
+      "type": "TODO",
+      "content": "Implement proper tenant resolution",
+      "priority": "HIGH",
+      "impact": "Tenant context is hardcoded to 'default-tenant', breaking multi-tenancy for threat detection.",
+      "recommendation": "Use TenantContextHolder to resolve tenant from context. Add tenant-aware tests."
+    },
+    {
+      "service": "security-management-service",
+      "file": "services/security/security-management-service/src/main/java/com/gogidix/shared/infrastructure/services/security/management/infrastructure/sharedinfrastructure/securitymanagementservice/service/SecurityPolicyService.java",
+      "line": 46,
+      "type": "TODO",
+      "content": "Implement proper tenant resolution",
+      "priority": "HIGH",
+      "impact": "Security policies are not tenant-isolated, potential data leak between tenants.",
+      "recommendation": "Implement tenant-aware policy service using TenantContextHolder."
+    },
+    {
+      "service": "core-tenancy",
+      "category": "missing_tests",
+      "type": "NO_TESTS",
+      "priority": "CRITICAL",
+      "impact": "Core multi-tenant infrastructure has zero test coverage. Any bugs here affect all services.",
+      "files_without_tests": [
+        "core-tenancy/src/main/java/com/gogidix/shared/infrastructure/core/tenancy/model/TenantId.java",
+        "core-tenancy/src/main/java/com/gogidix/shared/infrastructure/core/tenancy/context/TenantContextHolder.java",
+        "core-tenancy/src/main/java/com/gogidix/shared/infrastructure/core/tenancy/interceptor/TenantInterceptor.java",
+        "core-tenancy/src/main/java/com/gogidix/shared/infrastructure/core/tenancy/config/TenantConfig.java"
+      ],
+      "recommendation": "Add comprehensive unit tests for all tenant infrastructure classes. Test ThreadLocal behavior, header parsing, and interceptor lifecycle."
+    },
+    {
+      "service": "secrets-management-service",
+      "category": "missing_tests",
+      "type": "NO_TESTS",
+      "priority": "CRITICAL",
+      "impact": "Secrets management handles sensitive data. Lack of tests increases security risk.",
+      "recommendation": "Add tests for secret encryption, decryption, access control, and audit logging."
+    },
+    {
+      "service": "security-management-service",
+      "category": "missing_tests",
+      "type": "NO_TESTS",
+      "priority": "HIGH",
+      "impact": "Security management service has no tests, compromising security reliability.",
+      "recommendation": "Add comprehensive tests for all security policies, threat detection, and tenant isolation."
+    },
+    {
+      "service": "api-rate-limit-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "MEDIUM",
+      "impact": "Only domain model tested. Service layer and rate limiting logic not verified.",
+      "files_without_tests": [
+        "RateLimitConfigPort",
+        "RateLimitConfigRepositoryPort",
+        "All DTOs",
+        "WebMvcConfig",
+        "ApiRateLimitServiceApplication"
+      ],
+      "recommendation": "Add tests for rate limit enforcement, port implementations, and DTO validation."
+    },
+    {
+      "service": "payment-processing-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "HIGH",
+      "impact": "Payment processing requires high reliability. Current tests only cover domain model.",
+      "files_without_tests": [
+        "WebMvcConfig",
+        "PaymentProcessingServiceApplication"
+      ],
+      "recommendation": "Add integration tests for payment flows, error handling, and idempotency."
+    },
+    {
+      "service": "sla-management-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "MEDIUM",
+      "impact": "Repository implementations and controllers lack tests.",
+      "files_without_tests": [
+        "ServiceLevelAgreementMapper",
+        "ServiceLevelAgreementNotFoundException",
+        "Repository implementations",
+        "Controllers"
+      ],
+      "recommendation": "Add repository integration tests and controller unit tests."
+    },
+    {
+      "service": "email-sender-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "MEDIUM",
+      "impact": "SMTP adapter and repository implementations not tested.",
+      "files_without_tests": [
+        "SmtpEmailSenderAdapter",
+        "Repository implementations",
+        "Controller"
+      ],
+      "recommendation": "Add email sending integration tests and repository tests."
+    },
+    {
+      "service": "sms-sender-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "MEDIUM",
+      "impact": "Twilio adapter not tested. SMS sending reliability not verified.",
+      "files_without_tests": [
+        "SmsMessageMapper",
+        "TwilioSmsGatewayAdapter",
+        "Repository implementations"
+      ],
+      "recommendation": "Add Twilio adapter tests with mocking and SMS delivery verification."
+    },
+    {
+      "service": "webhook-management-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "MEDIUM",
+      "impact": "Webhook delivery mechanism not fully tested.",
+      "files_without_tests": [
+        "Repository implementations",
+        "Controller",
+        "Exception handling"
+      ],
+      "recommendation": "Add webhook delivery tests, retry logic tests, and failure handling."
+    },
+    {
+      "service": "event-bus-bridge-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "MEDIUM",
+      "impact": "Event publishing and repository implementations not tested.",
+      "files_without_tests": [
+        "EventBridgeMapper",
+        "Repository implementations",
+        "Publisher implementations"
+      ],
+      "recommendation": "Add event bus integration tests and publisher tests."
+    },
+    {
+      "service": "caching-service",
+      "category": "missing_tests",
+      "type": "PARTIAL_TESTS",
+      "priority": "LOW",
+      "impact": "Caching infrastructure not fully tested.",
+      "files_without_tests": [
+        "Repository implementations",
+        "Configuration",
+        "Controller"
+      ],
+      "recommendation": "Add cache eviction tests and configuration tests."
+    }
+  ],
+  "placeholder_values": [
+    {
+      "service": "social-media-integration-service",
+      "file": "services/communication/social-media-integration-service/src/main/java/com/gogidix/shared/infrastructure/services/communication/socialmedia/domain/model/SocialMediaPost.java",
+      "lines": [185, 190, 195, 205, 210],
+      "type": "PLACEHOLDER",
+      "content": "Empty collections and placeholder strings for media URLs and custom attributes",
+      "priority": "LOW",
+      "impact": "Social media post functionality is minimally implemented with placeholder values.",
+      "recommendation": "Implement proper media handling and custom attributes serialization."
+    }
+  ],
+  "services_with_full_coverage": [],
+  "services_with_no_tests": [
+    {
+      "service": "core-tenancy",
+      "reason": "Core infrastructure module - assumed to be tested by consuming services",
+      "recommendation": "Add dedicated unit tests for tenant context holder and interceptor"
+    },
+    {
+      "service": "secrets-management-service",
+      "reason": "Minimal implementation detected",
+      "recommendation": "Add comprehensive security tests"
+    },
+    {
+      "service": "security-management-service",
+      "reason": "Complex security logic without test coverage",
+      "recommendation": "Priority for adding security tests"
+    }
+  ],
+  "test_coverage_by_service": [
+    {
+      "service": "auth-service",
+      "coverage_percent": 71,
+      "status": "EXCELLENT"
+    },
+    {
+      "service": "api-gateway-service",
+      "coverage_percent": 80,
+      "status": "EXCELLENT"
+    },
+    {
+      "service": "mfa-service",
+      "coverage_percent": 50,
+      "status": "GOOD"
+    },
+    {
+      "service": "dlp-service",
+      "coverage_percent": 42,
+      "status": "GOOD"
+    },
+    {
+      "service": "security-analytics-service",
+      "coverage_percent": 50,
+      "status": "GOOD"
+    },
+    {
+      "service": "security-orchestration-service",
+      "coverage_percent": 50,
+      "status": "GOOD"
+    },
+    {
+      "service": "threat-intelligence-service",
+      "coverage_percent": 50,
+      "status": "GOOD"
+    },
+    {
+      "service": "social-media-integration-service",
+      "coverage_percent": 50,
+      "status": "GOOD"
+    },
+    {
+      "service": "email-sender-service",
+      "coverage_percent": 27,
+      "status": "MEDIUM"
+    },
+    {
+      "service": "sms-sender-service",
+      "coverage_percent": 23,
+      "status": "MEDIUM"
+    },
+    {
+      "service": "event-bus-bridge-service",
+      "coverage_percent": 21,
+      "status": "MEDIUM"
+    },
+    {
+      "service": "notification-service",
+      "coverage_percent": 25,
+      "status": "MEDIUM"
+    },
+    {
+      "service": "webhook-management-service",
+      "coverage_percent": 25,
+      "status": "MEDIUM"
+    },
+    {
+      "service": "rate-limiting-service",
+      "coverage_percent": 25,
+      "status": "MEDIUM"
+    },
+    {
+      "service": "tenant-management-service",
+      "coverage_percent": 33,
+      "status": "MEDIUM"
+    },
+    {
+      "service": "config-server",
+      "coverage_percent": 100,
+      "status": "GOOD"
+    },
+    {
+      "service": "discovery-service",
+      "coverage_percent": 100,
+      "status": "GOOD"
+    },
+    {
+      "service": "api-rate-limit-service",
+      "coverage_percent": 14,
+      "status": "LOW"
+    },
+    {
+      "service": "payment-processing-service",
+      "coverage_percent": 33,
+      "status": "LOW"
+    },
+    {
+      "service": "sla-management-service",
+      "coverage_percent": 12,
+      "status": "LOW"
+    },
+    {
+      "service": "message-queue-management-service",
+      "coverage_percent": 18,
+      "status": "LOW"
+    },
+    {
+      "service": "status-broadcast-service",
+      "coverage_percent": 13,
+      "status": "LOW"
+    },
+    {
+      "service": "message-broker",
+      "coverage_percent": 20,
+      "status": "LOW"
+    },
+    {
+      "service": "caching-service",
+      "coverage_percent": 20,
+      "status": "LOW"
+    },
+    {
+      "service": "audit-service",
+      "coverage_percent": 20,
+      "status": "LOW"
+    },
+    {
+      "service": "file-storage-service",
+      "coverage_percent": 13,
+      "status": "LOW"
+    },
+    {
+      "service": "ip-address-management-service",
+      "coverage_percent": 25,
+      "status": "LOW"
+    },
+    {
+      "service": "user-management-service",
+      "coverage_percent": 20,
+      "status": "LOW"
+    },
+    {
+      "service": "core-tenancy",
+      "coverage_percent": 0,
+      "status": "CRITICAL"
+    },
+    {
+      "service": "secrets-management-service",
+      "coverage_percent": 0,
+      "status": "CRITICAL"
+    },
+    {
+      "service": "security-management-service",
+      "coverage_percent": 0,
+      "status": "CRITICAL"
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      {
+        "priority": "CRITICAL",
+        "action": "Add tests for core-tenancy module",
+        "reason": "Foundation for multi-tenancy, affects all services"
+      },
+      {
+        "priority": "CRITICAL",
+        "action": "Implement S3 presigned URL generation",
+        "reason": "Production feature returning null"
+      },
+      {
+        "priority": "CRITICAL",
+        "action": "Add tests for secrets-management-service",
+        "reason": "Security-sensitive code needs validation"
+      }
+    ],
+    "short_term": [
+      {
+        "priority": "HIGH",
+        "action": "Fix tenant resolution in security-management-service",
+        "reason": "Multi-tenancy broken, potential data leak"
+      },
+      {
+        "priority": "HIGH",
+        "action": "Add tests for security-management-service",
+        "reason": "Critical security logic untested"
+      },
+      {
+        "priority": "HIGH",
+        "action": "Add payment processing integration tests",
+        "reason": "Financial transactions need high reliability"
+      },
+      {
+        "priority": "MEDIUM",
+        "action": "Add controller tests across all services",
+        "reason": "REST API endpoints need validation"
+      }
+    ],
+    "long_term": [
+      {
+        "priority": "MEDIUM",
+        "action": "Add MongoDB repository adapter tests",
+        "reason": "Data access layer needs verification"
+      },
+      {
+        "priority": "LOW",
+        "action": "Add end-to-end integration tests",
+        "reason": "Validate service interactions"
+      },
+      {
+        "priority": "LOW",
+        "action": "Add performance tests for rate limiting",
+        "reason": "Rate limiting requires performance validation"
+      }
+    ]
+  }
+}

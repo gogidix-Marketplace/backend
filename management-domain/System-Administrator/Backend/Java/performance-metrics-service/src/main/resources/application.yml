@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: performance-metrics-service
+  data:
+    mongodb:
+      database: performance-metrics-service_db

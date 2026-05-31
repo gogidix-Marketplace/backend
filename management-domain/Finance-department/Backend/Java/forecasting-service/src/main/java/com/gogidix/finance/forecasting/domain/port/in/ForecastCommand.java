@@ -1,0 +1,302 @@
+package com.gogidix.finance.forecasting.domain.port.in;
+
+import com.gogidix.finance.forecasting.domain.model.Forecast;
+import com.gogidix.finance.forecasting.domain.model.ForecastMetric;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * Forecast Commands (Input Port)
+ * Defines the input commands for forecast operations
+ */
+public interface ForecastCommand {
+
+    /**
+     * Command to create a new forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class CreateForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Created by is required")
+        private String createdBy;
+
+        @NotBlank(message = "Forecast name is required")
+        private String name;
+
+        private String description;
+
+        @NotNull(message = "Forecast type is required")
+        private Forecast.ForecastType forecastType;
+
+        @NotNull(message = "Forecast horizon is required")
+        private Forecast.ForecastHorizon forecastHorizon;
+
+        @NotNull(message = "Start date is required")
+        private Instant startDate;
+
+        @NotNull(message = "End date is required")
+        private Instant endDate;
+
+        @NotBlank(message = "Currency is required")
+        private String currency;
+
+        private String department;
+
+        private String category;
+
+        private String scenario;
+
+        @PositiveOrZero(message = "Confidence level must be between 0 and 100")
+        private Integer confidenceLevel;
+
+        private String dataSource;
+
+        private List<ForecastMetric> metrics;
+
+        private String notes;
+
+        private BigDecimal initialAmount;
+    }
+
+    /**
+     * Command to update an existing forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class UpdateForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        private String name;
+
+        private String description;
+
+        private Instant startDate;
+
+        private Instant endDate;
+
+        private String department;
+
+        private String category;
+
+        private String scenario;
+
+        private Integer confidenceLevel;
+
+        private String dataSource;
+
+        private String notes;
+
+        private List<ForecastMetric> metrics;
+    }
+
+    /**
+     * Command to submit a forecast for approval
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class SubmitForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        private String submittedBy;
+    }
+
+    /**
+     * Command to approve a forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class ApproveForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        @NotBlank(message = "Approver is required")
+        private String approver;
+
+        private String comments;
+
+        private String approvalLevel;
+    }
+
+    /**
+     * Command to reject a forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class RejectForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        @NotBlank(message = "Rejecter is required")
+        private String rejecter;
+
+        @NotBlank(message = "Rejection reason is required")
+        private String reason;
+    }
+
+    /**
+     * Command to delete a forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class DeleteForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        private String deletedBy;
+    }
+
+    /**
+     * Command to regenerate a forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class RegenerateForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        @NotBlank(message = "Regenerated by is required")
+        private String regeneratedBy;
+
+        private List<ForecastMetric> newMetrics;
+
+        private BigDecimal newTotalAmount;
+
+        private String dataSource;
+
+        private Integer newConfidenceLevel;
+
+        private String scenario;
+    }
+
+    /**
+     * Command to archive a forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class ArchiveForecastCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        private String archivedBy;
+    }
+
+    /**
+     * Command to update forecast actual amount
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class UpdateActualAmountCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        @NotNull(message = "Actual amount is required")
+        private BigDecimal actualAmount;
+
+        private String updatedBy;
+    }
+
+    /**
+     * Command to add a metric to a forecast
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class AddMetricCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        @NotNull(message = "Metric is required")
+        private ForecastMetric metric;
+
+        private String addedBy;
+    }
+
+    /**
+     * Command to update confidence level
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class UpdateConfidenceLevelCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        @NotNull(message = "Confidence level is required")
+        @PositiveOrZero(message = "Confidence level must be positive or zero")
+        private Integer confidenceLevel;
+
+        private String updatedBy;
+    }
+
+    /**
+     * Command to set forecast scenario
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class SetScenarioCommand {
+        @NotBlank(message = "Tenant ID is required")
+        private String tenantId;
+
+        @NotBlank(message = "Forecast ID is required")
+        private String forecastId;
+
+        @NotBlank(message = "Scenario is required")
+        private String scenario;
+
+        private String updatedBy;
+    }
+}

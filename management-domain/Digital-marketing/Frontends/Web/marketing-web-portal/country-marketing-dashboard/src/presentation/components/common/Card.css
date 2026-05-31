@@ -1,0 +1,40 @@
+.card {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card-padding-none > .card-body {
+  padding: 0;
+}
+
+.card-padding-sm > .card-body {
+  padding: var(--spacing-md);
+}
+
+.card-padding-md > .card-body {
+  padding: var(--spacing-lg);
+}
+
+.card-padding-lg > .card-body {
+  padding: var(--spacing-xl);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.card-header-content {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-gray-900);
+}
+
+.card-body {
+  padding: var(--spacing-lg);
+}

@@ -1,0 +1,102 @@
+# Test Coverage Report - benefits-administration-service
+
+## Overview
+- **Service**: benefits-administration-service
+- **Domain**: Human Resource
+- **Analysis Date**: 2026-03-06T06:10:15Z
+- **Total Classes**: 43
+- **Test Files**: 0
+- **Classes with Tests**: 0
+- **Test Coverage**: 0%
+
+## Source Files
+- `.BenefitEnrollmentService`
+- `.BenefitPlanService`
+- `.EmployeeBenefitService`
+- `com.gogidix.hr.benefitsadministration.BenefitsAdministrationServiceApplication`
+- `com.gogidix.hr.benefitsadministration.domain.enums.BenefitStatus`
+- `com.gogidix.hr.benefitsadministration.domain.enums.BenefitType`
+- `com.gogidix.hr.benefitsadministration.domain.enums.CoverageLevel`
+- `com.gogidix.hr.benefitsadministration.domain.enums.DeductionFrequency`
+- `com.gogidix.hr.benefitsadministration.domain.enums.EnrollmentStatus`
+- `.BenefitEnrollmentCancelledEvent`
+- `.BenefitEnrollmentCreatedEvent`
+- `.BenefitEnrollmentUpdatedEvent`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `.BenefitEnrollment`
+- `com.gogidix.hr.benefitsadministration.domain.model.BenefitPlan`
+- `.BenefitPremium`
+- `.BenefitProvider`
+- `.DependentCoverage`
+- `.EmployeeBenefit`
+- `.BenefitEnrollmentRepository`
+- `.BenefitPlanRepository`
+- `.BenefitProviderRepository`
+- `.EmployeeBenefitRepository`
+- `.KafkaConfig`
+- `com.gogidix.hr.benefitsadministration.infrastructure.config.MongoConfig`
+- `.RedisConfig`
+- `com.gogidix.hr.benefitsadministration.infrastructure.config.WebConfig`
+- `.KafkaEventPublisher`
+- `.MongoBenefitEnrollmentRepository`
+- `.MongoBenefitPlanRepository`
+- `.MongoBenefitProviderRepository`
+- `.MongoEmployeeBenefitRepository`
+- `com.gogidix.hr.benefitsadministration.infrastructure.security.SecurityConfig`
+- `.BenefitEnrollmentController`
+- `.BenefitPlanController`
+- `.EmployeeBenefitController`
+- `.GlobalExceptionHandler`
+- `com.gogidix.hr.benefitsadministration.shared.base.BaseEntity`
+- `.BenefitsException`
+- `.BenefitsNotFoundException`
+- `.BenefitsValidationException`
+- `com.gogidix.hr.benefitsadministration.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.benefitsadministration.shared.requestcontext.RequestContextHolder`
+
+## Test Files
+
+## Classes Without Tests
+- `.BenefitEnrollmentService`
+- `.BenefitPlanService`
+- `.EmployeeBenefitService`
+- `com.gogidix.hr.benefitsadministration.BenefitsAdministrationServiceApplication`
+- `com.gogidix.hr.benefitsadministration.domain.enums.BenefitStatus`
+- `com.gogidix.hr.benefitsadministration.domain.enums.BenefitType`
+- `com.gogidix.hr.benefitsadministration.domain.enums.CoverageLevel`
+- `com.gogidix.hr.benefitsadministration.domain.enums.DeductionFrequency`
+- `com.gogidix.hr.benefitsadministration.domain.enums.EnrollmentStatus`
+- `.BenefitEnrollmentCancelledEvent`
+- `.BenefitEnrollmentCreatedEvent`
+- `.BenefitEnrollmentUpdatedEvent`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `.BenefitEnrollment`
+- `com.gogidix.hr.benefitsadministration.domain.model.BenefitPlan`
+- `.BenefitPremium`
+- `.BenefitProvider`
+- `.DependentCoverage`
+- `.EmployeeBenefit`
+- `.BenefitEnrollmentRepository`
+- `.BenefitPlanRepository`
+- `.BenefitProviderRepository`
+- `.EmployeeBenefitRepository`
+- `.KafkaConfig`
+- `com.gogidix.hr.benefitsadministration.infrastructure.config.MongoConfig`
+- `.RedisConfig`
+- `com.gogidix.hr.benefitsadministration.infrastructure.config.WebConfig`
+- `.KafkaEventPublisher`
+- `.MongoBenefitEnrollmentRepository`
+- `.MongoBenefitPlanRepository`
+- `.MongoBenefitProviderRepository`
+- `.MongoEmployeeBenefitRepository`
+- `com.gogidix.hr.benefitsadministration.infrastructure.security.SecurityConfig`
+- `.BenefitEnrollmentController`
+- `.BenefitPlanController`
+- `.EmployeeBenefitController`
+- `.GlobalExceptionHandler`
+- `com.gogidix.hr.benefitsadministration.shared.base.BaseEntity`
+- `.BenefitsException`
+- `.BenefitsNotFoundException`
+- `.BenefitsValidationException`
+- `com.gogidix.hr.benefitsadministration.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.benefitsadministration.shared.requestcontext.RequestContextHolder`

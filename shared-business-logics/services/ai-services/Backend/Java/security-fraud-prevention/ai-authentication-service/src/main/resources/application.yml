@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: ai-authentication-service
+  main:
+    allow-bean-definition-overriding: true
+
+jwt:
+  secret: ${JWT_SECRET:default-secret-key-for-development-only-must-be-at-least-32-chars-long}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:2592000}
+  issuer: ai-authentication-service
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.aiservices.aiauthenticationservice: DEBUG

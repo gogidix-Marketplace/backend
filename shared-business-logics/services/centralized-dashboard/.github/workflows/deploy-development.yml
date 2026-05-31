@@ -1,0 +1,74 @@
+name: Deploy Centralized Dashboard to Development
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  CLUSTER_NAME: gogidix-development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and push metrics-aggregation-service
+      run: |
+        docker build -t ${{ env.ECR_REGISTRY }}/metrics-aggregation-service:${{ github.sha }} .
+        docker push ${{ env.ECR_REGISTRY }}/metrics-aggregation-service:${{ github.sha }}
+      working-directory: Backend/Java/analytics-services/metrics-aggregation-service
+
+    - name: Build and push api-gateway-service
+      run: |
+        docker build -t ${{ env.ECR_REGISTRY }}/api-gateway-service:${{ github.sha }} .
+        docker push ${{ env.ECR_REGISTRY }}/api-gateway-service:${{ github.sha }}
+      working-directory: Backend/Java/gateway-services/api-gateway-service
+
+    - name: Build and push chart-service
+      run: |
+        docker build -t ${{ env.ECR_REGISTRY }}/chart-service:${{ github.sha }} .
+        docker push ${{ env.ECR_REGISTRY }}/chart-service:${{ github.sha }}
+      working-directory: Backend/Java/gateway-services/chart-service
+
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl set image deployment/metrics-aggregation-service metrics-aggregation-service=${{ env.ECR_REGISTRY }}/metrics-aggregation-service:${{ github.sha }}
+        kubectl set image deployment/api-gateway-service api-gateway-service=${{ env.ECR_REGISTRY }}/api-gateway-service:${{ github.sha }}
+        kubectl set image deployment/chart-service chart-service=${{ env.ECR_REGISTRY }}/chart-service:${{ github.sha }}
+
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/metrics-aggregation-service
+        kubectl rollout status deployment/api-gateway-service
+        kubectl rollout status deployment/chart-service
+
+    - name: Notify Slack on success
+      if: success()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: 'Centralized Dashboard deployed to development environment!'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}

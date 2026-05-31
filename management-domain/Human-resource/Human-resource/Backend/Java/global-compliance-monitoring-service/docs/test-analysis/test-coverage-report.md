@@ -1,0 +1,156 @@
+# Test Coverage Report - global-compliance-monitoring-service
+
+## Overview
+- **Service**: global-compliance-monitoring-service
+- **Domain**: Human Resource
+- **Analysis Date**: 2026-03-06T06:14:14Z
+- **Total Classes**: 70
+- **Test Files**: 0
+- **Classes with Tests**: 0
+- **Test Coverage**: 0%
+
+## Source Files
+- `com.gogidix.hr.globalcompliance.application.dto.response.CategoryComplianceDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.ComplianceScoreDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.CountryDashboardDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.CriticalIssueDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.DashboardSummaryDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.ErrorResponseDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.UpcomingCheckDto`
+- `com.gogidix.hr.globalcompliance.application.service.CheckCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.CheckQueryService`
+- `com.gogidix.hr.globalcompliance.application.service.DashboardService`
+- `com.gogidix.hr.globalcompliance.application.service.IssueCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.IssueQueryService`
+- `com.gogidix.hr.globalcompliance.application.service.ReportCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.ReportQueryService`
+- `com.gogidix.hr.globalcompliance.application.service.RequirementCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.RequirementQueryService`
+- `com.gogidix.hr.globalcompliance.domain.event.ComplianceCheckCompletedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.ComplianceReportGeneratedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.ComplianceRequirementCreatedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.NonComplianceIssueCreatedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.NonComplianceIssueResolvedEvent`
+- `com.gogidix.hr.globalcompliance.domain.model.AuditTrail`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.globalcompliance.domain.model.ComplianceCheck`
+- `com.gogidix.hr.globalcompliance.domain.model.ComplianceReport`
+- `com.gogidix.hr.globalcompliance.domain.model.ComplianceRequirement`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.AuditAction`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.CheckResult`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.CheckStatus`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ComplianceCategory`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ComplianceType`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.IssueSeverity`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.IssueStatus`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ReportStatus`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ReportType`
+- `com.gogidix.hr.globalcompliance.domain.model.NonComplianceIssue`
+- `com.gogidix.hr.globalcompliance.domain.port.in.CheckCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.in.IssueCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.in.ReportCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.in.RequirementCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.out.EventPublisher`
+- `com.gogidix.hr.globalcompliance.domain.repository.AuditTrailRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.ComplianceCheckRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.ComplianceReportRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.ComplianceRequirementRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.NonComplianceIssueRepository`
+- `com.gogidix.hr.globalcompliance.GlobalComplianceMonitoringServiceApplication`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.WebConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.messaging.kafka.KafkaEventPublisher`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoAuditTrailRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoComplianceCheckRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoComplianceReportRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoComplianceRequirementRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoNonComplianceIssueRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.security.SecurityConfig`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.CheckController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.DashboardController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.GlobalExceptionHandler`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.IssueController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.ReportController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.RequirementController`
+- `com.gogidix.hr.globalcompliance.shared.base.BaseEntity`
+- `com.gogidix.hr.globalcompliance.shared.exception.ConflictException`
+- `com.gogidix.hr.globalcompliance.shared.exception.NotFoundException`
+- `com.gogidix.hr.globalcompliance.shared.exception.ValidationException`
+- `com.gogidix.hr.globalcompliance.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.globalcompliance.shared.requestcontext.RequestContextHolder`
+
+## Test Files
+
+## Classes Without Tests
+- `com.gogidix.hr.globalcompliance.application.dto.response.CategoryComplianceDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.ComplianceScoreDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.CountryDashboardDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.CriticalIssueDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.DashboardSummaryDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.ErrorResponseDto`
+- `com.gogidix.hr.globalcompliance.application.dto.response.UpcomingCheckDto`
+- `com.gogidix.hr.globalcompliance.application.service.CheckCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.CheckQueryService`
+- `com.gogidix.hr.globalcompliance.application.service.DashboardService`
+- `com.gogidix.hr.globalcompliance.application.service.IssueCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.IssueQueryService`
+- `com.gogidix.hr.globalcompliance.application.service.ReportCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.ReportQueryService`
+- `com.gogidix.hr.globalcompliance.application.service.RequirementCommandService`
+- `com.gogidix.hr.globalcompliance.application.service.RequirementQueryService`
+- `com.gogidix.hr.globalcompliance.domain.event.ComplianceCheckCompletedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.ComplianceReportGeneratedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.ComplianceRequirementCreatedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.NonComplianceIssueCreatedEvent`
+- `com.gogidix.hr.globalcompliance.domain.event.NonComplianceIssueResolvedEvent`
+- `com.gogidix.hr.globalcompliance.domain.model.AuditTrail`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.globalcompliance.domain.model.ComplianceCheck`
+- `com.gogidix.hr.globalcompliance.domain.model.ComplianceReport`
+- `com.gogidix.hr.globalcompliance.domain.model.ComplianceRequirement`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.AuditAction`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.CheckResult`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.CheckStatus`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ComplianceCategory`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ComplianceType`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.IssueSeverity`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.IssueStatus`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ReportStatus`
+- `com.gogidix.hr.globalcompliance.domain.model.enums.ReportType`
+- `com.gogidix.hr.globalcompliance.domain.model.NonComplianceIssue`
+- `com.gogidix.hr.globalcompliance.domain.port.in.CheckCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.in.IssueCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.in.ReportCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.in.RequirementCommand`
+- `com.gogidix.hr.globalcompliance.domain.port.out.EventPublisher`
+- `com.gogidix.hr.globalcompliance.domain.repository.AuditTrailRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.ComplianceCheckRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.ComplianceReportRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.ComplianceRequirementRepository`
+- `com.gogidix.hr.globalcompliance.domain.repository.NonComplianceIssueRepository`
+- `com.gogidix.hr.globalcompliance.GlobalComplianceMonitoringServiceApplication`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.config.WebConfig`
+- `com.gogidix.hr.globalcompliance.infrastructure.messaging.kafka.KafkaEventPublisher`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoAuditTrailRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoComplianceCheckRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoComplianceReportRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoComplianceRequirementRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.persistence.mongo.MongoNonComplianceIssueRepository`
+- `com.gogidix.hr.globalcompliance.infrastructure.security.SecurityConfig`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.CheckController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.DashboardController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.GlobalExceptionHandler`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.IssueController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.ReportController`
+- `com.gogidix.hr.globalcompliance.interfaces.rest.RequirementController`
+- `com.gogidix.hr.globalcompliance.shared.base.BaseEntity`
+- `com.gogidix.hr.globalcompliance.shared.exception.ConflictException`
+- `com.gogidix.hr.globalcompliance.shared.exception.NotFoundException`
+- `com.gogidix.hr.globalcompliance.shared.exception.ValidationException`
+- `com.gogidix.hr.globalcompliance.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.globalcompliance.shared.requestcontext.RequestContextHolder`

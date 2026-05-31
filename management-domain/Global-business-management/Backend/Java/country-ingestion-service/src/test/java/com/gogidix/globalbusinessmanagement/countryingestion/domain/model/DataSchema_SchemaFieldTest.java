@@ -1,0 +1,139 @@
+package com.gogidix.globalbusinessmanagement.countryingestion.domain.model;
+
+import com.gogidix.globalbusinessmanagement.countryingestion.domain.model.DataSchema;
+import java.math.BigDecimal;
+import java.time.*;
+import java.util.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import static org.junit.jupiter.api.Assertions.*;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class DataSchema_SchemaFieldTest {
+
+        @Test
+    void testBuilder() {
+        DataSchema.SchemaField dto = DataSchema.SchemaField.builder()
+                        .name("test-name")
+            .displayName("test-displayName")
+            .type(DataSchema.SchemaField.FieldType.STRING)
+            .required(true)
+            .unique(true)
+            .minLength(42)
+            .maxLength(42)
+            .pattern("test-pattern")
+            .minValue(null)
+            .maxValue(null)
+            .defaultValue("test-defaultValue")
+            .allowedValues(Collections.emptyList())
+            .description("test-description")
+            .order(42)
+            .build();
+        assertNotNull(dto);
+        assertEquals("test-name", dto.getName());
+        assertEquals("test-displayName", dto.getDisplayName());
+        assertEquals(DataSchema.SchemaField.FieldType.STRING, dto.getType());
+        assertTrue(dto.isRequired());
+        assertTrue(dto.isUnique());
+        assertEquals(42, dto.getMinLength());
+        assertEquals(42, dto.getMaxLength());
+        assertEquals("test-pattern", dto.getPattern());
+        assertEquals("test-defaultValue", dto.getDefaultValue());
+        assertEquals("test-description", dto.getDescription());
+        assertEquals(42, dto.getOrder());
+    }
+
+    @Test
+    void testSettersAndGetters() {
+        DataSchema.SchemaField dto = new DataSchema.SchemaField();
+        dto.setName("val-name");
+        dto.setDisplayName("val-displayName");
+        dto.setType(DataSchema.SchemaField.FieldType.STRING);
+        dto.setRequired(true);
+        dto.setUnique(true);
+        dto.setMinLength(99);
+        dto.setMaxLength(99);
+        dto.setPattern("val-pattern");
+        dto.setDefaultValue("val-defaultValue");
+        dto.setDescription("val-description");
+        dto.setOrder(99);
+        assertEquals("val-name", dto.getName());
+        assertEquals("val-displayName", dto.getDisplayName());
+        assertEquals(DataSchema.SchemaField.FieldType.STRING, dto.getType());
+        assertTrue(dto.isRequired());
+        assertTrue(dto.isUnique());
+        assertEquals(99, dto.getMinLength());
+        assertEquals(99, dto.getMaxLength());
+        assertEquals("val-pattern", dto.getPattern());
+        assertEquals("val-defaultValue", dto.getDefaultValue());
+        assertEquals("val-description", dto.getDescription());
+        assertEquals(99, dto.getOrder());
+    }
+
+    @Test
+    void testEqualsAndHashCode() {
+        DataSchema.SchemaField dto1 = DataSchema.SchemaField.builder()
+                        .name("test-name")
+            .displayName("test-displayName")
+            .type(DataSchema.SchemaField.FieldType.STRING)
+            .required(true)
+            .unique(true)
+            .minLength(42)
+            .maxLength(42)
+            .pattern("test-pattern")
+            .minValue(null)
+            .maxValue(null)
+            .defaultValue("test-defaultValue")
+            .allowedValues(Collections.emptyList())
+            .description("test-description")
+            .order(42)
+            .build();
+        DataSchema.SchemaField dto2 = DataSchema.SchemaField.builder()
+                        .name("test-name")
+            .displayName("test-displayName")
+            .type(DataSchema.SchemaField.FieldType.STRING)
+            .required(true)
+            .unique(true)
+            .minLength(42)
+            .maxLength(42)
+            .pattern("test-pattern")
+            .minValue(null)
+            .maxValue(null)
+            .defaultValue("test-defaultValue")
+            .allowedValues(Collections.emptyList())
+            .description("test-description")
+            .order(42)
+            .build();
+        assertEquals(dto1, dto2);
+        assertEquals(dto1.hashCode(), dto2.hashCode());
+    }
+
+    @Test
+    void testToString() {
+        DataSchema.SchemaField dto = DataSchema.SchemaField.builder()
+                        .name("test-name")
+            .displayName("test-displayName")
+            .type(DataSchema.SchemaField.FieldType.STRING)
+            .required(true)
+            .unique(true)
+            .minLength(42)
+            .maxLength(42)
+            .pattern("test-pattern")
+            .minValue(null)
+            .maxValue(null)
+            .defaultValue("test-defaultValue")
+            .allowedValues(Collections.emptyList())
+            .description("test-description")
+            .order(42)
+            .build();
+        String str = dto.toString();
+        assertNotNull(str);
+        assertTrue(str.length() > 0);
+    }
+
+}

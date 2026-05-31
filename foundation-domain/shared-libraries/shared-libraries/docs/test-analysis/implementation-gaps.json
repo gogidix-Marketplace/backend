@@ -1,0 +1,564 @@
+{
+  "domain": "shared-libraries",
+  "analysisDate": "2026-03-01",
+  "location": "C:\\Users\\TEMP.LAPTOP-1QDBFFCA\\Desktop\\Gogidix-ecosystem\\x-gogidix-domain\\Foundation-domain\\shared-libraries",
+  "summary": {
+    "totalLibraries": 11,
+    "totalGaps": 47,
+    "criticalGaps": 14,
+    "highPriorityGaps": 18,
+    "mediumPriorityGaps": 10,
+    "lowPriorityGaps": 5
+  },
+  "libraries": [
+    {
+      "name": "shared-exceptions",
+      "path": "Backend/Java/core-libraries/shared-exceptions",
+      "status": "Good",
+      "coveragePercent": 80,
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "low",
+          "description": "ServiceUnavailableException has no test class",
+          "file": "src/main/java/com/gogidix/shared/exceptions/domain/exception/ServiceUnavailableException.java",
+          "recommendation": "Create ServiceUnavailableExceptionTest.java"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "low",
+          "description": "IntegrationException has no test class",
+          "file": "src/main/java/com/gogidix/shared/exceptions/domain/exception/IntegrationException.java",
+          "recommendation": "Create IntegrationExceptionTest.java"
+        }
+      ]
+    },
+    {
+      "name": "shared-model",
+      "path": "Backend/Java/core-libraries/shared-model",
+      "status": "Critical",
+      "coveragePercent": 9,
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "ModelTransformationService has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/model/application/service/ModelTransformationService.java",
+          "methods": [
+            "transformToDomain",
+            "transformListToDomain",
+            "transformToDTO",
+            "transformListToDTO"
+          ],
+          "recommendation": "Create comprehensive unit tests for transformation logic"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "ModelTransformationController has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/model/adapter/in/web/ModelTransformationController.java",
+          "recommendation": "Create REST API integration tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "DomainEntity interface has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/model/domain/model/DomainEntity.java",
+          "recommendation": "Create tests for domain entity behavior"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "EntityStatus enum has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/model/domain/model/EntityStatus.java",
+          "recommendation": "Create enum validation tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "low",
+          "description": "All order-related enums have no tests",
+          "files": [
+            "src/main/java/com/gogidix/shared/model/domain/model/order/enums/OrderStatus.java",
+            "src/main/java/com/gogidix/shared/model/domain/model/order/enums/PaymentStatus.java",
+            "src/main/java/com/gogidix/shared/model/domain/model/order/enums/ShippingMethod.java"
+          ],
+          "recommendation": "Create enum tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "low",
+          "description": "All user-related enums have no tests",
+          "files": [
+            "src/main/java/com/gogidix/shared/model/domain/model/user/enums/UserRole.java",
+            "src/main/java/com/gogidix/shared/model/domain/model/user/enums/UserStatus.java",
+            "src/main/java/com/gogidix/shared/model/domain/model/user/UserRiskLevel.java",
+            "src/main/java/com/gogidix/shared/model/domain/model/user/UserTier.java",
+            "src/main/java/com/gogidix/shared/model/domain/model/user/VerificationStatus.java",
+            "src/main/java/com/gogidix/shared/model/domain/model/user/ActivityStatus.java"
+          ],
+          "recommendation": "Create enum tests"
+        }
+      ]
+    },
+    {
+      "name": "shared-validation",
+      "path": "Backend/Java/core-libraries/shared-validation",
+      "status": "Moderate",
+      "coveragePercent": 28,
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "ValidationService has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/validation/application/service/ValidationService.java",
+          "recommendation": "Create service layer tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "ValidationController has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/validation/adapter/in/web/ValidationController.java",
+          "recommendation": "Create REST API integration tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "CreditCardValidationPattern has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/validation/domain/model/CreditCardValidationPattern.java",
+          "recommendation": "Create credit card validation tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "SSNValidationPattern has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/validation/domain/model/SSNValidationPattern.java",
+          "recommendation": "Create SSN validation tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "low",
+          "description": "Validation configuration classes have no tests",
+          "files": [
+            "src/main/java/com/gogidix/shared/validation/domain/model/ValidationConfiguration.java",
+            "src/main/java/com/gogidix/shared/validation/domain/model/ValidationContext.java",
+            "src/main/java/com/gogidix/shared/validation/domain/model/ValidationRule.java"
+          ],
+          "recommendation": "Create configuration tests"
+        }
+      ]
+    },
+    {
+      "name": "shared-service-discovery",
+      "path": "Backend/Java/core-libraries/shared-service-discovery",
+      "status": "CRITICAL",
+      "coveragePercent": 0,
+      "gaps": [
+        {
+          "type": "no_tests",
+          "severity": "critical",
+          "description": "ServiceDiscoveryClient has ZERO test coverage - critical infrastructure component",
+          "file": "src/main/java/com/gogidix/shared/servicediscovery/client/ServiceDiscoveryClient.java",
+          "lines": 434,
+          "methods": [
+            "discoverService",
+            "getSingleInstance",
+            "getInstanceById",
+            "getTenantServices",
+            "getDomainServices",
+            "getServicesByCapability",
+            "getHealthStatus",
+            "triggerHealthCheck",
+            "invalidateCache",
+            "weightedRandomSelect"
+          ],
+          "recommendation": "URGENT: Create comprehensive unit and integration tests for service discovery"
+        },
+        {
+          "type": "no_tests",
+          "severity": "critical",
+          "description": "ServiceRegistrationClient has ZERO test coverage - service registration at risk",
+          "file": "src/main/java/com/gogidix/shared/servicediscovery/client/ServiceRegistrationClient.java",
+          "lines": 267,
+          "methods": [
+            "initialize",
+            "register",
+            "heartbeat",
+            "deregister",
+            "buildRegistrationRequest"
+          ],
+          "recommendation": "URGENT: Create tests for auto-registration, heartbeat, and deregistration"
+        },
+        {
+          "type": "no_tests",
+          "severity": "critical",
+          "description": "TenantContext has ZERO test coverage - tenant propagation at risk",
+          "file": "src/main/java/com/gogidix/shared/servicediscovery/config/TenantContext.java",
+          "lines": 126,
+          "recommendation": "URGENT: Create tests for thread-local tenant context management"
+        },
+        {
+          "type": "no_tests",
+          "severity": "high",
+          "description": "TenantAwareFeignInterceptor has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/servicediscovery/config/TenantAwareFeignInterceptor.java",
+          "lines": 57,
+          "recommendation": "Create tests for Feign request interception and header propagation"
+        },
+        {
+          "type": "no_tests",
+          "severity": "medium",
+          "description": "ServiceDiscoveryProperties has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/servicediscovery/config/ServiceDiscoveryProperties.java",
+          "lines": 121,
+          "recommendation": "Create configuration property binding tests"
+        },
+        {
+          "type": "no_tests",
+          "severity": "medium",
+          "description": "ServiceDiscoveryAutoConfiguration has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/servicediscovery/config/ServiceDiscoveryAutoConfiguration.java",
+          "recommendation": "Create Spring Boot auto-configuration tests"
+        }
+      ]
+    },
+    {
+      "name": "shared-messaging",
+      "path": "Backend/Java/communication-libraries/shared-messaging",
+      "status": "Moderate",
+      "coveragePercent": 33,
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "MessageApplicationService has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/messaging/application/service/MessageApplicationService.java",
+          "recommendation": "Create service layer tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "MessageController has no unit test coverage",
+          "file": "src/main/java/com/gogidix/shared/messaging/adapter/in/web/MessageController.java",
+          "recommendation": "Create REST API unit tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "KafkaAdapter has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/messaging/adapter/out/messaging/KafkaAdapter.java",
+          "recommendation": "Create Kafka adapter tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "KafkaMessagePublisher has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/messaging/adapter/out/messaging/KafkaMessagePublisher.java",
+          "recommendation": "Create publisher tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "low",
+          "description": "Value objects have no dedicated tests",
+          "files": [
+            "src/main/java/com/gogidix/shared/messaging/domain/valueobject/MessageClassification.java",
+            "src/main/java/com/gogidix/shared/messaging/domain/valueobject/MessagePriority.java",
+            "src/main/java/com/gogidix/shared/messaging/domain/valueobject/MessageStatus.java"
+          ],
+          "recommendation": "Create value object tests"
+        }
+      ]
+    },
+    {
+      "name": "shared-audit",
+      "path": "Backend/Java/security-libraries/shared-audit",
+      "status": "Poor",
+      "coveragePercent": 7,
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "AuditService has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/audit/domain/AuditService.java",
+          "recommendation": "Create audit service tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "AuditController has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/audit/adapter/in/web/AuditController.java",
+          "recommendation": "Create REST API tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "AuditRepository has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/audit/application/port/out/AuditRepository.java",
+          "recommendation": "Create repository tests"
+        }
+      ]
+    },
+    {
+      "name": "shared-security",
+      "path": "Backend/Java/security-libraries/shared-security",
+      "status": "Moderate",
+      "coveragePercent": 28,
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "JwtAuthenticationEntryPoint has no test coverage",
+          "file": "src/main/java/com/gogidix/ecosystem/shared/security/JwtAuthenticationEntryPoint.java",
+          "recommendation": "Create entry point tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "JwtAccessDeniedHandler has no test coverage",
+          "file": "src/main/java/com/gogididx/ecosystem/shared/security/JwtAccessDeniedHandler.java",
+          "recommendation": "Create access denied handler tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "SecurityConfig has no test coverage",
+          "file": "src/main/java/com/gogidix/ecosystem/shared/security/SecurityConfig.java",
+          "recommendation": "Create security configuration tests"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "low",
+          "description": "OAuth2 components have no test coverage",
+          "files": [
+            "src/main/java/com/gogidix/shared/security/domain/model/OAuth2AuthorizationCode.java"
+          ],
+          "recommendation": "Create OAuth2 tests"
+        },
+        {
+          "type": "code_quality",
+          "severity": "low",
+          "description": "RuntimeException used in JwtTokenProvider.refreshToken()",
+          "file": "src/main/java/com/gogidix/ecosystem/shared/security/JwtTokenProvider.java",
+          "line": 180,
+          "code": "throw new RuntimeException(\"Token refresh failed\", e);",
+          "recommendation": "Replace with proper custom exception"
+        }
+      ]
+    },
+    {
+      "name": "shared-testing",
+      "path": "Backend/Java/testing-libraries/shared-testing",
+      "status": "Poor",
+      "coveragePercent": 5,
+      "gaps": [
+        {
+          "type": "ironic",
+          "severity": "medium",
+          "description": "Testing library lacks tests for its own testing utilities",
+          "recommendation": "Add meta-tests for testing utilities (builders, fixtures, mocks)"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "TestDataBuilder has no comprehensive test coverage",
+          "recommendation": "Create comprehensive tests for test data builders"
+        }
+      ]
+    },
+    {
+      "name": "shared-utilities",
+      "path": "Backend/Java/utility-libraries/shared-utilities",
+      "status": "Poor",
+      "coveragePercent": 13,
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "medium",
+          "description": "UtilityOperationService has no test coverage",
+          "file": "src/main/java/com/gogidix/shared/utilities/application/service/UtilityOperationService.java",
+          "recommendation": "Create service tests"
+        },
+        {
+          "type": "code_quality",
+          "severity": "low",
+          "description": "RuntimeException used in JsonUtils",
+          "file": "src/main/java/com/gogidix/shared/utilities/JsonUtils.java",
+          "lines": [15, 23],
+          "recommendation": "Replace with proper custom exception"
+        },
+        {
+          "type": "code_quality",
+          "severity": "low",
+          "description": "RuntimeException used in UtilityOperationService",
+          "file": "src/main/java/com/gogidix/shared/utilities/application/service/UtilityOperationService.java",
+          "line": 134,
+          "recommendation": "Replace with proper custom exception"
+        }
+      ]
+    },
+    {
+      "name": "shared-multitenancy-java",
+      "path": "Backend/Java/shared-multitenancy",
+      "status": "Empty",
+      "coveragePercent": 0,
+      "gaps": [
+        {
+          "type": "empty_directory",
+          "severity": "low",
+          "description": "Directory exists but contains no source files",
+          "recommendation": "Implement or remove directory structure"
+        }
+      ]
+    },
+    {
+      "name": "shared-multitenancy-nodejs",
+      "path": "Backend/NodeJS/shared-multitenancy",
+      "status": "CRITICAL",
+      "coveragePercent": 0,
+      "gaps": [
+        {
+          "type": "no_tests",
+          "severity": "critical",
+          "description": "MongoDB multi-tenant middleware has ZERO test coverage - data isolation at risk",
+          "file": "index.js",
+          "lines": 366,
+          "functions": [
+            "tenantMiddleware",
+            "asyncHandler",
+            "addTenantFilter",
+            "getCurrentTenantId",
+            "setCurrentTenant",
+            "clearCurrentTenant",
+            "findDocuments",
+            "findOneDocument",
+            "insertDocument",
+            "updateDocument",
+            "softDeleteDocument",
+            "countDocuments",
+            "ensureTenantIndex",
+            "ensureIndexes"
+          ],
+          "recommendation": "URGENT: Create comprehensive tests for tenant isolation and MongoDB operations"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "critical",
+          "description": "No tenant isolation validation tests",
+          "recommendation": "Create tests to verify tenant data cannot leak between tenants"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "critical",
+          "description": "No soft delete mechanism tests",
+          "recommendation": "Create tests for soft delete functionality"
+        },
+        {
+          "type": "missing_tests",
+          "severity": "high",
+          "description": "No MongoDB query filtering tests",
+          "recommendation": "Create tests to verify tenant filtering in all queries"
+        }
+      ]
+    },
+    {
+      "name": "gogidix-ui-library",
+      "path": "Frontends/Web/gogidix-ui-library",
+      "status": "Empty",
+      "coveragePercent": 0,
+      "gaps": [
+        {
+          "type": "empty_directory",
+          "severity": "low",
+          "description": "UI library directory exists but contains no source files",
+          "recommendation": "Implement UI components or remove directory structure"
+        }
+      ]
+    },
+    {
+      "name": "mobile-frontends",
+      "path": "Frontends/Mobile",
+      "status": "Empty",
+      "coveragePercent": 0,
+      "gaps": [
+        {
+          "type": "empty_directory",
+          "severity": "low",
+          "description": "Mobile frontend directory exists but is empty",
+          "recommendation": "Implement mobile components or remove directory structure"
+        }
+      ]
+    }
+  ],
+  "codeQualityIssues": [
+    {
+      "type": "RuntimeException",
+      "severity": "low",
+      "description": "Generic RuntimeException used instead of custom exceptions",
+      "occurrences": 4,
+      "files": [
+        "utility-libraries/shared-utilities/src/main/java/com/gogidix/shared/utilities/JsonUtils.java",
+        "utility-libraries/shared-utilities/src/main/java/com/gogidix/shared/utilities/application/service/UtilityOperationService.java",
+        "security-libraries/shared-security/src/main/java/com/gogidix/ecosystem/shared/security/JwtTokenProvider.java",
+        "security-libraries/shared-audit/src/main/java/com/gogidix/shared/audit/application/SharedAuditService.java"
+      ],
+      "recommendation": "Replace RuntimeException with domain-specific exceptions"
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      {
+        "priority": "critical",
+        "action": "Create tests for shared-service-discovery",
+        "reason": "Critical infrastructure component with zero coverage"
+      },
+      {
+        "priority": "critical",
+        "action": "Create tests for shared-multitenancy (NodeJS)",
+        "reason": "Data isolation security risk"
+      },
+      {
+        "priority": "high",
+        "action": "Create tests for shared-model service layer",
+        "reason": "Core business logic untested"
+      }
+    ],
+    "shortTerm": [
+      {
+        "priority": "high",
+        "action": "Add integration tests for all REST APIs",
+        "reason": "No contract validation"
+      },
+      {
+        "priority": "medium",
+        "action": "Improve shared-validation test coverage",
+        "reason": "Payment/SSN validation untested"
+      },
+      {
+        "priority": "medium",
+        "action": "Replace RuntimeException with custom exceptions",
+        "reason": "Better error handling"
+      }
+    ],
+    "longTerm": [
+      {
+        "priority": "low",
+        "action": "Add E2E tests across libraries",
+        "reason": "End-to-end validation"
+      },
+      {
+        "priority": "low",
+        "action": "Add performance tests",
+        "reason": "Benchmark critical paths"
+      },
+      {
+        "priority": "low",
+        "action": "Implement test data builders pattern",
+        "reason": "Better test maintainability"
+      }
+    ]
+  },
+  "metadata": {
+    "generatedBy": "Foundation Domain Test Coverage Analysis",
+    "version": "1.0.0",
+    "framework": "JUnit 5, Spring Boot Test"
+  }
+}

@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: analytics-data-service-pdb
+  namespace: centralized-dashboard
+  labels:
+    app: analytics-data-service
+    team: team-f-centralized-dashboard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: analytics-data-service

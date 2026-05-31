@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: marketing-automation-service
+
+  data:
+    mongodb:
+      database: test_marketing_automation
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

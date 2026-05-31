@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: ai-voice-service
+
+server:
+  port: 8086
+
+logging:
+  level:
+    com.gogidix.aiservices.aivoiceservice: INFO

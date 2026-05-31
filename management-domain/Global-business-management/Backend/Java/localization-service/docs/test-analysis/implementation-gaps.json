@@ -1,0 +1,20 @@
+{
+  "serviceName": "localization-service",
+  "domain": "Global Business Management",
+  "analysisDate": "2026-03-06T06:07:40Z",
+  "summary": {
+    "totalFiles": 3,
+    "filesWithGaps": 0,
+    "totalGaps": 0,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "STUB": 0,
+      "NOT_IMPLEMENTED": 0,
+      "XXX": 0
+    }
+  },
+  "gaps": [
+
+  ]
+}

@@ -1,0 +1,107 @@
+# =============================================================================
+# Centralized Real-Time Platform Service Configuration
+# =============================================================================
+
+spring:
+  application:
+    name: centralized-real-time-platform
+
+  # Redis Configuration (Pub/Sub for real-time data)
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        delivery.timeout.ms: 30000
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.gogidix.platform.realtime.infrastructure.messaging.event.RealTimeEvent
+
+  # Actuator Configuration
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,metrics,prometheus
+      base-path: /actuator
+    endpoint:
+      health:
+        show-details: always
+        show-components: always
+    metrics:
+      export:
+        prometheus:
+          enabled: true
+      tags:
+        application: ${spring.application.name}
+
+# WebSocket Configuration
+websocket:
+  allowed-origins: ${WS_ALLOWED_ORIGINS:*}
+  max-session-timeout-minutes: ${WS_SESSION_TIMEOUT:30}
+  heartbeat-interval-seconds: ${WS_HEARTBEAT_INTERVAL:30}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8915}
+  servlet:
+    context-path: /
+  shutdown: graceful
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.platform: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.redis: ${REDIS_LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:INFO}
+    org.springframework.web.socket: ${WEBSOCKET_LOG_LEVEL:INFO}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg [tenantId=%X{tenantId}][userId=%X{userId}][traceId=%X{traceId},spanId=%X{spanId}]%n"
+
+# Real-Time Platform Specific Configuration
+realtime:
+  channels:
+    max-per-tenant: ${MAX_CHANNELS_PER_TENANT:100}
+    max-subscribers-per-channel: ${MAX_SUBSCRIBERS_PER_CHANNEL:1000}
+  pubsub:
+    topic-prefix: "realtime:channel:"
+    message-ttl-seconds: ${MESSAGE_TTL_SECONDS:3600}
+  buffering:
+    max-message-size-bytes: ${MAX_MESSAGE_SIZE:1048576}
+    max-buffer-size: ${MAX_BUFFER_SIZE:10000}

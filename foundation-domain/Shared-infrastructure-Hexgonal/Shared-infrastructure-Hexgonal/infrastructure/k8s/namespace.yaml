@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infrastructure
+  labels:
+    name: infrastructure
+    domain: foundation
+    environment: production
+    app.kubernetes.io/part-of: gogidix-ecosystem
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    description: Foundation Domain Infrastructure - Database, Messaging, and Caching Services

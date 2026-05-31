@@ -1,0 +1,28 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "mvn clean package -DskipTests",
+    "watchPatterns": [
+      "src/**",
+      "pom.xml"
+    ]
+  },
+  "deploy": {
+    "startCommand": "java -Xms512m -Xmx1024m -jar target/global-finance-dashboard-service-*.jar",
+    "healthcheckPath": "/api/v1/actuator/health",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10,
+    "sleepSeconds": 10
+  },
+  "variables": {
+    "SERVER_PORT": "8080",
+    "MONGODB_DB": "global_finance_dashboard_db",
+    "DASHBOARD_CACHE_TTL": "300",
+    "MAX_WIDGETS_PER_DASHBOARD": "20",
+    "METRIC_AGGREGATION_WINDOW": "3600",
+    "DASHBOARD_SHARING_ENABLED": "true",
+    "SHARING_TOKEN_EXPIRY": "86400"
+  }
+}

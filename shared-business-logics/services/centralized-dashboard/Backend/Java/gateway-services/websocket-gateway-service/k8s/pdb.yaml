@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: websocket-gateway-service-pdb
+  namespace: centralized-dashboard
+  labels:
+    app: websocket-gateway-service
+    team: team-f-centralized-dashboard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: websocket-gateway-service

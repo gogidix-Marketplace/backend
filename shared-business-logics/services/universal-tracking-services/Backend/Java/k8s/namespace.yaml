@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: universal-tracking-services
+  labels:
+    name: universal-tracking-services
+    team: team-c-universal-tracking

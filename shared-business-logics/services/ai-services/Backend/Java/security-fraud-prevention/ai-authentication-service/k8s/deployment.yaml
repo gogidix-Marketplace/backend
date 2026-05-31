@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-services
+  labels:
+    name: ai-services
+    environment: production
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-authentication-service
+  namespace: ai-services
+  labels:
+    app: ai-authentication-service
+    app.kubernetes.io/name: ai-authentication-service
+    app.kubernetes.io/instance: ai-authentication-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: ai-services
+    app.kubernetes.io/managed-by: kubernetes
+    team: team-ai-security
+    domain: security-fraud-prevention
+spec:
+  replicas: 2
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ai-authentication-service
+  template:
+    metadata:
+      labels:
+        app: ai-authentication-service
+        app.kubernetes.io/name: ai-authentication-service
+        app.kubernetes.io/instance: ai-authentication-service
+        app.kubernetes.io/version: "1.0.0"
+        team: team-ai-security
+        domain: security-fraud-prevention
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: ai-authentication-service
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: ai-authentication-service
+        image: gogidix/ai-authentication-service:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        - name: management
+          containerPort: 8082
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "production"
+        - name: SERVER_PORT
+          value: "8082"
+        - name: JAVA_OPTS
+          value: "-Xmx1g -Xms768m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError"
+        - name: SPRING_APPLICATION_NAME
+          value: "ai-authentication-service"
+        - name: SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING
+          value: "true"
+        - name: JWT_ISSUER
+          value: "ai-authentication-service"
+        - name: JWT_ACCESS_EXPIRATION
+          value: "3600"
+        - name: JWT_REFRESH_EXPIRATION
+          value: "2592000"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ai-authentication-service-secrets
+              key: jwt-secret
+        - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+          valueFrom:
+            configMapKeyRef:
+              name: ai-authentication-service-config
+              key: eureka-url
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: "health,info,metrics,prometheus"
+        - name: MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS
+          value: "always"
+        - name: LOGGING_LEVEL_COM_GOGIDIX_AISERVICES
+          value: "INFO"
+        envFrom:
+        - configMapRef:
+            name: ai-authentication-service-config
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8082
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 18
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30

@@ -1,0 +1,611 @@
+# GitLab CI/CD Pipeline for Gogidix Shared Exceptions Service
+# Enterprise-grade pipeline with security, testing, and deployment automation
+# Author: Gogidix Development Team
+# Version: 1.0.0
+# Date: 2025-08-13
+
+# =================================================================
+# Pipeline Configuration
+# =================================================================
+stages:
+  - validate
+  - build
+  - test
+  - security
+  - package
+  - deploy
+
+# Global variables
+variables:
+  # Maven Configuration
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+  
+  # Docker Configuration
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_DRIVER: overlay2
+  BUILDKIT_PROGRESS: plain
+  
+  # Service Configuration
+  SERVICE_NAME: "shared-exceptions"
+  SERVICE_VERSION: "1.0.0"
+  DOCKER_IMAGE_NAME: "$CI_REGISTRY_IMAGE/$SERVICE_NAME"
+  
+  # Security Configuration
+  SECURITY_SCAN_ENABLED: "true"
+  VULNERABILITY_SCAN_ENABLED: "true"
+  
+  # Deployment Configuration
+  DEPLOY_ENABLED: "true"
+  K8S_NAMESPACE: "gogidix-shared-libraries"
+
+# =================================================================
+# Templates and Includes
+# =================================================================
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Container-Scanning.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
+
+# Cache configuration
+cache:
+  key: "${CI_JOB_NAME}"
+  paths:
+    - .m2/repository/
+    - target/
+
+# =================================================================
+# Stage 1: Validation
+# =================================================================
+code-quality:
+  stage: validate
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - echo "🔍 Running code quality checks for $SERVICE_NAME"
+    - ./mvnw $MAVEN_CLI_OPTS validate
+    - ./mvnw $MAVEN_CLI_OPTS compile
+    - echo "✅ Code quality validation completed"
+  artifacts:
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
+    paths:
+      - target/
+    expire_in: 1 hour
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+lint-dockerfile:
+  stage: validate
+  image: hadolint/hadolint:latest-debian
+  script:
+    - echo "🔍 Linting Dockerfile for $SERVICE_NAME"
+    - hadolint Dockerfile
+    - echo "✅ Dockerfile linting completed"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - Dockerfile
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - Dockerfile
+
+lint-yaml:
+  stage: validate
+  image: cytopia/yamllint:latest
+  script:
+    - echo "🔍 Linting YAML files for $SERVICE_NAME"
+    - yamllint -d relaxed .gitlab-ci.yml
+    - yamllint -d relaxed docker-compose.yml
+    - yamllint -d relaxed src/main/resources/application.yml
+    - echo "✅ YAML linting completed"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - "*.yml"
+        - "*.yaml"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "*.yml"
+        - "*.yaml"
+
+# =================================================================
+# Stage 2: Build
+# =================================================================
+maven-compile:
+  stage: build
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - echo "🏗️ Compiling $SERVICE_NAME"
+    - ./mvnw $MAVEN_CLI_OPTS clean compile
+    - echo "✅ Compilation completed successfully"
+  artifacts:
+    paths:
+      - target/
+    expire_in: 2 hours
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+docker-build:
+  stage: build
+  image: docker:24.0.7-dind
+  services:
+    - docker:24.0.7-dind
+  before_script:
+    - echo "🐳 Preparing Docker build environment"
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - echo "🏗️ Building Docker image for $SERVICE_NAME"
+    - export DOCKER_BUILDKIT=1
+    - |
+      docker build \
+        --target runtime \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg SERVICE_VERSION=$SERVICE_VERSION \
+        --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+        --build-arg GIT_COMMIT=$CI_COMMIT_SHORT_SHA \
+        --cache-from $DOCKER_IMAGE_NAME:cache \
+        --cache-from $DOCKER_IMAGE_NAME:latest \
+        --tag $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA \
+        --tag $DOCKER_IMAGE_NAME:cache \
+        .
+    - docker push $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $DOCKER_IMAGE_NAME:cache
+    - echo "✅ Docker image built and pushed successfully"
+  dependencies:
+    - maven-compile
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# =================================================================
+# Stage 3: Testing
+# =================================================================
+unit-tests:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  services:
+    - postgres:15.6-alpine
+    - redis:7.2.4-alpine
+  variables:
+    POSTGRES_DB: gogidix_shared_exceptions_test
+    POSTGRES_USER: test_user
+    POSTGRES_PASSWORD: test_password
+    SPRING_PROFILES_ACTIVE: test
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gogidix_shared_exceptions_test
+    SPRING_DATASOURCE_USERNAME: test_user
+    SPRING_DATASOURCE_PASSWORD: test_password
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+  script:
+    - echo "🧪 Running unit tests for $SERVICE_NAME"
+    - ./mvnw $MAVEN_CLI_OPTS test
+    - echo "📊 Generating test coverage report"
+    - ./mvnw $MAVEN_CLI_OPTS jacoco:report
+    - echo "✅ Unit tests completed successfully"
+  coverage: '/Total.*?([0-9]{1,3})%/'
+  artifacts:
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/site/jacoco/jacoco.xml
+    paths:
+      - target/site/jacoco/
+      - target/surefire-reports/
+    expire_in: 1 week
+  dependencies:
+    - maven-compile
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+integration-tests:
+  stage: test
+  image: docker:24.0.7-dind
+  services:
+    - docker:24.0.7-dind
+  before_script:
+    - echo "🔧 Setting up integration test environment"
+    - apk add --no-cache curl docker-compose
+    - docker info
+  script:
+    - echo "🧪 Running integration tests for $SERVICE_NAME"
+    - docker-compose -f docker-compose.yml up -d postgres redis
+    - sleep 30
+    - echo "🔍 Verifying services are ready"
+    - docker-compose exec -T postgres pg_isready -U postgres
+    - docker-compose exec -T redis redis-cli ping
+    - echo "🚀 Starting application for integration tests"
+    - docker run -d --name ${SERVICE_NAME}-test \
+        --network container:$(docker-compose ps -q postgres) \
+        -e SPRING_PROFILES_ACTIVE=docker \
+        -e SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/gogidix_shared_exceptions \
+        -e REDIS_HOST=localhost \
+        $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA
+    - sleep 60
+    - echo "🔍 Running health check"
+    - docker exec ${SERVICE_NAME}-test curl -f http://localhost:8702/api/v1/actuator/health
+    - echo "✅ Integration tests completed successfully"
+  after_script:
+    - docker-compose down -v
+    - docker rm -f ${SERVICE_NAME}-test || true
+  dependencies:
+    - docker-build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+performance-tests:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  services:
+    - postgres:15.6-alpine
+    - redis:7.2.4-alpine
+  variables:
+    POSTGRES_DB: gogidix_shared_exceptions_test
+    POSTGRES_USER: test_user
+    POSTGRES_PASSWORD: test_password
+  script:
+    - echo "⚡ Running performance tests for $SERVICE_NAME"
+    - ./mvnw $MAVEN_CLI_OPTS test -Dtest=**/*PerformanceTest
+    - echo "✅ Performance tests completed successfully"
+  artifacts:
+    paths:
+      - target/performance-reports/
+    expire_in: 1 week
+  dependencies:
+    - maven-compile
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  allow_failure: true
+
+# =================================================================
+# Stage 4: Security
+# =================================================================
+container-security-scan:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - echo "🔒 Running container security scan for $SERVICE_NAME"
+    - trivy image --exit-code 0 --format json --output container-security-report.json $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA
+    - echo "✅ Container security scan completed"
+  artifacts:
+    reports:
+      container_scanning: container-security-report.json
+    paths:
+      - container-security-report.json
+    expire_in: 1 week
+  dependencies:
+    - docker-build
+  rules:
+    - if: $SECURITY_SCAN_ENABLED == "true" && $CI_PIPELINE_SOURCE == "push"
+    - if: $SECURITY_SCAN_ENABLED == "true" && $CI_PIPELINE_SOURCE == "merge_request_event"
+
+secrets-detection:
+  stage: security
+  image: trufflesecurity/trufflehog:latest
+  script:
+    - echo "🔍 Scanning for secrets in $SERVICE_NAME"
+    - trufflehog git file://. --since-commit $CI_COMMIT_BEFORE_SHA --only-verified --fail
+    - echo "✅ Secrets detection completed"
+  rules:
+    - if: $SECURITY_SCAN_ENABLED == "true" && $CI_PIPELINE_SOURCE == "push"
+    - if: $SECURITY_SCAN_ENABLED == "true" && $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: false
+
+license-compliance:
+  stage: security
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - echo "📄 Checking license compliance for $SERVICE_NAME"
+    - ./mvnw $MAVEN_CLI_OPTS license:check
+    - ./mvnw $MAVEN_CLI_OPTS license:aggregate-third-party-report
+    - echo "✅ License compliance check completed"
+  artifacts:
+    paths:
+      - target/generated-resources/licenses.xml
+      - target/site/aggregate-third-party-report.html
+    expire_in: 1 week
+  dependencies:
+    - maven-compile
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# =================================================================
+# Stage 5: Package
+# =================================================================
+maven-package:
+  stage: package
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - echo "📦 Packaging $SERVICE_NAME"
+    - ./mvnw $MAVEN_CLI_OPTS package -DskipTests
+    - echo "📊 Generating project reports"
+    - ./mvnw $MAVEN_CLI_OPTS site
+    - echo "✅ Packaging completed successfully"
+  artifacts:
+    paths:
+      - target/*.jar
+      - target/site/
+    expire_in: 1 week
+  dependencies:
+    - unit-tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+docker-release:
+  stage: package
+  image: docker:24.0.7-dind
+  services:
+    - docker:24.0.7-dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - echo "🏷️ Tagging and pushing release image for $SERVICE_NAME"
+    - docker pull $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
+        docker tag $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA $DOCKER_IMAGE_NAME:latest
+        docker tag $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA $DOCKER_IMAGE_NAME:$SERVICE_VERSION
+        docker push $DOCKER_IMAGE_NAME:latest
+        docker push $DOCKER_IMAGE_NAME:$SERVICE_VERSION
+        echo "✅ Released as latest and $SERVICE_VERSION"
+      else
+        docker tag $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA $DOCKER_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+        docker push $DOCKER_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+        echo "✅ Released as $CI_COMMIT_REF_SLUG"
+      fi
+  dependencies:
+    - docker-build
+    - unit-tests
+    - container-security-scan
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+# =================================================================
+# Stage 6: Deployment
+# =================================================================
+deploy-development:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  environment:
+    name: development
+    url: https://shared-exceptions.dev.gogidix.com
+  before_script:
+    - echo "🔧 Configuring kubectl for development deployment"
+    - kubectl config use-context development
+    - kubectl version --client
+  script:
+    - echo "🚀 Deploying $SERVICE_NAME to development environment"
+    - |
+      cat <<EOF | kubectl apply -f -
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: $SERVICE_NAME
+        namespace: $K8S_NAMESPACE-dev
+        labels:
+          app: $SERVICE_NAME
+          version: $SERVICE_VERSION
+          environment: development
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: $SERVICE_NAME
+        template:
+          metadata:
+            labels:
+              app: $SERVICE_NAME
+              version: $SERVICE_VERSION
+          spec:
+            containers:
+            - name: $SERVICE_NAME
+              image: $DOCKER_IMAGE_NAME:$CI_COMMIT_SHA
+              ports:
+              - containerPort: 8702
+              env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: "development"
+              - name: K8S_NAMESPACE
+                value: "$K8S_NAMESPACE-dev"
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "500m"
+              livenessProbe:
+                httpGet:
+                  path: /api/v1/actuator/health
+                  port: 8702
+                initialDelaySeconds: 60
+                periodSeconds: 30
+              readinessProbe:
+                httpGet:
+                  path: /api/v1/actuator/health
+                  port: 8702
+                initialDelaySeconds: 30
+                periodSeconds: 10
+      EOF
+    - echo "⏳ Waiting for deployment to complete"
+    - kubectl rollout status deployment/$SERVICE_NAME -n $K8S_NAMESPACE-dev --timeout=300s
+    - echo "✅ Development deployment completed successfully"
+  dependencies:
+    - docker-release
+  rules:
+    - if: $DEPLOY_ENABLED == "true" && $CI_COMMIT_BRANCH == "develop"
+  when: manual
+
+deploy-staging:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  environment:
+    name: staging
+    url: https://shared-exceptions.staging.gogidix.com
+  before_script:
+    - echo "🔧 Configuring kubectl for staging deployment"
+    - kubectl config use-context staging
+  script:
+    - echo "🚀 Deploying $SERVICE_NAME to staging environment"
+    - |
+      cat <<EOF | kubectl apply -f -
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: $SERVICE_NAME
+        namespace: $K8S_NAMESPACE-staging
+        labels:
+          app: $SERVICE_NAME
+          version: $SERVICE_VERSION
+          environment: staging
+      spec:
+        replicas: 3
+        selector:
+          matchLabels:
+            app: $SERVICE_NAME
+        template:
+          metadata:
+            labels:
+              app: $SERVICE_NAME
+              version: $SERVICE_VERSION
+          spec:
+            containers:
+            - name: $SERVICE_NAME
+              image: $DOCKER_IMAGE_NAME:$SERVICE_VERSION
+              ports:
+              - containerPort: 8702
+              env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: "staging"
+              - name: K8S_NAMESPACE
+                value: "$K8S_NAMESPACE-staging"
+              resources:
+                requests:
+                  memory: "1Gi"
+                  cpu: "500m"
+                limits:
+                  memory: "2Gi"
+                  cpu: "1000m"
+              livenessProbe:
+                httpGet:
+                  path: /api/v1/actuator/health
+                  port: 8702
+                initialDelaySeconds: 60
+                periodSeconds: 30
+              readinessProbe:
+                httpGet:
+                  path: /api/v1/actuator/health
+                  port: 8702
+                initialDelaySeconds: 30
+                periodSeconds: 10
+      EOF
+    - kubectl rollout status deployment/$SERVICE_NAME -n $K8S_NAMESPACE-staging --timeout=600s
+    - echo "✅ Staging deployment completed successfully"
+  dependencies:
+    - docker-release
+    - integration-tests
+  rules:
+    - if: $DEPLOY_ENABLED == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  when: manual
+
+deploy-production:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  environment:
+    name: production
+    url: https://shared-exceptions.gogidix.com
+  before_script:
+    - echo "🔧 Configuring kubectl for production deployment"
+    - kubectl config use-context production
+  script:
+    - echo "🚀 Deploying $SERVICE_NAME to production environment"
+    - |
+      cat <<EOF | kubectl apply -f -
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: $SERVICE_NAME
+        namespace: $K8S_NAMESPACE
+        labels:
+          app: $SERVICE_NAME
+          version: $SERVICE_VERSION
+          environment: production
+      spec:
+        replicas: 5
+        selector:
+          matchLabels:
+            app: $SERVICE_NAME
+        template:
+          metadata:
+            labels:
+              app: $SERVICE_NAME
+              version: $SERVICE_VERSION
+          spec:
+            containers:
+            - name: $SERVICE_NAME
+              image: $DOCKER_IMAGE_NAME:$SERVICE_VERSION
+              ports:
+              - containerPort: 8702
+              env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: "production"
+              - name: K8S_NAMESPACE
+                value: "$K8S_NAMESPACE"
+              resources:
+                requests:
+                  memory: "2Gi"
+                  cpu: "1000m"
+                limits:
+                  memory: "4Gi"
+                  cpu: "2000m"
+              livenessProbe:
+                httpGet:
+                  path: /api/v1/actuator/health
+                  port: 8702
+                initialDelaySeconds: 90
+                periodSeconds: 30
+              readinessProbe:
+                httpGet:
+                  path: /api/v1/actuator/health
+                  port: 8702
+                initialDelaySeconds: 60
+                periodSeconds: 10
+      EOF
+    - kubectl rollout status deployment/$SERVICE_NAME -n $K8S_NAMESPACE --timeout=900s
+    - echo "✅ Production deployment completed successfully"
+  dependencies:
+    - docker-release
+    - integration-tests
+    - performance-tests
+  rules:
+    - if: $DEPLOY_ENABLED == "true" && $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  when: manual
+
+# =================================================================
+# Cleanup Jobs
+# =================================================================
+cleanup-registry:
+  stage: .post
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - echo "🧹 Cleaning up old Docker images from registry"
+    - |
+      # Keep last 10 images, clean up older ones
+      # Implementation depends on your registry API
+      echo "Registry cleanup would run here in production"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  when: manual

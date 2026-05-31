@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: centralized-real-time-data
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-real-time-data
+    team: team-f-centralized-dashboard
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: centralized-real-time-data
+  template:
+    metadata:
+      labels:
+        app: centralized-real-time-data
+        team: team-f-centralized-dashboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8103"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: centralized-real-time-data
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: centralized-real-time-data
+        image: gogidix/centralized-real-time-data:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8103
+          protocol: TCP
+        - name: websocket
+          containerPort: 8103
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SERVER_PORT
+          value: "8103"
+        - name: MONGODB_HOST
+          value: "mongodb-centralized.internal"
+        - name: MONGODB_PORT
+          value: "27017"
+        - name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-real-time-data-config
+              key: mongodb-database
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: centralized-real-time-data-secrets
+              key: mongodb-username
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: centralized-real-time-data-secrets
+              key: mongodb-password
+        - name: REDIS_HOST
+          value: "redis.internal"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: KAFKA_SERVERS
+          value: "kafka-bootstrap.centralized-dashboard.svc.cluster.local:9092"
+        - name: EUREKA_SERVER_URL
+          value: "http://eureka-server:8761/eureka/"
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: "health,info,metrics,prometheus"
+        - name: WEBSOCKET_ENABLED
+          value: "true"
+        - name: WEBSOCKET_ALLOWED_ORIGINS
+          value: "https://*.gogidix.com"
+        - name: WEBSOCKET_HEARTBEAT_INTERVAL
+          value: "30s"
+        - name: REALTIME_DATA_BUFFER_SIZE
+          value: "1000"
+        - name: REALTIME_DATA_FLUSH_INTERVAL
+          value: "5s"
+        - name: REALTIME_STREAMING_ENABLED
+          value: "true"
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/realtime/actuator/health/liveness
+            port: 8103
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/realtime/actuator/health/readiness
+            port: 8103
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/realtime/actuator/health/startup
+            port: 8103
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - centralized-real-time-data
+              topologyKey: kubernetes.io/hostname

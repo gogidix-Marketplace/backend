@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-translation-service
+  namespace: ai-services
+  labels:
+    app: ai-translation-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-translation-service
+  ports:
+  - name: http
+    port: 8236
+    targetPort: 8236
+    protocol: TCP

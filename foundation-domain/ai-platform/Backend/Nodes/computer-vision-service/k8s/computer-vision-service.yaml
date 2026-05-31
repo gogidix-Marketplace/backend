@@ -1,0 +1,170 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: computer-vision-service-config
+  namespace: ai-platform
+  labels:
+    app: computer-vision-service
+    version: v1
+data:
+  application.yml: |
+    uvicorn:
+      host: 0.0.0.0
+      port: 8006
+      workers: 4
+      log-level: info
+    mongodb:
+      uri: mongodb://vision-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/computer-vision?authSource=admin
+    ai:
+      model-path: /app/models
+      enable-ocr: true
+      enable-face-detection: true
+      enable-object-detection: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: computer-vision-service-secrets
+  namespace: ai-platform
+  labels:
+    app: computer-vision-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: computer-vision-service
+  namespace: ai-platform
+  labels:
+    app: computer-vision-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: computer-vision-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: computer-vision-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8006"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: computer-vision-service
+      containers:
+        - name: computer-vision-service
+          image: gogidix/computer-vision-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8006
+              protocol: TCP
+          env:
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: computer-vision-service-secrets
+                  key: mongodb-password
+          envFrom:
+            - configMapRef:
+                name: computer-vision-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8006
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8006
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: computer-vision-service
+  namespace: ai-platform
+  labels:
+    app: computer-vision-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8006
+      targetPort: 8006
+      protocol: TCP
+  selector:
+    app: computer-vision-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: computer-vision-service
+  namespace: ai-platform
+  labels:
+    app: computer-vision-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: computer-vision-service-hpa
+  namespace: ai-platform
+  labels:
+    app: computer-vision-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: computer-vision-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: computer-vision-service-pdb
+  namespace: ai-platform
+  labels:
+    app: computer-vision-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: computer-vision-service

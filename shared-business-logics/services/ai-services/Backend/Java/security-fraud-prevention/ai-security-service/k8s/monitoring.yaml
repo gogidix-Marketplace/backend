@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-security-service-metrics
+  namespace: ai-services
+  labels:
+    app: ai-security-service
+    app.kubernetes.io/name: ai-security-service
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: ai-services
+    team: team-ai-security
+    domain: security-fraud-prevention
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8085"
+    prometheus.io/path: "/actuator/prometheus"
+    prometheus.io/scheme: "http"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 8085
+    targetPort: 8085
+    protocol: TCP
+  selector:
+    app: ai-security-service
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ai-security-service
+  namespace: ai-services
+  labels:
+    app: ai-security-service
+    app.kubernetes.io/name: ai-security-service
+    app.kubernetes.io/component: servicemonitor
+    app.kubernetes.io/part-of: ai-services
+    team: team-ai-security
+    domain: security-fraud-prevention
+    release: prometheus
+  annotations:
+    description: "Prometheus ServiceMonitor for AI Security Service metrics"
+spec:
+  selector:
+    matchLabels:
+      app: ai-security-service
+      app.kubernetes.io/name: ai-security-service
+  endpoints:
+  - port: metrics
+    path: /actuator/prometheus
+    scheme: http
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      action: replace
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+      action: replace
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'jvm_.*|http_.*|process_.*|system_.*|spring_.*|application_.*|security_.*'
+      action: keep
+  namespaceSelector:
+    matchNames:
+    - ai-services
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ai-security-service
+  namespace: ai-services
+  labels:
+    app: ai-security-service
+    app.kubernetes.io/component: podmonitor
+    team: team-ai-security
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-security-service
+  podMetricsEndpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+  namespaceSelector:
+    matchNames:
+    - ai-services
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ai-security-service
+  namespace: ai-services
+  labels:
+    app: ai-security-service
+    app.kubernetes.io/component: prometheus-rule
+    team: team-ai-security
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: ai-security-service
+    interval: 30s
+    rules:
+    - alert: AISecurityServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{job="ai-security-service",status=~"5.."}[5m]) > 10
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "High error rate for AI Security Service"
+        description: "Error rate is {{ $value }} errors/sec for the last 5 minutes"
+    - alert: AISecurityServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="ai-security-service"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "High latency for AI Security Service"
+        description: "P95 latency is {{ $value }} seconds"
+    - alert: AISecurityServicePodDown
+      expr: up{job="ai-security-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-security
+      annotations:
+        summary: "AI Security Service pod is down"
+        description: "Pod {{ $labels.instance }} has been down for more than 5 minutes"
+    - alert: AISecurityServiceHighMemoryUsage
+      expr: jvm_memory_used_bytes{job="ai-security-service",area="heap"} / jvm_memory_max_bytes{job="ai-security-service",area="heap"} > 0.9
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "High memory usage for AI Security Service"
+        description: "Heap memory usage is {{ $value | humanizePercentage }}"
+    - alert: AISecurityServiceHighCPUUsage
+      expr: rate(process_cpu_seconds_total{job="ai-security-service"}[5m]) > 0.8
+      for: 15m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "High CPU usage for AI Security Service"
+        description: "CPU usage is {{ $value | humanizePercentage }}"
+    - alert: AISecurityHighFraudDetected
+      expr: rate(security_fraud_detected_total{job="ai-security-service",severity="critical"}[5m]) > 5
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-security
+      annotations:
+        summary: "High rate of fraud detected"
+        description: "{{ $value }} fraud cases detected per second"

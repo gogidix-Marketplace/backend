@@ -1,0 +1,20 @@
+{
+  "serviceName": "payroll-service",
+  "domain": "Human Resource",
+  "analysisDate": "2026-03-06T06:19:02Z",
+  "summary": {
+    "totalFiles": 53,
+    "filesWithGaps": 0,
+    "totalGaps": 0,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "STUB": 0,
+      "NOT_IMPLEMENTED": 0,
+      "XXX": 0
+    }
+  },
+  "gaps": [
+
+  ]
+}

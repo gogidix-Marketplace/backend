@@ -1,0 +1,101 @@
+name: Test Centralized Dashboard Services
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    # Analytics Services Tests
+    - name: Test metrics-aggregation-service
+      run: mvn test
+      working-directory: Backend/Java/analytics-services/metrics-aggregation-service
+
+    - name: Test business-intelligence-service
+      run: mvn test
+      working-directory: Backend/Java/analytics-services/business-intelligence-service
+
+    - name: Test analytics-data-service
+      run: mvn test
+      working-directory: Backend/Java/analytics-services/analytics-data-service
+
+    # Core Services Tests
+    - name: Test dashboard-core-service
+      run: mvn test
+      working-directory: Backend/Java/core-services/dashboard-core-service
+
+    - name: Test data-aggregation-service
+      run: mvn test
+      working-directory: Backend/Java/core-services/data-aggregation-service
+
+    # Gateway Services Tests
+    - name: Test api-gateway-service
+      run: mvn test
+      working-directory: Backend/Java/gateway-services/api-gateway-service
+
+    - name: Test websocket-gateway-service
+      run: mvn test
+      working-directory: Backend/Java/gateway-services/websocket-gateway-service
+
+    - name: Test chart-service
+      run: mvn test
+      working-directory: Backend/Java/gateway-services/chart-service
+
+    # Upload Test Reports
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          Backend/Java/analytics-services/metrics-aggregation-service/target/surefire-reports/
+          Backend/Java/analytics-services/business-intelligence-service/target/surefire-reports/
+          Backend/Java/analytics-services/analytics-data-service/target/surefire-reports/
+          Backend/Java/core-services/dashboard-core-service/target/surefire-reports/
+          Backend/Java/core-services/data-aggregation-service/target/surefire-reports/
+          Backend/Java/gateway-services/api-gateway-service/target/surefire-reports/
+          Backend/Java/gateway-services/websocket-gateway-service/target/surefire-reports/
+          Backend/Java/gateway-services/chart-service/target/surefire-reports/
+
+    # Generate Coverage Report
+    - name: Generate coverage report
+      run: |
+        mvn jacoco:report-aggregate
+      working-directory: Backend/Java
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: Backend/Java/target/site/jacoco-aggregate/jacoco.xml
+        flags: centralized-dashboard
+        name: centralized-dashboard-coverage

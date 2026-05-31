@@ -1,0 +1,40 @@
+# =============================================================================
+# Sales Analytics Service - Test Configuration
+# =============================================================================
+
+server:
+  port: 8090
+
+spring:
+  application:
+    name: sales-analytics-service
+
+  # MongoDB Test Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: sales-analytics-service_test_db
+      auto-index-creation: true
+
+  # Kafka Test Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+    consumer:
+      group-id: sales-analytics-service-test
+      auto-offset-reset: earliest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.analytics: DEBUG
+    org.springframework.test: INFO
+
+# Cache Configuration
+spring:
+  cache:
+    type: simple

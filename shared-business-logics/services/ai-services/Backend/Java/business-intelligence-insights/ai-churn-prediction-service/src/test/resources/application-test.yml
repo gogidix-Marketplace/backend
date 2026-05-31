@@ -1,0 +1,51 @@
+# =============================================================================
+# Test Configuration
+# =============================================================================
+
+spring:
+  application:
+    name: ai-churn-predictionation-service
+
+  # MongoDB Test Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test_ai_customer_segmentation
+      auto-index-creation: true
+
+  # Redis Test Configuration
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+
+  # Kafka disabled for tests
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.gogidix.aiservices: DEBUG
+    org.springframework.test: INFO
+
+# Service Configuration
+segment:
+  max:
+    segments-per-tenant: 100
+    customers-per-segment: 1000000
+  analysis:
+    batch-size: 1000
+    timeout-seconds: 300
+  cache:
+    ttl-seconds: 3600
+
+# JWT
+jwt:
+  secret: test-secret-key-for-testing-purposes-only-must-be-at-least-256-bits
+  token-validity: 3600000

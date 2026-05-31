@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: export-service
+  data:
+    mongodb:
+      database: export-service_db

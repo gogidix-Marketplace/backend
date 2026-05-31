@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: global-marketing-dashboard-service
+
+  data:
+    mongodb:
+      database: test_global_marketing_dashboard
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

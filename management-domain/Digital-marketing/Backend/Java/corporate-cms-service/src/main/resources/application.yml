@@ -1,0 +1,150 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/cms/v1
+
+spring:
+  application:
+    name: corporate-cms-service
+  profiles:
+    active: dev
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: corporate_cms
+      auto-index-creation: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+      file-size-threshold: 2MB
+
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=30m
+
+# Mongock Configuration
+mongock:
+  enabled: true
+  migration-scan-package: com.gogidix.corporatecms.infrastructure.persistence.migration
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:5VHxJk8MqP2nL9rWtY3uBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+# File Storage Configuration
+storage:
+  upload-dir: ${UPLOAD_DIR:./uploads}
+  max-file-size: 52428800
+  allowed-image-types: image/jpeg,image/png,image/gif,image/webp,image/svg+xml
+  allowed-video-types: video/mp4,video/webm,video/quicktime
+  allowed-document-types: application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation
+
+# Content Configuration
+content:
+  max-versions: 10
+  auto-save-interval: 300000
+  publish-grace-period: 3600000
+
+# Pagination Defaults
+pagination:
+  default-page-size: 20
+  max-page-size: 100
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    enabled: true
+  show-actuator: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.corporatecms: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/corporate-cms-service.log
+    max-size: 10MB
+    max-history: 30
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: corporate_cms_dev
+
+logging:
+  level:
+    com.gogidix.corporatecms: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: corporate_cms_test
+
+storage:
+  upload-dir: ./test-uploads
+
+logging:
+  level:
+    com.gogidix.corporatecms: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: corporate_cms_prod
+
+storage:
+  upload-dir: ${UPLOAD_DIR:/var/uploads}
+
+logging:
+  level:
+    root: WARN
+    com.gogidix.corporatecms: INFO
+  file:
+    name: /var/log/corporate-cms-service/application.log

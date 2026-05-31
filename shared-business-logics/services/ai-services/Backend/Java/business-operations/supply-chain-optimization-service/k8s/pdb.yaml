@@ -1,0 +1,36 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: supply-chain-optimization-service
+  namespace: ai-services
+  labels:
+    app: supply-chain-optimization-service
+    app.kubernetes.io/name: supply-chain-optimization-service
+    app.kubernetes.io/instance: supply-chain-optimization-service
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: ai-services
+    team: team-ai-business-ops
+    domain: business-operations
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: supply-chain-optimization-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: supply-chain-optimization-service-budget
+  namespace: ai-services
+  labels:
+    app: supply-chain-optimization-service
+    app.kubernetes.io/component: pdb-budget
+    team: team-ai-business-ops
+  annotations:
+    description: "Ensures minimum availability during voluntary disruptions"
+spec:
+  maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: supply-chain-optimization-service
+      app.kubernetes.io/name: supply-chain-optimization-service

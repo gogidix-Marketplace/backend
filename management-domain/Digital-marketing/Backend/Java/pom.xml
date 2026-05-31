@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.gogidix.cargo.management.digitalmarketing</groupId>
+    <artifactId>digitalmarketing-services</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>Digital Marketing Services</name>
+    <description>Parent POM for Digital Marketing microservices</description>
+    <modules>
+        <module>analytics-service</module>
+        <module>brand-management-service</module>
+        <module>budget-management-service</module>
+        <module>campaign-management-service</module>
+        <module>content-management-service</module>
+        <module>corporate-cms-service</module>
+        <module>corporate-website-service</module>
+        <module>country-marketing-dashboard-service</module>
+        <module>email-marketing-service</module>
+        <module>global-marketing-dashboard-service</module>
+        <module>integration-service</module>
+        <module>lead-generation-service</module>
+        <module>marketing-automation-service</module>
+        <module>seo-service</module>
+        <module>social-media-service</module>
+    </modules>
+</project>

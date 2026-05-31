@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-customer-engagement-service
+  namespace: ai-services
+  labels:
+    app: ai-customer-engagement-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-customer-engagement-service
+  ports:
+  - name: http
+    port: 8231
+    targetPort: 8231
+    protocol: TCP

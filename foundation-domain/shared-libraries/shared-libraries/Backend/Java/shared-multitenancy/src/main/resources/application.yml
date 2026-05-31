@@ -1,0 +1,85 @@
+# Shared-Multitenancy Library Configuration
+
+spring:
+  application:
+    name: shared-multitenancy
+
+# Logging Configuration
+logging:
+  level:
+    com.gogidix.shared.multitenancy: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Actuator Configuration (for health checks)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Multi-Tenant Configuration
+multitenancy:
+  # Header names for tenant context extraction
+  headers:
+    tenant-id: X-Tenant-ID
+    tenant-type: X-Tenant-Type
+    tenant-name: X-Tenant-Name
+
+  # Default tenant type if not specified
+  default-tenant-type: ORGANIZATION
+
+  # Whether to require tenant context for all requests
+  require-tenant-context: true
+
+  # Paths that bypass tenant validation
+  exclude-paths:
+    - /actuator/health
+    - /actuator/info
+    - /error
+    - /public/
+    - /ws/
+
+# Database Configuration (MongoDB)
+spring:
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: foundation_db
+      username: ${MONGO_USERNAME:}
+      password: ${MONGO_PASSWORD:}
+      auto-index-creation: true
+
+# MongoDB Multi-Tenant Configuration
+mongodb:
+  multitenancy:
+    # Collection name suffix for tenant-specific collections
+    # Leave empty to use single collection with tenant_id filtering
+    collection-suffix: ""
+
+    # Whether to automatically set tenant_id on all documents
+    auto-set-tenant: true
+
+    # Whether to validate tenant isolation on startup
+    validate-on-startup: false
+
+# Security Configuration
+security:
+  # Whether to enable OAuth2/JWT validation
+  oauth2:
+    enabled: false
+
+  # JWT configuration
+  jwt:
+    enabled: false
+    secret: ${JWT_SECRET:changeme}
+    expiration: ${JWT_EXPIRATION:86400}

@@ -1,0 +1,60 @@
+# Test Configuration for Accounts Payable Service
+spring:
+  application:
+    name: accounts-payable-service-test
+
+  # MongoDB Test Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: accounts-payable-test-db
+      auto-index-creation: true
+
+  # Kafka Test Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: accounts-payable-test-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# Redis Test Configuration
+spring.redis:
+  host: localhost
+  port: 6379
+  database: 1
+  timeout: 3000
+
+# Server Configuration
+server:
+  port: 0  # Random port for tests
+
+# Logging Configuration
+logging:
+  level:
+    com.gogidix.finance.accountspayable: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.kafka: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Test-specific properties
+test:
+  tenant:
+    id: tenant-test-001
+  timeout:
+    seconds: 30

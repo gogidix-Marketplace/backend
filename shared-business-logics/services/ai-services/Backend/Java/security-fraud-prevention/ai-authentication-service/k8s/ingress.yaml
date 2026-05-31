@@ -1,0 +1,91 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-authentication-service
+  namespace: ai-services
+  labels:
+    app: ai-authentication-service
+    app.kubernetes.io/name: ai-authentication-service
+    app.kubernetes.io/instance: ai-authentication-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: ai-services
+    team: team-ai-security
+    domain: security-fraud-prevention
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://*.gogidix.com,https://gogidix.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ai-authentication.gogidix.com
+    - ai-authentication-service.ai-services.svc.cluster.local
+    secretName: ai-authentication-service-tls
+  rules:
+  - host: ai-authentication.gogidix.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-authentication-service
+            port:
+              number: 8082
+  - host: ai-authentication-service.ai-services.svc.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-authentication-service
+            port:
+              number: 8082
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-authentication-service-metrics
+  namespace: ai-services
+  labels:
+    app: ai-authentication-service
+    app.kubernetes.io/name: ai-authentication-service
+    app.kubernetes.io/component: metrics
+    team: team-ai-security
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ai-authentication-metrics.gogidix.com
+    secretName: ai-authentication-service-metrics-tls
+  rules:
+  - host: ai-authentication-metrics.gogidix.com
+    http:
+      paths:
+      - path: /actuator/prometheus
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-authentication-service
+            port:
+              number: 8082

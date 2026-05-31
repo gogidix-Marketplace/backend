@@ -1,0 +1,276 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: discovery-service-config
+  namespace: infrastructure
+data:
+  application.yml: |
+    spring:
+      application:
+        name: discovery-service
+      profiles:
+        active: prod
+    server:
+      port: 8761
+    eureka:
+      client:
+        register-with-eureka: true
+        fetch-registry: true
+        registry-fetch-interval-seconds: 30
+        service-url:
+          defaultZone: http://discovery-service-0.infrastructure.svc.cluster.local:8761/eureka/
+      server:
+        enable-self-preservation: true
+        eviction-interval-timer-in-ms: 30000
+        renewal-percent-threshold: 0.85
+        response-cache-update-interval-ms: 30000
+        wait-time-in-ms-when-sync-empty: 5000
+        registry-sync-retry-wait-ms: 30000
+        peer-eureka-nodes-refresh-interval-seconds: 60
+        peer-node-read-timeout-ms: 5000
+        rate-limiter-enabled: true
+        rate-limiter-burst-size: 50
+        rate-limiter-full-fetch-average-rate: 100
+      instance:
+        hostname: ${HOST_NAME}
+        prefer-ip-address: false
+        lease-renewal-interval-in-seconds: 10
+        lease-expiration-duration-in-seconds: 30
+        metadata:
+          zone: zone1
+          environment: production
+          datacenter: ProductionDataCenter
+          region: us-east-1
+      dashboard:
+        enabled: true
+      datacenter: ProductionDataCenter
+    logging:
+      level:
+        com.netflix.eureka: INFO
+        com.gogidix: INFO
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-service
+  namespace: infrastructure
+  labels:
+    app: discovery-service
+    component: service-discovery
+    domain: infrastructure
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8761
+      targetPort: 8761
+      protocol: TCP
+  selector:
+    app: discovery-service
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-service-headless
+  namespace: infrastructure
+  labels:
+    app: discovery-service
+    component: service-discovery
+    domain: infrastructure
+    tier: backend
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8761
+      targetPort: 8761
+      protocol: TCP
+  selector:
+    app: discovery-service
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: discovery-service
+  namespace: infrastructure
+  labels:
+    app: discovery-service
+    component: service-discovery
+    domain: infrastructure
+    tier: backend
+spec:
+  serviceName: discovery-service-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  selector:
+    matchLabels:
+      app: discovery-service
+  template:
+    metadata:
+      labels:
+        app: discovery-service
+        component: service-discovery
+        domain: infrastructure
+        tier: backend
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8761"
+        prometheus.io/path: /actuator/prometheus
+    spec:
+      serviceName: discovery-service-headless
+      terminationGracePeriodSeconds: 30
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: discovery-service
+                topologyKey: kubernetes.io/hostname
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: topology.kubernetes.io/zone
+                      operator: In
+                      values:
+                        - zone1
+                        - zone2
+                topologyKey: topology.kubernetes.io/zone
+      containers:
+      - name: discovery-service
+        image: discovery-service:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8761
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: EUREKA_ZONE
+          value: "zone1"
+        - name: EUREKA_DATACENTER
+          value: "ProductionDataCenter"
+        - name: EUREKA_REGION
+          value: "us-east-1"
+        - name: APP_VERSION
+          value: "1.0.0"
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        - name: HOST_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: EUREKA_USER
+          valueFrom:
+            secretKeyRef:
+              name: eureka-credentials
+              key: username
+              optional: true
+        - name: EUREKA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: eureka-credentials
+              key: password
+              optional: true
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: data
+        emptyDir: {}
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: discovery-service-pdb
+  namespace: infrastructure
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: discovery-service
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: discovery-service-hpa
+  namespace: infrastructure
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: discovery-service
+  minReplicas: 3
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageValue: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageValue: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60

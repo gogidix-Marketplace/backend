@@ -1,0 +1,40 @@
+---
+# Resource Quota: Infrastructure Namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: infrastructure-quota
+  namespace: infrastructure
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    persistentvolumeclaims: "20"
+    services: "30"
+    secrets: "20"
+    configmaps: "20"
+
+---
+# Limit Range: Default resource limits for pods
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: infrastructure
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    max:
+      cpu: "2000m"
+      memory: "4Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+    type: Container

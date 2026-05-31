@@ -1,0 +1,177 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: predictive-analytics-service-config
+  namespace: ai-platform
+  labels:
+    app: predictive-analytics-service
+    version: v1
+data:
+  application.yml: |
+    uvicorn:
+      host: 0.0.0.0
+      port: 8009
+      workers: 4
+      log-level: info
+    mongodb:
+      uri: mongodb://predictive-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/predictive-analytics?authSource=admin
+    kafka:
+      bootstrap-servers: kafka-bootstrap.infrastructure.svc.cluster.local:9092
+      topics:
+        - prediction-events
+        - forecast-results
+    analytics:
+      model-refresh-interval: 3600
+      enable-auto-retraining: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: predictive-analytics-service-secrets
+  namespace: ai-platform
+  labels:
+    app: predictive-analytics-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: predictive-analytics-service
+  namespace: ai-platform
+  labels:
+    app: predictive-analytics-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: predictive-analytics-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: predictive-analytics-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8009"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: predictive-analytics-service
+      containers:
+        - name: predictive-analytics-service
+          image: gogidix/predictive-analytics-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8009
+              protocol: TCP
+          env:
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: predictive-analytics-service-secrets
+                  key: mongodb-password
+          envFrom:
+            - configMapRef:
+                  name: predictive-analytics-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8009
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8009
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config-volume
+          configMap:
+            name: predictive-analytics-service-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: predictive-analytics-service
+  namespace: ai-platform
+  labels:
+    app: predictive-analytics-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8009
+      targetPort: 8009
+      protocol: TCP
+  selector:
+    app: predictive-analytics-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: predictive-analytics-service
+  namespace: ai-platform
+  labels:
+    app: predictive-analytics-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: predictive-analytics-service-hpa
+  namespace: ai-platform
+  labels:
+    app: predictive-analytics-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: predictive-analytics-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: predictive-analytics-service-pdb
+  namespace: ai-platform
+  labels:
+    app: predictive-analytics-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: predictive-analytics-service

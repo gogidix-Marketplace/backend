@@ -1,0 +1,30 @@
+/* SocialPage Styles */
+
+.social-page {
+  min-height: 100vh;
+}
+
+.social-platform-tabs {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.social-platform-tabs .tabs-container {
+  flex: 1;
+}
+
+.social-posts-container {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .social-platform-tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

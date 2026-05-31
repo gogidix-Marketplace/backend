@@ -1,0 +1,227 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sms-sender-service-config
+  namespace: infrastructure
+  labels:
+    app: sms-sender-service
+    version: v1
+data:
+  application.yml: |
+    server:
+      port: 8080
+    spring:
+      application:
+        name: sms-sender-service
+      cloud:
+        discovery:
+          enabled: true
+          service-url:
+            defaultZone: http://discovery-service:8761/eureka/
+        config:
+          enabled: true
+          uri: http://config-server:8888
+      data:
+        mongodb:
+          uri: mongodb://sms-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/sms-sender?authSource=admin
+          auto-index-creation: true
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID}
+      auth-token: ${TWILIO_AUTH_TOKEN}
+      from-number: ${TWILIO_FROM_NUMBER:+15551234567}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sms-sender-service-secrets
+  namespace: infrastructure
+  labels:
+    app: sms-sender-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+  twilio-account-sid: "ChangeThisTwilioAccountSid"
+  twilio-auth-token: "ChangeThisTwilioAuthToken"
+  twilio-from-number: "+15551234567"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sms-sender-service
+  namespace: infrastructure
+  labels:
+    app: sms-sender-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sms-sender-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: sms-sender-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: sms-sender-service
+      containers:
+        - name: sms-sender-service
+          image: gogidix/sms-sender-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sms-sender-service-secrets
+                  key: mongodb-password
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: sms-sender-service-secrets
+                  key: twilio-account-sid
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: sms-sender-service-secrets
+                  key: twilio-auth-token
+            - name: TWILIO_FROM_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: sms-sender-service-secrets
+                  key: twilio-from-number
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: "http://discovery-service:8761/eureka/"
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: "http://config-server:8888"
+          envFrom:
+            - configMapRef:
+                name: sms-sender-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - sms-sender-service
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sms-sender-service
+  namespace: infrastructure
+  labels:
+    app: sms-sender-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: sms-sender-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sms-sender-service
+  namespace: infrastructure
+  labels:
+    app: sms-sender-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sms-sender-service-hpa
+  namespace: infrastructure
+  labels:
+    app: sms-sender-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sms-sender-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sms-sender-service-pdb
+  namespace: infrastructure
+  labels:
+    app: sms-sender-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sms-sender-service

@@ -1,0 +1,108 @@
+================================================================================
+                  Gogidix AI Services Helm Chart
+================================================================================
+
+Thank you for installing the Gogidix AI Services Helm chart!
+
+Your release is named: {{ .Release.Name }}
+
+NAMESPACE
+  The AI services have been deployed in namespace: {{ .Values.namespace.name }}
+
+SERVICES DEPLOYED
+{{- range $category, $services := .Values }}
+{{- if and (ne $category "global") (ne $category "namespace") (ne $category "resourceQuota") (ne $category "limitRange") (ne $category "serviceAccount") (ne $category "monitoring") (ne $category "ingress") (ne $category "networkPolicy") (ne $category "persistence") (ne $category "secrets") (ne $category "mongodb") (ne $category "redis") (ne $category "kafka") }}
+{{- range $serviceName, $serviceConfig := $services }}
+{{- if and (ne $serviceName "enabled") (kindIs "map" $serviceConfig) }}
+{{- if or (not (hasKey $serviceConfig "enabled")) ($serviceConfig.enabled) }}
+{{- if $serviceConfig.ingress }}
+  - {{ $serviceConfig.nameOverride | default $serviceName }}: http{{ if $serviceConfig.ingress.tls }}s{{ end }}://{{ $serviceConfig.ingress.host | default (printf "%s.%s" ($serviceConfig.nameOverride | default $serviceName) (.Values.global.domain | default "ai-services.gogidix.com")) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+ACCESSING THE SERVICES
+
+1. To get the credentials for your release:
+
+   export JWT_SECRET=$(kubectl get secret -n {{ .Values.namespace.name }} {{ include "ai-services.fullname" . }}-global-secrets -o jsonpath='{.data.jwtSecret}' | base64 -d)
+
+2. To access the services via port-forward:
+
+   kubectl port-forward -n {{ .Values.namespace.name }} svc/ai-personalization-service 8080:8080
+
+3. To check the status of all deployments:
+
+   kubectl get deployments -n {{ .Values.namespace.name }}
+
+4. To view the logs of a specific service:
+
+   kubectl logs -n {{ .Values.namespace.name }} deployment/ai-personalization-service -f
+
+MONITORING
+
+{{- if .Values.global.monitoring.enabled }}
+  Monitoring is enabled for the AI services.
+
+  - ServiceMonitors have been created for Prometheus
+  - PrometheusRules have been configured for alerting
+
+  To access Prometheus:
+  {{- if .Values.global.monitoring.prometheusUrl }}
+  {{ .Values.global.monitoring.prometheusUrl }}
+  {{- else }}
+  kubectl port-forward -n monitoring svc/prometheus-k8s 9090:9090
+  {{- end }}
+{{- else }}
+  Monitoring is disabled. To enable it, set global.monitoring.enabled=true
+{{- end }}
+
+SCALING
+
+To manually scale a service:
+
+  kubectl scale deployment/ai-personalization-service -n {{ .Values.namespace.name }} --replicas=5
+
+HorizontalPodAutoscaler (HPA) is enabled for services with hpa.enabled=true
+
+UPGRADING
+
+To upgrade the release:
+
+  helm upgrade {{ .Release.Name }} . -f values.yaml
+
+ROLLBACK
+
+To rollback to a previous version:
+
+  helm rollback {{ .Release.Name }}
+
+UNINSTALLING
+
+To uninstall the chart:
+
+  helm uninstall {{ .Release.Name }}
+
+  Note: Persistent Volume Claims (PVCs) will not be removed by default.
+  To remove them, run:
+
+  kubectl delete pvc -n {{ .Values.namespace.name }} -l app.kubernetes.io/name={{ include "ai-services.name" . }}
+
+NOTES
+
+  - This values.yaml includes a representative sample of AI services.
+    It can be extended to include all 40+ AI services.
+
+  - Sample services included:
+    * customer-experience-engagement: ai-personalization-service, ai-search-service
+    * data-analytics: ai-analytics-dashboard-service, ai-data-processing-service
+    * machine-learning-operations: ai-feature-extraction-service, ai-inference-service, ai-model-management-service
+    * security-fraud-prevention: ai-authentication-service, ai-security-service
+    * business-operations: lead-generation-ai-service
+    * content-document-processing: nlp-processing-service
+
+  - For more information, visit: https://github.com/gogidix/ai-services
+
+================================================================================

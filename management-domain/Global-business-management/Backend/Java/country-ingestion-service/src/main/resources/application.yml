@@ -1,0 +1,63 @@
+server:
+  port: 8205
+  shutdown: graceful
+
+spring:
+  application:
+    name: country-ingestion-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: country_ingestion_db
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: country-ingestion-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix.globalbusinessmanagement: DEBUG
+    org.springframework.data.mongodb: DEBUG
+
+application:
+  ingestion:
+    batch-size: 1000
+    max-file-size: 104857600
+    supported-formats: csv,json,xml,xlsx,xls
+    validation:
+      enabled: true
+      fail-on-error: false
+  kafka:
+    topics:
+      ingestion-events: country.ingestion.events
+      validation-errors: country.validation.errors

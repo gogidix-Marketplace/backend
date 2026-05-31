@@ -1,0 +1,42 @@
+/* CampaignPerformanceChart Styles */
+.campaign-performance-chart {
+  width: 100%;
+  padding: 1rem;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.legend-color {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.125rem;
+}
+
+.legend-label {
+  text-transform: capitalize;
+}
+
+.chart-container {
+  position: relative;
+}
+
+.chart-bar {
+  transition: opacity 0.2s ease;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+}

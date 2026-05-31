@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: business-support
+  labels:
+    name: business-support
+    team: team-e-business-support

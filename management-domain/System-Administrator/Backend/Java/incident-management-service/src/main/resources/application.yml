@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: incident-management-service
+  data:
+    mongodb:
+      database: incident-management-service_db

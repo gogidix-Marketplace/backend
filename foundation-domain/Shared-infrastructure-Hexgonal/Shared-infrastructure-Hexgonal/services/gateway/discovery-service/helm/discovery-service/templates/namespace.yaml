@@ -1,0 +1,8 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "discovery-service.namespace" . }}
+  labels:
+    {{- include "discovery-service.namespaceLabels" . | nindent 4 }}
+{{- end }}

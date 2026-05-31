@@ -1,0 +1,98 @@
+name: Test Transaction Orchestration Services
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+  DOMAIN_NAME: transaction-orchestration
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run tests for audit-trail-service
+      run: mvn clean test
+      working-directory: Backend/Java/audit-trail-service
+      continue-on-error: false
+
+    - name: Run tests for onboarding-tracker-service
+      run: mvn clean test
+      working-directory: Backend/Java/onboarding-tracker-service
+      continue-on-error: false
+
+    - name: Run tests for progress-step-service
+      run: mvn clean test
+      working-directory: Backend/Java/progress-step-service
+      continue-on-error: false
+
+    - name: Run tests for status-broadcast-service
+      run: mvn clean test
+      working-directory: Backend/Java/status-broadcast-service
+      continue-on-error: false
+
+    - name: Run tests for transaction-monitoring-service
+      run: mvn clean test
+      working-directory: Backend/Java/transaction-monitoring-service
+      continue-on-error: false
+
+    - name: Generate test report
+      if: always()
+      uses: dorny/test-reporter@v1
+      with:
+        name: Test Results
+        path: '**/target/surefire-reports/*.xml'
+        reporter: java-junit
+        fail-on-error: true
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: transaction-orchestration-test-results
+        path: |
+          Backend/Java/audit-trail-service/target/surefire-reports/
+          Backend/Java/onboarding-tracker-service/target/surefire-reports/
+          Backend/Java/progress-step-service/target/surefire-reports/
+          Backend/Java/status-broadcast-service/target/surefire-reports/
+          Backend/Java/transaction-monitoring-service/target/surefire-reports/
+        retention-days: 7
+
+    - name: Upload code coverage
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: transaction-orchestration-coverage
+        path: |
+          Backend/Java/audit-trail-service/target/site/jacoco/
+          Backend/Java/onboarding-tracker-service/target/site/jacoco/
+          Backend/Java/progress-step-service/target/site/jacoco/
+          Backend/Java/status-broadcast-service/target/site/jacoco/
+          Backend/Java/transaction-monitoring-service/target/site/jacoco/
+        retention-days: 7

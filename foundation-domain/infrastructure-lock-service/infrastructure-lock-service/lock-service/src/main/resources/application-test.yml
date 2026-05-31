@@ -1,0 +1,21 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 15  # Use separate DB for tests
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 8081
+
+lock:
+  cleanup:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.gogidix: DEBUG

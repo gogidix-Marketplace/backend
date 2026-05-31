@@ -1,0 +1,10 @@
+{
+  "serviceName": "config-server",
+  "analysisDate": "2026-03-01T17:24:00Z",
+  "summary": {
+    "totalFiles": 28,
+    "filesWithGaps": 0,
+    "totalGaps": 0
+  },
+  "gaps": []
+}

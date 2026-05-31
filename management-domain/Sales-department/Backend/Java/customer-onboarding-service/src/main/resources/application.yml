@@ -1,0 +1,173 @@
+# =============================================================================
+# Customer Onboarding Service Configuration - Sales Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8085}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: customer-onboarding-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:customer-onboarding-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      onboarding-events: customer-onboarding-service.events
+      domain-events: sales.domain-events
+
+  # Email Configuration
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        from: ${EMAIL_FROM:noreply@gogidix.com}
+        from-name: ${EMAIL_FROM_NAME:Gogidix}
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.sales.onboarding.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.onboarding: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/customer-onboarding-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+customer-onboarding-service:
+  onboarding:
+    customer-types:
+      - INDIVIDUAL
+      - SMALL_BUSINESS
+      - ENTERPRISE
+      - PARTNER
+      - RESELLER
+    statuses:
+      - NOT_STARTED
+      - IN_PROGRESS
+      - PENDING_REVIEW
+      - COMPLETED
+      - ON_HOLD
+      - CANCELLED
+    step-statuses:
+      - PENDING
+      - IN_PROGRESS
+      - COMPLETED
+      - SKIPPED
+      - FAILED
+    priorities:
+      - LOW
+      - MEDIUM
+      - HIGH
+      - URGENT
+    default-template:
+      name: "Standard Onboarding"
+      estimated-duration-hours: 24
+    auto-assignment:
+      enabled: true
+      default-assignee: "sales-manager"
+    email:
+      welcome-template: "templates/email/welcome.html"
+      step-completion-template: "templates/email/step-completion.html"
+      onboarding-complete-template: "templates/email/onboarding-complete.html"
+      enabled: ${EMAIL_ENABLED:true}
+    document-checklist:
+      require-all: true
+      allowed-formats:
+        - pdf
+        - doc
+        - docx
+        - jpg
+        - jpeg
+        - png
+      max-size-mb: 10
+    progress-tracking:
+      update-frequency-minutes: 30
+      alert-threshold-percent: 75

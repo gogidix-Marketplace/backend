@@ -1,0 +1,184 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-model-training-service-config
+  namespace: ai-platform
+  labels:
+    app: ml-model-training-service
+    version: v1
+data:
+  application.yml: |
+    uvicorn:
+      host: 0.0.0.0
+      port: 8007
+      workers: 2
+      log-level: info
+    mongodb:
+      uri: mongodb://ml-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/ml-model-training?authSource=admin
+    s3:
+      bucket-name: gogidix-ml-models
+      region: us-east-1
+    training:
+      default-epochs: 100
+      batch-size: 32
+      learning-rate: 0.001
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ml-model-training-service-secrets
+  namespace: ai-platform
+  labels:
+    app: ml-model-training-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+  aws-access-key: "ChangeThisAWSAccessKey"
+  aws-secret-key: "ChangeThisAWSSecretKey"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-model-training-service
+  namespace: ai-platform
+  labels:
+    app: ml-model-training-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ml-model-training-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ml-model-training-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8007"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: ml-model-training-service
+      nodeSelector:
+        node.kubernetes.io/instance-type: gpu
+      containers:
+        - name: ml-model-training-service
+          image: gogidix/ml-model-training-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8007
+              protocol: TCP
+          env:
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ml-model-training-service-secrets
+                  key: mongodb-password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ml-model-training-service-secrets
+                  key: aws-access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ml-model-training-service-secrets
+                  key: aws-secret-key
+          envFrom:
+            - configMapRef:
+                  name: ml-model-training-service-config
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8007
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8007
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ml-model-training-service-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-model-training-service
+  namespace: ai-platform
+  labels:
+    app: ml-model-training-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8007
+      targetPort: 8007
+      protocol: TCP
+  selector:
+    app: ml-model-training-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-model-training-service
+  namespace: ai-platform
+  labels:
+    app: ml-model-training-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ml-model-training-service-hpa
+  namespace: ai-platform
+  labels:
+    app: ml-model-training-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-model-training-service
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ml-model-training-service-pdb
+  namespace: ai-platform
+  labels:
+    app: ml-model-training-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ml-model-training-service

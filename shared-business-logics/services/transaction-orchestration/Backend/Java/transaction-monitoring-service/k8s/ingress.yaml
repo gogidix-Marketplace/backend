@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: transaction-monitoring-service-ingress
+  namespace: transaction-orchestration
+  labels:
+    app: transaction-monitoring-service
+    team: team-b-transaction
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - transaction-monitoring.gogidix.com
+    secretName: transaction-monitoring-service-tls
+  rules:
+  - host: transaction-monitoring.gogidix.com
+    http:
+      paths:
+      - path: /api/monitoring(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: transaction-monitoring-service
+            port:
+              number: 8085
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: transaction-monitoring-service
+            port:
+              number: 8085

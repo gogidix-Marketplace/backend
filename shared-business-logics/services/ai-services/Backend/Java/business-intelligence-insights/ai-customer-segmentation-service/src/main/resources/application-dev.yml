@@ -1,0 +1,29 @@
+# =============================================================================
+# Development Profile Configuration
+# =============================================================================
+
+spring:
+  # MongoDB Development Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: ai_customer_segmentation_dev
+
+  # Redis Development Configuration
+  redis:
+    host: localhost
+    port: 6379
+
+  # Kafka Development Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+
+logging:
+  level:
+    root: INFO
+    com.gogidix.aiservices: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.springframework.kafka: DEBUG
+    org.springframework.security: DEBUG

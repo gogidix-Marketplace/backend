@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-data-validation-service
+  namespace: ai-services
+  labels:
+    app: ai-data-validation-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-data-validation-service
+  ports:
+  - name: http
+    port: 8242
+    targetPort: 8242
+    protocol: TCP

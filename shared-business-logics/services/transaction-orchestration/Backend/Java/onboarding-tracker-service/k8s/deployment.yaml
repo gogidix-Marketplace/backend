@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: onboarding-tracker-service
+  namespace: transaction-orchestration
+  labels:
+    app: onboarding-tracker-service
+    team: team-b-transaction
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: onboarding-tracker-service
+  namespace: transaction-orchestration
+  labels:
+    app: onboarding-tracker-service
+    team: team-b-transaction
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: onboarding-tracker-service
+  template:
+    metadata:
+      labels:
+        app: onboarding-tracker-service
+        team: team-b-transaction
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/actuator/health"
+    spec:
+      serviceAccountName: onboarding-tracker-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: onboarding-tracker-service
+        image: ghcr.io/gogidix/onboarding-tracker-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: onboarding-tracker-service-secrets
+              key: mongodb-uri
+        - name: MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: onboarding-tracker-service-config
+              key: mongodb-host
+        - name: MONGODB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: onboarding-tracker-service-config
+              key: mongodb-port
+        - name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: onboarding-tracker-service-config
+              key: mongodb-database
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: onboarding-tracker-service-secrets
+              key: mongodb-username
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: onboarding-tracker-service-secrets
+              key: mongodb-password
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: CORS_ORIGINS
+          value: "https://gogidix.com,https://api.gogidix.com"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      restartPolicy: Always

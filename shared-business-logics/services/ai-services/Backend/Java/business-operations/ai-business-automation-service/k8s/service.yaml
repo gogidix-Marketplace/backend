@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-business-automation-service
+  namespace: ai-services
+  labels:
+    app: ai-business-automation-service
+    version: v1
+    team: team-ai-business-ops
+    component: business-operations
+    environment: production
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/actuator/prometheus"
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: management
+    port: 8081
+    targetPort: management
+    protocol: TCP
+  selector:
+    app: ai-business-automation-service

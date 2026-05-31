@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: deal-management-service
+  data:
+    mongodb:
+      database: management_db
+      auto-index-creation: true
+
+  cloud:
+    discovery:
+      enabled: false
+
+logging:
+  level:
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG

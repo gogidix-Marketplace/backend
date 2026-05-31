@@ -1,0 +1,38 @@
+/* LeadsPage Styles */
+
+.leads-page {
+  min-height: 100vh;
+}
+
+.leads-controls {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.leads-controls .tabs-container {
+  flex: 1;
+}
+
+.leads-controls .search-bar {
+  width: 300px;
+}
+
+.leads-table-container {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .leads-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .leads-controls .search-bar {
+    width: 100%;
+  }
+}

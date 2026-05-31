@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: centralized-data-aggregation-service-ingress
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-data-aggregation-service
+    team: team-f-centralized-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - centralized-data-aggregation.gogidix.com
+    secretName: centralized-data-aggregation-service-tls
+  rules:
+  - host: centralized-data-aggregation.gogidix.com
+    http:
+      paths:
+      - path: /api/data-aggregation
+        pathType: Prefix
+        backend:
+          service:
+            name: centralized-data-aggregation-service
+            port:
+              number: 8905

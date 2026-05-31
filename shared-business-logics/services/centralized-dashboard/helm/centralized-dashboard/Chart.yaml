@@ -1,0 +1,15 @@
+apiVersion: v2
+name: centralized-dashboard
+description: A Helm chart for Gogidix Centralized Dashboard Services - Team F
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - dashboard
+  - analytics
+  - reporting
+  - data-aggregation
+  - visualization
+maintainers:
+  - name: Gogidix Team Lead
+    email: team-lead@gogidix.com

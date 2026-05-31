@@ -1,0 +1,58 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ include "discovery-service.namespace" . }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "discovery-service.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ include "discovery-service.namespace" . }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status by running 'kubectl get --namespace {{ include "discovery-service.namespace" . }} svc -w {{ include "discovery-service.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ include "discovery-service.namespace" . }} {{ include "discovery-service.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else }}
+  export POD_NAME=$(kubectl get pods --namespace {{ include "discovery-service.namespace" . }} -l "app.kubernetes.io/name={{ include "discovery-service.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ include "discovery-service.namespace" . }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace {{ include "discovery-service.namespace" . }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+{{- end }}
+
+2. View the Eureka Dashboard:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else }}
+   kubectl port-forward -n {{ include "discovery-service.namespace" . }} svc/{{ include "discovery-service.fullname" . }} 8761:8761
+   Then open: http://localhost:8761{{ .Values.eureka.dashboard.path | default "/eureka" }}
+{{- end }}
+
+3. Check the health status:
+   kubectl get pods -n {{ include "discovery-service.namespace" . }} -l app.kubernetes.io/name={{ include "discovery-service.name" . }}
+
+4. View logs:
+   kubectl logs -n {{ include "discovery-service.namespace" . }} -l app.kubernetes.io/name={{ include "discovery-service.name" . }} --tail=100 -f
+
+5. Connect to the Eureka server:
+   Service URL: http://{{ include "discovery-service.fullname" . }}.{{ include "discovery-service.namespace" . }}.svc.cluster.local:{{ .Values.service.port }}/eureka/
+
+{{- if .Values.monitoring.enabled }}
+6. Monitoring:
+   ServiceMonitor is {{ if .Values.monitoring.serviceMonitor.enabled }}enabled{{ else }}disabled{{ end }}
+   Prometheus metrics available at: /actuator/prometheus
+{{- end }}

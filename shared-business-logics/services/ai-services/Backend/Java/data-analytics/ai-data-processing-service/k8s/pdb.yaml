@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-data-processing-service
+  namespace: ai-services
+  labels:
+    app: ai-data-processing-service
+    team: team-ai-data-analytics
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-data-processing-service

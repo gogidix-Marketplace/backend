@@ -1,0 +1,36 @@
+# =============================================================================
+# Production Profile - Currency Service
+# =============================================================================
+
+spring:
+  data:
+    mongodb:
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:currency-service_prod}
+      username: ${MONGODB_USER}
+      password: ${MONGODB_PASSWORD}
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS}
+
+logging:
+  level:
+    root: WARN
+    com.gogidix.finance.currency: INFO
+    org.springframework.data.mongodb: WARN
+    org.springframework.kafka: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus

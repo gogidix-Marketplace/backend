@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: reward-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_reward
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        rewardEvents-out-0:
+          destination: reward-events
+          content-type: application/json
+server:
+  port: 8080
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.reward: DEBUG

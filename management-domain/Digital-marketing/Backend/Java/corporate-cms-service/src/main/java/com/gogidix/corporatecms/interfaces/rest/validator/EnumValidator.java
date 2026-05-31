@@ -1,0 +1,27 @@
+package com.gogidix.corporatecms.interfaces.rest.validator;
+
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class EnumValidator implements ConstraintValidator<ValidEnum, String> {
+
+    private List<String> acceptedValues;
+
+    @Override
+    public void initialize(ValidEnum constraintAnnotation) {
+        acceptedValues = Stream.of(constraintAnnotation.enumClass().getEnumConstants())
+                .map(enumConstant -> ((Enum<?>) enumConstant).name())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return true;
+        }
+        return acceptedValues.contains(value);
+    }
+}

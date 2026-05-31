@@ -1,0 +1,69 @@
+{
+  "serviceName": "Human-resource",
+  "analysisDate": "2026-03-02T00:00:00Z",
+  "basePath": "C:/Users/TEMP.LAPTOP-1QDBFFCA/Desktop/Gogidix-ecosystem/x-gogidix-domain/Management-domain/Human-resource",
+  "summary": {
+    "totalFiles": 549,
+    "filesWithGaps": 0,
+    "totalGaps": 0,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "EMPTY_METHOD": 0,
+      "MOCK": 0,
+      "PLACEHOLDER": 0,
+      "XXX": 0,
+      "HACK": 0,
+      "STUB": 0,
+      "NotImplementedError": 0,
+      "UnsupportedOperationException": 0
+    }
+  },
+  "gaps": [],
+  "notes": [
+    "No TODO, FIXME, XXX, HACK, STUB, or PLACEHOLDER comments found in the codebase",
+    "No NotImplementedError or UnsupportedOperationException exceptions found",
+    "The codebase appears to be production-ready with no obvious implementation gaps",
+    "Primary concern is low test coverage (1.1%) rather than implementation gaps"
+  ],
+  "testCoverage": {
+    "totalServices": 15,
+    "totalClasses": 549,
+    "classesWithTests": 6,
+    "coveragePercentage": 1.1,
+    "servicesWithNoTests": [
+      "benefits-administration-service",
+      "country-hr-management-service",
+      "employee-self-service-service",
+      "global-compliance-monitoring-service",
+      "global-hr-dashboard-service",
+      "global-policy-management-service",
+      "global-workforce-analytics-service",
+      "notification-service",
+      "performance-review-service",
+      "training-service"
+    ],
+    "servicesWithTests": [
+      {
+        "name": "employee-service",
+        "coverage": "6%",
+        "testFiles": 2
+      },
+      {
+        "name": "leave-management-service",
+        "coverage": "4%",
+        "testFiles": 2
+      },
+      {
+        "name": "payroll-service",
+        "coverage": "2%",
+        "testFiles": 1
+      },
+      {
+        "name": "document-management-service",
+        "coverage": "2%",
+        "testFiles": 1
+      }
+    ]
+  }
+}

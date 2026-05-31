@@ -1,0 +1,265 @@
+# =============================================================================
+# Executive Analytics Service Configuration
+# Management-Domain - Gogidix Ecosystem
+# =============================================================================
+
+server:
+  port: 8081
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: executive-analytics-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: management_executive
+      # username: ${MONGO_USERNAME:}
+      # password: ${MONGO_PASSWORD:}
+      # authentication-database: admin
+      auto-index-creation: true
+
+  # Redis Configuration (for caching)
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    # password: ${REDIS_PASSWORD:}
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000  # 5 minutes
+      cache-null-values: false
+      key-prefix: "exec-analytics:"
+
+  # Kafka Configuration (for event streaming)
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      properties:
+        acks: 1
+        retries: 3
+    consumer:
+      group-id: executive-analytics-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        max.poll.records: 100
+
+# Mongock Configuration
+mongock:
+  enabled: true
+  migration-scan-package: com.gogidix.management.executive.analytics.migrations
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    io.mongock: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 100
+        minimum-number-of-calls: 10
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 60s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 10s
+    instances:
+      backendService:
+        base-config: default
+
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+    instances:
+      backendService:
+        base-config: default
+
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 10s
+    instances:
+      backendService:
+        base-config: default
+
+# Application-Specific Configuration
+app:
+  analytics:
+    # KPI recalculation interval (in hours)
+    recalculation-interval: 24
+
+    # Metric retention period (in days)
+    metric-retention-days: 365
+
+    # Default granularity for aggregations
+    default-granularity: DAY
+
+    # Maximum batch size for bulk operations
+    max-batch-size: 1000
+
+    # Aggregation time windows
+    aggregation-windows:
+      hourly: PT1H
+      daily: P1D
+      weekly: P7D
+      monthly: P30D
+
+  # Data quality thresholds
+  data-quality:
+    min-quality-score: 0.7
+    high-quality-threshold: 0.9
+
+  # Cross-domain integration
+  integration:
+    timeout: 30s
+    retry-attempts: 3
+
+    # Endpoints for other domains
+    services:
+      hr:
+        base-url: http://localhost:8082/api/v1
+      sales:
+        base-url: http://localhost:8083/api/v1
+      finance:
+        base-url: http://localhost:8084/api/v1
+      system-admin:
+        base-url: http://localhost:8085/api/v1
+
+---
+# ============================================================================
+# Profile: test
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  data:
+    mongodb:
+      database: test_management_executive
+
+  kafka:
+    bootstrap-servers: ${KAFKA_TEST_SERVER:localhost:9094}
+
+# Mongock disabled in tests (use setup scripts)
+mongock:
+  enabled: false
+
+logging:
+  level:
+    com.gogidix: TRACE
+
+---
+# ============================================================================
+# Profile: integration
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: integration
+
+  data:
+    mongodb:
+      database: test_management_executive
+
+mongock:
+  enabled: true
+
+---
+# ============================================================================
+# Profile: production
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: production
+
+  data:
+    mongodb:
+      host: ${MONGO_HOST}
+      port: ${MONGO_PORT:27017}
+      database: ${MONGO_DB:management_executive}
+      username: ${MONGO_USERNAME}
+      password: ${MONGO_PASSWORD}
+      authentication-database: admin
+
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+logging:
+  level:
+    root: WARN
+    com.gogidix: INFO
+    org.springframework.data.mongodb: WARN
+
+# Enable production monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized

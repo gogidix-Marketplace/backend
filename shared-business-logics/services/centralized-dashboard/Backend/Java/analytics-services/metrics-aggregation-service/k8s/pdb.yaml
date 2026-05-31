@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: metrics-aggregation-service-pdb
+  namespace: centralized-dashboard
+  labels:
+    app: metrics-aggregation-service
+    team: team-f-centralized-dashboard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: metrics-aggregation-service

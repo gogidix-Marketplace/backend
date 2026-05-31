@@ -1,0 +1,129 @@
+name: Build Platform Services
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+  DOCKER_REGISTRY: ghcr.io
+  DOMAIN_NAME: platform
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@1de1a71b382c93941688b189d9a18c7049058f84
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build platform-service
+      run: mvn clean compile
+      working-directory: Backend/Java/platform-service
+
+    - name: Build subscription-service
+      run: mvn clean compile
+      working-directory: Backend/Java/subscription-service
+
+    - name: Build tenant-registry-service
+      run: mvn clean compile
+      working-directory: Backend/Java/tenant-registry-service
+
+    - name: Build usage-metering-service
+      run: mvn clean compile
+      working-directory: Backend/Java/usage-metering-service
+
+    - name: Package platform-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/platform-service
+
+    - name: Package subscription-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/subscription-service
+
+    - name: Package tenant-registry-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/tenant-registry-service
+
+    - name: Package usage-metering-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/usage-metering-service
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@2b512430cf1c7c4fe9b7815b4c7d761f6e893f6b
+
+    - name: Build Docker image - platform-service
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/platform-service:${{ github.sha }} .
+        docker tag ghcr.io/${{ github.repository_owner }}/platform-service:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/platform-service:latest
+      working-directory: Backend/Java/platform-service
+
+    - name: Build Docker image - subscription-service
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/subscription-service:${{ github.sha }} .
+        docker tag ghcr.io/${{ github.repository_owner }}/subscription-service:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/subscription-service:latest
+      working-directory: Backend/Java/subscription-service
+
+    - name: Build Docker image - tenant-registry-service
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/tenant-registry-service:${{ github.sha }} .
+        docker tag ghcr.io/${{ github.repository_owner }}/tenant-registry-service:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/tenant-registry-service:latest
+      working-directory: Backend/Java/tenant-registry-service
+
+    - name: Build Docker image - usage-metering-service
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/usage-metering-service:${{ github.sha }} .
+        docker tag ghcr.io/${{ github.repository_owner }}/usage-metering-service:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/usage-metering-service:latest
+      working-directory: Backend/Java/usage-metering-service
+
+    - name: Log in to Docker Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@e92390c5fb421da1463b202fbb5d8c4abc1a1ff6
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Docker images
+      if: github.event_name != 'pull_request'
+      run: |
+        docker push ghcr.io/${{ github.repository_owner }}/platform-service:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository_owner }}/platform-service:latest
+        docker push ghcr.io/${{ github.repository_owner }}/subscription-service:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository_owner }}/subscription-service:latest
+        docker push ghcr.io/${{ github.repository_owner }}/tenant-registry-service:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository_owner }}/tenant-registry-service:latest
+        docker push ghcr.io/${{ github.repository_owner }}/usage-metering-service:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository_owner }}/usage-metering-service:latest
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      with:
+        name: platform-services-build-artifacts
+        path: |
+          Backend/Java/platform-service/target/
+          Backend/Java/subscription-service/target/
+          Backend/Java/tenant-registry-service/target/
+          Backend/Java/usage-metering-service/target/
+        retention-days: 7

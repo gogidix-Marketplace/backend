@@ -1,0 +1,129 @@
+{{- if .Values.statefulset.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+{{- else }}
+apiVersion: apps/v1
+kind: Deployment
+{{- end }}
+metadata:
+  name: {{ include "discovery-service.fullname" . }}
+  namespace: {{ include "discovery-service.namespace" . }}
+  labels:
+    {{- include "discovery-service.labels" . | nindent 4 }}
+spec:
+{{- if .Values.statefulset.enabled }}
+  serviceName: {{ include "discovery-service.headlessServiceName" . }}
+  replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: {{ .Values.statefulset.podManagementPolicy }}
+{{- else }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  {{- if not .Values.autoscaling.enabled }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "discovery-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "discovery-service.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "discovery-service.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.env.springProfile | default "prod" | quote }}
+        - name: JAVA_OPTS
+          value: {{ .Values.env.javaOpts | default "-Xms512m -Xmx512m -XX:+UseG1GC" | quote }}
+        - name: HOST_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        {{- if .Values.eureka.client.registerWithEureka }}
+        - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+          value: {{ .Values.eureka.client.serviceUrl | quote }}
+        {{- end }}
+        {{- if .Values.eureka.instance.preferIpAddress }}
+        - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+          value: "true"
+        {{- end }}
+        {{- with .Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: http
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 60 }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30 }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 10 }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 3 }}
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: http
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 30 }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 10 }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 5 }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 3 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          mountPath: /data
+        {{- end }}
+      volumes:
+      - name: logs
+        emptyDir: {}
+      {{- if .Values.persistence.enabled }}
+      - name: data
+        {{- if .Values.statefulset.enabled }}
+        persistentVolumeClaim:
+          claimTemplate:
+            metadata:
+              name: data
+            spec:
+              accessModes: {{ .Values.persistence.accessMode | list }}
+              storageClassName: {{ .Values.persistence.storageClass | quote }}
+              resources:
+                requests:
+                  storage: {{ .Values.persistence.size }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

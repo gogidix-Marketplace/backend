@@ -1,0 +1,14 @@
+apiVersion: v2
+name: universal-tracking-services
+description: Team C - Universal Tracking Services for Gogidix Ecosystem
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - universal
+  - tracking
+  - analytics
+  - events
+maintainers:
+  - name: Gogidix Team C
+    email: team-c@gogidix.com

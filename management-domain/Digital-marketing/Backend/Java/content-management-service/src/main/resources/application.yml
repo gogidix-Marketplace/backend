@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: content-management-service
+  data:
+    mongodb:
+      database: content-management-service_db

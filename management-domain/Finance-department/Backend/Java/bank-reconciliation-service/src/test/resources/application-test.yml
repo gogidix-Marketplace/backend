@@ -1,0 +1,33 @@
+# Test Configuration for Bank Reconciliation Service
+spring:
+  application:
+    name: bank-reconciliation-service-test
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: bank-reconciliation-test-db
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: bank-reconciliation-test-group
+      auto-offset-reset: earliest
+spring.redis:
+  host: localhost
+  port: 6379
+  database: 5
+server:
+  port: 0
+logging:
+  level:
+    com.gogidix.finance.bankreconciliation: DEBUG
+    org.springframework.kafka: WARN
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+test:
+  tenant:
+    id: tenant-test-001

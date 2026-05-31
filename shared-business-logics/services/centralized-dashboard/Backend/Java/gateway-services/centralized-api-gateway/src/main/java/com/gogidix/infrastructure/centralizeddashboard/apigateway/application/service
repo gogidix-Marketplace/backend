@@ -1,0 +1,195 @@
+package com.gogidix.infrastructure.centralizeddashboard.apigateway.application.service;
+
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.model.*;
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.port.in.RouteManagementUseCase;
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.port.out.RouteConfigurationRepository;
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.service.GatewayRoutingService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@Transactional
+public class RouteManagementService implements RouteManagementUseCase {
+    
+    private final RouteConfigurationRepository routeRepository;
+    private final GatewayRoutingService gatewayRoutingService;
+    
+    public RouteManagementService(RouteConfigurationRepository routeRepository,
+                                 GatewayRoutingService gatewayRoutingService) {
+        this.routeRepository = routeRepository;
+        this.gatewayRoutingService = gatewayRoutingService;
+    }
+    
+    @Override
+    public RouteConfiguration createRoute(CreateRouteCommand command) {
+        validateCreateRouteCommand(command);
+        
+        List<RouteConfiguration> existingRoutes = routeRepository.findAll();
+        
+        RouteConfiguration newRoute = gatewayRoutingService.createRoute(
+            command.serviceName(),
+            command.path(),
+            command.uri(),
+            command.predicates(),
+            gatewayRoutingService.optimizeFilterOrder(command.filters()),
+            command.rateLimitConfig(),
+            command.circuitBreakerConfig(),
+            command.authenticationConfig()
+        );
+        
+        if (!gatewayRoutingService.canActivateRoute(newRoute, existingRoutes)) {
+            throw new IllegalArgumentException("Route conflicts with existing routes");
+        }
+        
+        return routeRepository.save(newRoute);
+    }
+    
+    @Override
+    public RouteConfiguration updateRoute(UpdateRouteCommand command) {
+        RouteConfiguration existingRoute = routeRepository.findById(command.routeId())
+            .orElseThrow(() -> new IllegalArgumentException("Route not found: " + command.routeId()));
+        
+        validateUpdateRouteCommand(command);
+        
+        RouteConfiguration updatedRoute = gatewayRoutingService.createRoute(
+            command.serviceName(),
+            command.path(),
+            command.uri(),
+            command.predicates(),
+            gatewayRoutingService.optimizeFilterOrder(command.filters()),
+            command.rateLimitConfig(),
+            command.circuitBreakerConfig(),
+            command.authenticationConfig()
+        );
+        
+        return routeRepository.save(updatedRoute);
+    }
+    
+    @Override
+    public RouteConfiguration activateRoute(RouteId routeId) {
+        RouteConfiguration route = findRouteOrThrow(routeId);
+        
+        List<RouteConfiguration> existingRoutes = routeRepository.findActiveRoutes();
+        if (!gatewayRoutingService.canActivateRoute(route, existingRoutes)) {
+            throw new IllegalStateException("Cannot activate route due to conflicts");
+        }
+        
+        RouteConfiguration activatedRoute = gatewayRoutingService.updateRouteStatus(
+            route, RouteConfiguration.RouteStatus.ACTIVE);
+        
+        return routeRepository.save(activatedRoute);
+    }
+    
+    @Override
+    public RouteConfiguration deactivateRoute(RouteId routeId) {
+        RouteConfiguration route = findRouteOrThrow(routeId);
+        
+        RouteConfiguration deactivatedRoute = gatewayRoutingService.updateRouteStatus(
+            route, RouteConfiguration.RouteStatus.INACTIVE);
+        
+        return routeRepository.save(deactivatedRoute);
+    }
+    
+    @Override
+    public void deleteRoute(RouteId routeId) {
+        if (!routeRepository.findById(routeId).isPresent()) {
+            throw new IllegalArgumentException("Route not found: " + routeId);
+        }
+        
+        routeRepository.deleteById(routeId);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RouteConfiguration> findRoute(RouteId routeId) {
+        return routeRepository.findById(routeId);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<RouteConfiguration> findRoutesByService(String serviceName) {
+        if (serviceName == null || serviceName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Service name cannot be null or empty");
+        }
+        return routeRepository.findByServiceName(serviceName);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<RouteConfiguration> findActiveRoutes() {
+        return routeRepository.findActiveRoutes();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<RouteConfiguration> findAllRoutes() {
+        return routeRepository.findAll();
+    }
+    
+    @Override
+    public boolean validateRouteConfiguration(RouteConfiguration route) {
+        if (route == null) return false;
+        
+        try {
+            List<RouteConfiguration> existingRoutes = routeRepository.findAll()
+                .stream()
+                .filter(r -> !r.getId().equals(route.getId()))
+                .toList();
+            
+            return gatewayRoutingService.canActivateRoute(route, existingRoutes);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    private RouteConfiguration findRouteOrThrow(RouteId routeId) {
+        return routeRepository.findById(routeId)
+            .orElseThrow(() -> new IllegalArgumentException("Route not found: " + routeId));
+    }
+    
+    private void validateCreateRouteCommand(CreateRouteCommand command) {
+        if (command.serviceName() == null || command.serviceName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Service name is required");
+        }
+        if (command.path() == null || !command.path().startsWith("/")) {
+            throw new IllegalArgumentException("Path must start with /");
+        }
+        if (command.uri() == null || command.uri().trim().isEmpty()) {
+            throw new IllegalArgumentException("URI is required");
+        }
+        if (command.predicates() == null) {
+            throw new IllegalArgumentException("Predicates cannot be null");
+        }
+        if (command.filters() == null) {
+            throw new IllegalArgumentException("Filters cannot be null");
+        }
+        
+        if (routeRepository.existsByServiceNameAndPath(command.serviceName(), command.path())) {
+            throw new IllegalArgumentException("Route already exists for service and path");
+        }
+    }
+    
+    private void validateUpdateRouteCommand(UpdateRouteCommand command) {
+        if (command.routeId() == null) {
+            throw new IllegalArgumentException("Route ID is required");
+        }
+        if (command.serviceName() == null || command.serviceName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Service name is required");
+        }
+        if (command.path() == null || !command.path().startsWith("/")) {
+            throw new IllegalArgumentException("Path must start with /");
+        }
+        if (command.uri() == null || command.uri().trim().isEmpty()) {
+            throw new IllegalArgumentException("URI is required");
+        }
+        if (command.predicates() == null) {
+            throw new IllegalArgumentException("Predicates cannot be null");
+        }
+        if (command.filters() == null) {
+            throw new IllegalArgumentException("Filters cannot be null");
+        }
+    }
+}

@@ -1,0 +1,323 @@
+package com.gogidix.shared.model.domain.model.user;
+
+import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.*;
+import java.util.regex.Pattern;
+
+/**
+ * User Business Logic Extension - Rich Domain Methods
+ * 
+ * This class contains additional business logic methods for the User domain model
+ * following hexagonal architecture principles.
+ * 
+ * @author Agent A - Foundation Lead
+ * @template-for Agent B User Management
+ * @version 1.0.0
+ */
+public final class UserBusinessLogic {
+    
+    private UserBusinessLogic() {
+        // Utility class - prevent instantiation
+    }
+    
+    /**
+     * Business Rule: Calculate user security score (0-100)
+     */
+    public static int calculateSecurityScore(User user) {
+        int score = 0;
+        
+        // Email verification (20 points)
+        if (user.isEmailVerified()) score += 20;
+        
+        // Phone verification (15 points)
+        if (user.isPhoneVerified()) score += 15;
+        
+        // Two-factor authentication (25 points)
+        if (user.isTwoFactorEnabled()) score += 25;
+        
+        // Account not locked (10 points)
+        if (!user.isAccountLocked()) score += 10;
+        
+        // No failed login attempts (10 points)
+        if (user.getFailedLoginAttempts() == 0) score += 10;
+        
+        // Profile completeness (10 points)
+        if (user.isComplete()) score += 10;
+        
+        // Recent password change (5 points)
+        if (user.getLastPasswordChangeAt() != null && 
+            Duration.between(user.getLastPasswordChangeAt(), LocalDateTime.now()).toDays() < 90) {
+            score += 5;
+        }
+        
+        // Valid contact information (5 points)
+        if (user.hasValidEmail() && user.hasValidPhoneNumber()) score += 5;
+        
+        return Math.min(100, score);
+    }
+    
+    /**
+     * Business Rule: Determine user risk level based on behavior and status
+     */
+    public static UserRiskLevel calculateRiskLevel(User user) {
+        if (user.getUserStatus() == UserStatus.BANNED || user.isAccountLocked()) {
+            return UserRiskLevel.CRITICAL;
+        }
+        
+        if (user.getUserStatus() == UserStatus.SUSPENDED || user.getFailedLoginAttempts() >= 5) {
+            return UserRiskLevel.HIGH;
+        }
+        
+        if (user.getFailedLoginAttempts() >= 3 || !user.isEmailVerified() || 
+            user.getSupportTicketCount() > 10) {
+            return UserRiskLevel.MEDIUM;
+        }
+        
+        if (!user.isTwoFactorEnabled() || calculateSecurityScore(user) < 70) {
+            return UserRiskLevel.LOW;
+        }
+        
+        return UserRiskLevel.MINIMAL;
+    }
+    
+    /**
+     * Business Rule: Calculate user activity status
+     */
+    public static ActivityStatus calculateActivityStatus(User user) {
+        if (user.getLastLoginAt() == null) {
+            return ActivityStatus.DORMANT;
+        }
+        
+        long daysSinceLogin = Duration.between(user.getLastLoginAt(), LocalDateTime.now()).toDays();
+        
+        if (daysSinceLogin <= 1 && user.getLoginCount() > 100) {
+            return ActivityStatus.VERY_ACTIVE;
+        } else if (daysSinceLogin <= 7) {
+            return ActivityStatus.ACTIVE;
+        } else if (daysSinceLogin <= 30) {
+            return ActivityStatus.MODERATE;
+        } else if (daysSinceLogin <= 90) {
+            return ActivityStatus.INACTIVE;
+        } else {
+            return ActivityStatus.DORMANT;
+        }
+    }
+    
+    /**
+     * Business Rule: Check if user needs account maintenance
+     */
+    public static boolean needsAccountMaintenance(User user) {
+        // Password expiry check
+        if (user.getLastPasswordChangeAt() != null) {
+            long daysSincePasswordChange = Duration.between(
+                user.getLastPasswordChangeAt(), LocalDateTime.now()).toDays();
+            if (daysSincePasswordChange > user.getPasswordExpiryDays()) {
+                return true;
+            }
+        }
+        
+        // Stale verification tokens
+        LocalDateTime now = LocalDateTime.now();
+        if (user.getEmailVerificationExpiresAt() != null && 
+            user.getEmailVerificationExpiresAt().isBefore(now)) {
+            return true;
+        }
+        
+        if (user.getPhoneVerificationExpiresAt() != null && 
+            user.getPhoneVerificationExpiresAt().isBefore(now)) {
+            return true;
+        }
+        
+        if (user.getPasswordResetExpiresAt() != null && 
+            user.getPasswordResetExpiresAt().isBefore(now)) {
+            return true;
+        }
+        
+        // Subscription expiry
+        if (user.getSubscriptionEndDate() != null && 
+            user.getSubscriptionEndDate().isBefore(now)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Business Rule: Determine if user can perform privileged operations
+     */
+    public static boolean canPerformPrivilegedOperation(User user, String operation) {
+        if (!user.isAccountActive()) return false;
+        if (calculateRiskLevel(user).requiresAdditionalSecurity() && !user.isTwoFactorEnabled()) {
+            return false;
+        }
+        
+        return switch (operation.toUpperCase()) {
+            case "DELETE_ACCOUNT" -> user.hasRole(UserRole.ADMIN) || user.hasRole(UserRole.SUPER_ADMIN);
+            case "CHANGE_USER_ROLES" -> user.hasRole(UserRole.SUPER_ADMIN);
+            case "ACCESS_AUDIT_LOGS" -> user.hasRole(UserRole.AUDITOR) || user.hasRole(UserRole.ADMIN);
+            case "MANAGE_ORGANIZATION" -> user.hasRole(UserRole.MANAGER) || user.hasRole(UserRole.ADMIN);
+            case "MODERATE_CONTENT" -> user.hasRole(UserRole.MODERATOR) || user.hasAnyRole(Set.of(UserRole.ADMIN, UserRole.SUPER_ADMIN));
+            case "ACCESS_BETA_FEATURES" -> user.hasRole(UserRole.BETA_TESTER) || user.getTier().isPremium();
+            case "FINANCIAL_OPERATIONS" -> user.hasRole(UserRole.ADMIN) && user.isTwoFactorEnabled();
+            default -> true; // Allow by default for unknown operations
+        };
+    }
+    
+    /**
+     * Business Rule: Calculate user lifetime value score
+     */
+    public static double calculateLifetimeValueScore(User user) {
+        double score = user.getLifetimeValue();
+        
+        // Adjust based on tier
+        score *= switch (user.getTier()) {
+            case BASIC -> 1.0;
+            case STANDARD -> 1.2;
+            case PREMIUM -> 1.5;
+            case VIP -> 2.0;
+            case ENTERPRISE -> 3.0;
+        };
+        
+        // Adjust based on activity
+        ActivityStatus activity = calculateActivityStatus(user);
+        score *= switch (activity) {
+            case VERY_ACTIVE -> 1.3;
+            case ACTIVE -> 1.1;
+            case MODERATE -> 1.0;
+            case INACTIVE -> 0.8;
+            case DORMANT -> 0.5;
+        };
+        
+        // Adjust based on satisfaction
+        if (user.getSatisfactionScore() >= 4.0) score *= 1.2;
+        else if (user.getSatisfactionScore() >= 3.0) score *= 1.0;
+        else score *= 0.8;
+        
+        return score;
+    }
+    
+    /**
+     * Business Rule: Generate user recommendations
+     */
+    public static List<String> generateUserRecommendations(User user) {
+        List<String> recommendations = new ArrayList<>();
+        
+        int securityScore = calculateSecurityScore(user);
+        if (securityScore < 70) {
+            recommendations.add("Improve account security by enabling two-factor authentication");
+        }
+        
+        if (!user.isEmailVerified()) {
+            recommendations.add("Verify your email address to secure your account");
+        }
+        
+        if (!user.isPhoneVerified() && user.getPhoneNumber() != null) {
+            recommendations.add("Verify your phone number for additional security");
+        }
+        
+        if (user.getLastPasswordChangeAt() != null) {
+            long daysSincePasswordChange = Duration.between(
+                user.getLastPasswordChangeAt(), LocalDateTime.now()).toDays();
+            if (daysSincePasswordChange > 180) {
+                recommendations.add("Consider changing your password for better security");
+            }
+        }
+        
+        ActivityStatus activity = calculateActivityStatus(user);
+        if (activity.needsReengagement()) {
+            recommendations.add("Explore new features and updates since your last visit");
+        }
+        
+        if (user.getTier() == UserTier.BASIC && user.getLoginCount() > 50) {
+            recommendations.add("Consider upgrading to Premium for additional features");
+        }
+        
+        if (needsAccountMaintenance(user)) {
+            recommendations.add("Update your account information and security settings");
+        }
+        
+        return recommendations;
+    }
+    
+    /**
+     * Business Rule: Check if user is eligible for feature
+     */
+    public static boolean isEligibleForFeature(User user, String featureName) {
+        if (!user.isAccountActive()) return false;
+        
+        return switch (featureName.toLowerCase()) {
+            case "premium_features" -> user.getTier().isPremium();
+            case "enterprise_features" -> user.getTier().isEnterprise();
+            case "admin_panel" -> user.hasAnyRole(Set.of(UserRole.ADMIN, UserRole.SUPER_ADMIN));
+            case "moderation_tools" -> user.hasRole(UserRole.MODERATOR) || user.hasAnyRole(Set.of(UserRole.ADMIN, UserRole.SUPER_ADMIN));
+            case "beta_testing" -> user.hasRole(UserRole.BETA_TESTER) || user.getTier().isPremium();
+            case "advanced_analytics" -> user.getTier().hasAccessTo(UserTier.PREMIUM);
+            case "priority_support" -> user.getTier().hasAccessTo(UserTier.VIP);
+            case "api_access" -> user.hasRole(UserRole.DEVELOPER) || user.getTier().hasAccessTo(UserTier.STANDARD);
+            case "bulk_operations" -> user.getTier().hasAccessTo(UserTier.ENTERPRISE);
+            default -> true; // Allow access to unknown features by default
+        };
+    }
+    
+    /**
+     * Business Rule: Validate user compliance requirements
+     */
+    public static ValidationResult validateComplianceRequirements(User user) {
+        List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+        
+        // GDPR compliance checks
+        if (!user.getDataProcessingConsent()) {
+            errors.add("Data processing consent is required for GDPR compliance");
+        }
+        
+        if (user.getPrivacyAcceptedAt() == null) {
+            errors.add("Privacy policy acceptance is required");
+        }
+        
+        if (user.getTermsAcceptedAt() == null) {
+            errors.add("Terms of service acceptance is required");
+        }
+        
+        // Security compliance
+        if (user.hasAnyRole(Set.of(UserRole.ADMIN, UserRole.SUPER_ADMIN)) && !user.isTwoFactorEnabled()) {
+            warnings.add("Administrative accounts should enable two-factor authentication");
+        }
+        
+        // Data retention compliance
+        if (user.isDeleted() && user.getDeletedAt() != null) {
+            long daysSinceDeletion = Duration.between(user.getDeletedAt(), LocalDateTime.now()).toDays();
+            if (daysSinceDeletion > 30) {
+                warnings.add("Deleted user data may need permanent purging for compliance");
+            }
+        }
+        
+        if (errors.isEmpty()) {
+            return warnings.isEmpty() ? ValidationResult.valid() : ValidationResult.withWarnings(warnings);
+        } else {
+            return ValidationResult.invalid(errors);
+        }
+    }
+}
+
+/**
+ * Validation Result record for business rule validation
+ */
+record ValidationResult(
+    boolean isValid,
+    List<String> errors,
+    List<String> warnings
+) {
+    public static ValidationResult valid() {
+        return new ValidationResult(true, List.of(), List.of());
+    }
+    
+    public static ValidationResult invalid(List<String> errors) {
+        return new ValidationResult(false, errors, List.of());
+    }
+    
+    public static ValidationResult withWarnings(List<String> warnings) {
+        return new ValidationResult(true, List.of(), warnings);
+    }
+}

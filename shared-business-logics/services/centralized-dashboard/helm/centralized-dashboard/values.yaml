@@ -1,0 +1,387 @@
+# Default values for centralized-dashboard
+
+global:
+  namespace: centralized-dashboard
+  imageRegistry: ghcr.io/gogidix
+  imageTag: latest
+  imagePullPolicy: IfNotPresent
+  database:
+    host: postgres
+    port: 5432
+  redis:
+    host: redis
+    port: 6379
+  kafka:
+    bootstrapServers: kafka:9092
+  env: production
+
+# Service-specific configurations
+apiGatewayService:
+  enabled: true
+  name: api-gateway-service
+  servicePort: 8080
+  managementPort: 8081
+  replicas: 2
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "800m"
+  ingress:
+    enabled: true
+    host: api-gateway.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8080"
+    MANAGEMENT_SERVER_PORT: "8081"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+dashboardCoreService:
+  enabled: true
+  name: dashboard-core-service
+  servicePort: 8900
+  managementPort: 8901
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: dashboard-core.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8900"
+    MANAGEMENT_SERVER_PORT: "8901"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+analyticsDataService:
+  enabled: true
+  name: analytics-data-service
+  servicePort: 8901
+  managementPort: 8902
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: analytics-data.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8901"
+    MANAGEMENT_SERVER_PORT: "8902"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+businessIntelligenceService:
+  enabled: true
+  name: business-intelligence-service
+  servicePort: 8902
+  managementPort: 8903
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: business-intelligence.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8902"
+    MANAGEMENT_SERVER_PORT: "8903"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+centralizedDataAggregationService:
+  enabled: true
+  name: centralized-data-aggregation-service
+  servicePort: 8905
+  managementPort: 8906
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: data-aggregation.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8905"
+    MANAGEMENT_SERVER_PORT: "8906"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+websocketGatewayService:
+  enabled: true
+  name: websocket-gateway-service
+  servicePort: 8908
+  managementPort: 8909
+  replicas: 2
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "800m"
+  ingress:
+    enabled: true
+    host: websocket-gateway.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/websocket-services: "websocket-gateway-service"
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8908"
+    MANAGEMENT_SERVER_PORT: "8909"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+chartService:
+  enabled: true
+  name: chart-service
+  servicePort: 8909
+  managementPort: 8910
+  replicas: 2
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "800m"
+  ingress:
+    enabled: true
+    host: chart-service.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8909"
+    MANAGEMENT_SERVER_PORT: "8910"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+centralizedReporting:
+  enabled: true
+  name: centralized-reporting
+  servicePort: 8104
+  managementPort: 8105
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: centralized-reporting.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8104"
+    MANAGEMENT_SERVER_PORT: "8105"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+# Global Horizontal Pod Autoscaler defaults
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+
+# Global Pod Disruption Budget defaults
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# Global Monitoring defaults
+monitoring:
+  enabled: true
+  serviceMonitorEnabled: true
+  prometheusScrape: true
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Service Account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountToken: false
+
+# Pod Security Context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Container Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Database credentials (use --set or existing secret)
+database:
+  existingSecret: false
+  secretName: ""
+  username: "postgres"
+  password: "CHANGE_ME"
+  name: "centralized_dashboard"
+
+# Redis credentials
+redis:
+  existingSecret: false
+  secretName: ""
+  password: ""
+  database: 0
+
+# Kafka configuration
+kafka:
+  consumerGroup: "centralized-dashboard-group"
+  autoCreateTopics: true

@@ -1,0 +1,17 @@
+export enum IntentCategory {
+  GREETING = 'greeting',
+  FAQ = 'faq',
+  ORDER_STATUS = 'order_status',
+  PRODUCT_INFO = 'product_info',
+  SUPPORT = 'support',
+  COMPLAINT = 'complaint',
+  REFUND = 'refund',
+  BILLING = 'billing',
+  TECHNICAL = 'technical',
+  SHIPPING = 'shipping',
+  RETURNS = 'returns',
+  ACCOUNT = 'account',
+  PAYMENT = 'payment',
+  GENERAL = 'general',
+  ESCALATION = 'escalation',
+}

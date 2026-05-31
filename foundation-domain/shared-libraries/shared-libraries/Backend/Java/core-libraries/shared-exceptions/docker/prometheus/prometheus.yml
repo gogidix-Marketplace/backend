@@ -1,0 +1,107 @@
+# Prometheus Configuration for Gogidix Shared Exceptions Service
+# Collects metrics from the service and supporting infrastructure
+# Author: Gogidix Development Team
+# Version: 1.0.0
+# Date: 2025-08-13
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'gogidix-shared-exceptions'
+    environment: 'docker'
+
+# Alerting configuration (if needed)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Rule files for alerts
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Shared Exceptions Service
+  - job_name: 'shared-exceptions'
+    static_configs:
+      - targets: ['shared-exceptions:8702']
+    scrape_interval: 15s
+    metrics_path: /api/v1/actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 'shared-exceptions:8702'
+      - target_label: service
+        replacement: 'shared-exceptions'
+      - target_label: domain
+        replacement: 'shared-libraries'
+
+  # PostgreSQL Database (if postgres_exporter is added)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #   scrape_interval: 30s
+
+  # Redis Cache (if redis_exporter is added)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #   scrape_interval: 30s
+
+  # Kafka (if kafka_exporter is added)
+  # - job_name: 'kafka'
+  #   static_configs:
+  #     - targets: ['kafka-exporter:9308']
+  #   scrape_interval: 30s
+
+  # JVM Metrics (additional JVM-specific metrics)
+  - job_name: 'shared-exceptions-jvm'
+    static_configs:
+      - targets: ['shared-exceptions:8702']
+    scrape_interval: 30s
+    metrics_path: /api/v1/actuator/prometheus
+    params:
+      includedNames: ['jvm.*', 'process.*', 'system.*']
+    relabel_configs:
+      - target_label: service
+        replacement: 'shared-exceptions'
+      - target_label: component
+        replacement: 'jvm'
+
+  # Application-specific metrics
+  - job_name: 'shared-exceptions-app'
+    static_configs:
+      - targets: ['shared-exceptions:8702']
+    scrape_interval: 15s
+    metrics_path: /api/v1/actuator/prometheus
+    params:
+      includedNames: ['gogidix.*', 'exception.*', 'http.*', 'spring.*']
+    relabel_configs:
+      - target_label: service
+        replacement: 'shared-exceptions'
+      - target_label: component
+        replacement: 'application'
+
+# Storage configuration
+storage:
+  tsdb:
+    retention.time: 15d
+    retention.size: 10GB

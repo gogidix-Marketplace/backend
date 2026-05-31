@@ -1,0 +1,9 @@
+export { IChatSessionRepository } from './chat-session.repository.port';
+export { IIntentRepository } from './intent.repository.port';
+export { ISessionAnalyticsRepository } from './session-analytics.repository.port';
+export { IDailyAnalyticsRepository } from './daily-analytics.repository.port';
+export { IEventPublisher } from './event-publisher.port';
+export { ICachePort } from './cache.port';
+export { IKnowledgeBasePort } from './knowledge-base.port';
+export { IOpenAIPort } from './openai.port';
+export { IAgentServicePort } from './agent-service.port';

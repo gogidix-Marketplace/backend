@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: seo-service
+
+  data:
+    mongodb:
+      database: test_seo
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

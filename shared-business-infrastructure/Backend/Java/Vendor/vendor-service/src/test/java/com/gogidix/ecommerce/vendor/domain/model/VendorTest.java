@@ -1,0 +1,20 @@
+package com.gogidix.ecommerce.vendor.domain.model;
+import org.junit.jupiter.api.Test; import java.time.Instant; import static org.assertj.core.api.Assertions.assertThat;
+class VendorTest {
+    @Test void allFields() {
+        Vendor e = new Vendor();
+        e.setId("id1"); e.setTenantId("t1"); e.setVendorId("v1"); e.setName("test");
+        e.setCreatedAt(Instant.now()); e.setUpdatedAt(Instant.now());
+        assertThat(e.getId()).isEqualTo("id1"); assertThat(e.getTenantId()).isEqualTo("t1");
+        assertThat(e.getVendorId()).isEqualTo("v1"); assertThat(e.getName()).isEqualTo("test");
+        assertThat(e.getCreatedAt()).isNotNull(); assertThat(e.getUpdatedAt()).isNotNull();
+    }
+    @Test void nullDefaults() {
+        Vendor e = new Vendor();
+        assertThat(e.getId()).isNull(); assertThat(e.getVendorId()).isNull(); assertThat(e.getName()).isNull();
+    }
+    @Test void statusEnum() {
+        assertThat(Vendor.VendorStatus.values()).hasSize(5);
+        assertThat(Vendor.VendorStatus.valueOf("ACTIVE")).isEqualTo(Vendor.VendorStatus.ACTIVE);
+    }
+}

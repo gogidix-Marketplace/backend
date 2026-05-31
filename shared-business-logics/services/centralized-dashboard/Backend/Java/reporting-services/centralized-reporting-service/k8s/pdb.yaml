@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: centralized-reporting-service-pdb
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-reporting-service
+    team: team-f-centralized-dashboard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: centralized-reporting-service

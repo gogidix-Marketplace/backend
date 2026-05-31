@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: email-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_email
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        emailEvents-out-0:
+          destination: email-events
+          content-type: application/json
+server:
+  port: 8082
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.email: DEBUG

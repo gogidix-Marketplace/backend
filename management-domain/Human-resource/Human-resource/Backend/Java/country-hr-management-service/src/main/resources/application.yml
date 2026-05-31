@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: country-hr-management-service
+
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: country-hr-management-service_db
+      auto-index-creation: true
+
+    redis:
+      host: localhost
+      port: 6379
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+kafka:
+  enabled: true
+  topic:
+    country-hr-events: country-hr-events
+
+logging:
+  level:
+    com.gogidix.hr.countryhrmanagement: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

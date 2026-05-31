@@ -1,0 +1,15 @@
+# Campaign Management Service Test Configuration
+
+spring:
+  application:
+    name: campaign-management-service
+
+  data:
+    mongodb:
+      database: test_campaign_management
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

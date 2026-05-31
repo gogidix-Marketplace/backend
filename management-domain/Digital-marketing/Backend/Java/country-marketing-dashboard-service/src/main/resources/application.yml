@@ -1,0 +1,160 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  shutdown: graceful
+
+spring:
+  application:
+    name: country-marketing-dashboard-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: country_marketing_dashboard_db
+      auto-index-creation: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      properties:
+        delivery.timeout.ms: 120000
+        request.timeout.ms: 30000
+    consumer:
+      group-id: country-marketing-consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.marketing: DEBUG
+    org.springframework.data.mongodb: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/country-marketing-dashboard.log
+    max-size: 100MB
+    max-history: 30
+
+# Marketing Configuration
+marketing:
+  hq:
+    base-url: http://localhost:8080
+    api-key: ${HQ_API_KEY:}
+    timeout: 5000
+    enabled: true
+
+  kafka:
+    topic:
+      campaign: marketing.campaign.data
+      lead: marketing.lead.data
+      analytics: marketing.analytics.data
+      budget: marketing.budget.data
+      sync: marketing.sync.data
+    enabled: true
+
+  sync:
+    enabled: true
+    interval: 3600000 # 1 hour in milliseconds
+    batch-size: 100
+
+  countries:
+    - NG
+    - KE
+    - GH
+    - ZA
+    - CI
+
+# API Documentation
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    display-request-duration: true
+    display-operation-id: true
+    default-models-expand-depth: 2
+    default-model-expand-depth: 2
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: country_marketing_dashboard_dev_db
+
+logging:
+  level:
+    root: DEBUG
+    com.gogidix.marketing: DEBUG
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+      database: country_marketing_dashboard_db
+
+logging:
+  level:
+    root: WARN
+    com.gogidix.marketing: INFO
+  file:
+    name: /var/log/country-marketing-dashboard/application.log

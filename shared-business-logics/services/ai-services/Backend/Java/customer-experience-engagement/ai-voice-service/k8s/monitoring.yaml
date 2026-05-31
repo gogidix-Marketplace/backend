@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-voice-service
+  namespace: ai-services
+  labels:
+    app: ai-voice-service
+    version: v1
+    team: team-ai-customer-experience
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-voice-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+  namespaceSelector:
+    matchNames:
+    - ai-services
+---
+apiVersion: v1
+kind: PodMonitor
+metadata:
+  name: ai-voice-service
+  namespace: ai-services
+  labels:
+    app: ai-voice-service
+    version: v1
+    team: team-ai-customer-experience
+spec:
+  selector:
+    matchLabels:
+      app: ai-voice-service
+  podMetricsEndpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ai-voice-service-metrics-reader
+  labels:
+    app: ai-voice-service
+    team: team-ai-customer-experience
+rules:
+- nonResourceURLs: ["/metrics", "/actuator/prometheus"]
+  verbs: ["get"]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-voice-service-grafana-dashboard
+  namespace: ai-services
+  labels:
+    app: ai-voice-service
+    version: v1
+    team: team-ai-customer-experience
+    grafana_dashboard: "1"
+data:
+  ai-voice-service-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "AI Voice Service Dashboard",
+        "tags": ["ai-services", "voice", "customer-experience"],
+        "timezone": "UTC",
+        "panels": [
+          {
+            "title": "Request Rate",
+            "targets": [{
+              "expr": "rate(http_server_requests_seconds_count{application=\"ai-voice-service\"}[5m])"
+            }]
+          },
+          {
+            "title": "Error Rate",
+            "targets": [{
+              "expr": "rate(http_server_requests_seconds_count{application=\"ai-voice-service\",status=~\"5..\"}[5m])"
+            }]
+          },
+          {
+            "title": "Response Time",
+            "targets": [{
+              "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"ai-voice-service\"}[5m]))"
+            }]
+          },
+          {
+            "title": "JVM Memory Usage",
+            "targets": [{
+              "expr": "jvm_memory_used_bytes{application=\"ai-voice-service\"}"
+            }]
+          }
+        ]
+      }
+    }

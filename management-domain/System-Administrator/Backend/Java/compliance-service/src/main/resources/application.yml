@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: compliance-service
+  data:
+    mongodb:
+      database: compliance-service_db

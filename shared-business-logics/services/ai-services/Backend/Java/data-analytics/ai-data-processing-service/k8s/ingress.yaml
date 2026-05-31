@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-data-processing-service
+  namespace: ai-services
+  labels:
+    app: ai-data-processing-service
+    team: team-ai-data-analytics
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ai-data-processing.gogidix.com
+    - ai-services.gogidix.com
+    secretName: ai-data-processing-service-tls
+  rules:
+  - host: ai-data-processing.gogidix.com
+    http:
+      paths:
+      - path: /(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-data-processing-service
+            port:
+              number: 8082
+  - host: ai-services.gogidix.com
+    http:
+      paths:
+      - path: /ai-data-processing(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-data-processing-service
+            port:
+              number: 8082

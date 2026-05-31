@@ -1,0 +1,54 @@
+server:
+  port: 8109
+  shutdown: graceful
+spring:
+  application:
+    name: notification-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: notification_db
+      auto-index-creation: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.gogidix.customersupport: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Application configuration
+app:
+  notification:
+    retry:
+      max-attempts: 3
+      backoff-ms: 1000
+    queue:
+      processor-interval-ms: 5000
+      batch-size: 100
+    channels:
+      email:
+        enabled: true
+      sms:
+        enabled: true
+      push:
+        enabled: true

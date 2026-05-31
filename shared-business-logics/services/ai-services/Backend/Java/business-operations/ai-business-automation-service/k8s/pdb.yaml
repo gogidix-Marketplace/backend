@@ -1,0 +1,16 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-business-automation-service
+  namespace: ai-services
+  labels:
+    app: ai-business-automation-service
+    version: v1
+    team: team-ai-business-ops
+    component: business-operations
+    environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-business-automation-service

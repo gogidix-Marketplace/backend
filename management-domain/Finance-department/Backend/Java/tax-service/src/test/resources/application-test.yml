@@ -1,0 +1,69 @@
+# Test Configuration for Tax Service
+spring:
+  application:
+    name: tax-service-test
+
+  # MongoDB Test Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: tax-service-test-db
+      auto-index-creation: true
+
+  # Kafka Test Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: tax-service-test-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# Redis Test Configuration
+spring.redis:
+  host: localhost
+  port: 6379
+  database: 4
+  timeout: 3000
+
+# Server Configuration
+server:
+  port: 0  # Random port for tests
+
+# Logging Configuration
+logging:
+  level:
+    com.gogidix.finance.tax: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.kafka: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Test-specific properties
+test:
+  tenant:
+    id: tenant-test-001
+  user:
+    id: user-test@example.com
+  timeout:
+    seconds: 30
+  tax:
+    year: 2024
+    jurisdiction: US-FEDERAL

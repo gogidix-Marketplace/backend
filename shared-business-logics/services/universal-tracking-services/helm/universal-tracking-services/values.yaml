@@ -1,0 +1,76 @@
+# Default values for universal-tracking-services
+
+global:
+  namespace: universal-tracking-services
+  imageRegistry: ghcr.io/gogidix
+  imageTag: latest
+  postgresql:
+    host: postgres
+    port: 5432
+  redis:
+    host: redis
+    port: 6379
+  kafka:
+    bootstrapServers: kafka:9092
+
+# Service-specific configurations
+universalTracking:
+  enabled: true
+  servicePort: 8080
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: universal-tracking.gogidix.com
+  database:
+    name: universal_tracking
+
+  # Tracking-specific configuration
+  tracking:
+    event:
+      retention:
+        days: 90
+      batch:
+        size: 100
+    session:
+      timeout:
+        minutes: 30
+    metric:
+      aggregation:
+        enabled: true
+
+# Horizontal Pod Autoscaler
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+
+# Pod Disruption Budget
+pdb:
+  minAvailable: 1
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitorEnabled: true
+
+# PostgreSQL credentials (use --set or existing secret)
+postgresql:
+  existingSecret: false
+  secretName: ""
+  username: "postgres"
+  password: "CHANGE_ME"
+
+# Redis credentials
+redis:
+  existingSecret: false
+  secretName: ""
+  password: ""

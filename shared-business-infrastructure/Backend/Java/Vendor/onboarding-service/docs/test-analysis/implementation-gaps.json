@@ -1,0 +1,14 @@
+{
+  "serviceName": "onboarding-service",
+  "analysisDate": "2026-03-06T13:26:28Z",
+  "summary": {
+    "totalFiles": 0,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

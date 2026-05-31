@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: gateway-postgres
+    environment:
+      POSTGRES_DB: gateway_services
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: gateway-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: ../Backend/Java/gateway-services/api-gateway-service
+      dockerfile: Dockerfile
+    container_name: api-gateway-service
+    ports:
+      - "8907:8907"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/api_gateway
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_PORT: 8907
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  websocket-gateway:
+    build:
+      context: ../Backend/Java/gateway-services/websocket-gateway-service
+      dockerfile: Dockerfile
+    container_name: websocket-gateway-service
+    ports:
+      - "8908:8908"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/websocket_gateway
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_PORT: 8908
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  chart-service:
+    build:
+      context: ../Backend/Java/gateway-services/chart-service
+      dockerfile: Dockerfile
+    container_name: chart-service
+    ports:
+      - "8909:8909"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/chart_service
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_PORT: 8909
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:

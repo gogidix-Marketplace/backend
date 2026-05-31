@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "dashboard-shared-service",
+    "location": "Backend/Java/core-services/dashboard-shared-service",
+    "totalGaps": 1,
+    "criticalGaps": 0,
+    "highGaps": 1,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "dashboard-shared-service/src/main/java",
+      "type": "Missing Implementation",
+      "line": 0,
+      "description": "No Java source files found in dashboard-shared-service. Service directory exists but contains no implementation.",
+      "severity": "HIGH",
+      "recommendation": "Define the purpose of this shared service and implement common components (DTOs, utilities, domain models) or remove if not needed."
+    }
+  ]
+}

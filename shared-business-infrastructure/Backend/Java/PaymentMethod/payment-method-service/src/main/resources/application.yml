@@ -1,0 +1,34 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: PaymentMethod-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_paymentmethod
+  cloud:
+    stream:
+      function:
+        definition: paymentmethodEvents
+      bindings:
+        paymentmethodEvents-out-0:
+          destination: paymentmethodEvents
+          contentType: application/json
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true

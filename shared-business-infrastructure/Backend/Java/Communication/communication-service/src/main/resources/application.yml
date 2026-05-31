@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: communication-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_communication
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        communicationEvents-out-0:
+          destination: communication-events
+          content-type: application/json
+server:
+  port: 8068
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.communication: DEBUG

@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "dashboard-core-service",
+    "location": "Backend/Java/core-services/dashboard-core-service",
+    "totalGaps": 1,
+    "criticalGaps": 1,
+    "highGaps": 0,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "com/gogidix/dashboard/core/application/service/KPICommandService.java",
+      "type": "Placeholder Implementation",
+      "line": 189,
+      "description": "performCalculation method contains placeholder logic that returns mock value (kpi.getCurrentValue() + 1.0). Real KPI calculation engine needs implementation with formula parsing, data fetching from source domains, and aggregation logic.",
+      "severity": "CRITICAL",
+      "recommendation": "Implement proper KPI calculation engine with: 1) Formula parsing and validation, 2) Data fetching from configured source domains, 3) Aggregation logic application, 4) Error handling for calculation failures"
+    }
+  ]
+}

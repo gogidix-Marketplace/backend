@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: universal-tracking-service-pdb
+  namespace: universal-tracking-services
+  labels:
+    app: universal-tracking-service
+    team: team-c-universal-tracking
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: universal-tracking-service

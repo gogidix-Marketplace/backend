@@ -1,0 +1,393 @@
+name: Platform Services CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: platform-services
+
+jobs:
+  build-and-test-backend:
+    name: Build and Test Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Cache Maven packages
+        uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        working-directory: ./Backend/Java
+        run: mvn clean install -DskipTests=false -B
+
+      - name: Generate test coverage report
+        working-directory: ./Backend/Java
+        run: mvn jacoco:report
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: backend-coverage-reports
+          path: Backend/Java/**/target/site/jacoco/
+          retention-days: 7
+
+      - name: Build all services
+        working-directory: ./Backend/Java
+        run: mvn clean package -DskipTests
+
+      - name: Upload JAR artifacts
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: backend-jar-files
+          path: Backend/Java/**/target/*.jar
+          retention-days: 7
+
+  build-and-test-frontend:
+    name: Build and Test Frontend (if exists)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1e60f620b9541d16fcee6c7450759e6d4a155e13
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Cache node modules
+        uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+        with:
+          path: Frontends/Web/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        working-directory: ./Frontends/Web
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci
+          else
+            echo "No frontend found, skipping..."
+          fi
+
+      - name: Run linting
+        working-directory: ./Frontends/Web
+        run: |
+          if [ -f "package.json" ]; then
+            npm run lint || true
+          fi
+        continue-on-error: true
+
+      - name: Build frontend
+        working-directory: ./Frontends/Web
+        run: |
+          if [ -f "package.json" ]; then
+            npm run build
+          else
+            echo "No frontend found, skipping..."
+          fi
+
+      - name: Upload frontend artifacts
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: frontend-dist
+          path: Frontends/Web/dist/
+          retention-days: 7
+        continue-on-error: true
+
+  docker-build-backend:
+    name: Build Backend Docker Images
+    runs-on: ubuntu-latest
+    needs: build-and-test-backend
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service:
+          - platform-service
+          - subscription-service
+          - tenant-registry-service
+          - usage-metering-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@2b512430cf1c7c4fe9b7815b4c7d761f6e893f6b
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@e92390c5fb421da1463b202fbb5d8c4abc1a1ff6
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@8e5442c4c6b23faec5f45e6f8a52f03446a791ce
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@af5a7ed5ba88268de6df9df61a84dfe726b25e69
+        with:
+          context: ./Backend/Java/${{ matrix.service }}
+          file: ./Backend/Java/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Image digest
+        run: echo "Image pushed with digest ${{ steps.meta.outputs.digest }}"
+
+  docker-build-frontend:
+    name: Build Frontend Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test-frontend
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@2b512430cf1c7c4fe9b7815b4c7d761f6e893f6b
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@e92390c5fb421da1463b202fbb5d8c4abc1a1ff6
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if frontend exists
+        id: check_frontend
+        run: |
+          if [ -f "Frontends/Web/Dockerfile" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        if: steps.check_frontend.outputs.exists == 'true'
+        id: meta
+        uses: docker/metadata-action@8e5442c4c6b23faec5f45e6f8a52f03446a791ce
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_PREFIX }}-frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend Docker image
+        if: steps.check_frontend.outputs.exists == 'true'
+        uses: docker/build-push-action@af5a7ed5ba88268de6df9df61a84dfe726b25e69
+        with:
+          context: ./Frontends/Web
+          file: ./Frontends/Web/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: [docker-build-backend, docker-build-frontend]
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      matrix:
+        service:
+          - platform-service
+          - subscription-service
+          - tenant-registry-service
+          - usage-metering-service
+          - frontend
+
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6896a38fa877f2db34aa4fff10fa544dbbf9357c
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security
+        if: success()
+        uses: github/codeql-action/upload-sarif@435327b1c2fef2aa9df534fdf274590a098c19f4
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  deploy:
+    name: Deploy to Environment
+    runs-on: ubuntu-latest
+    needs: [docker-build-backend, docker-build-frontend, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@7c9cd5b7a80e4137fef6d0fcc6593e306757c0f4
+        with:
+          version: 'latest'
+
+      - name: Configure Kubernetes context
+        run: |
+          echo "Configuring Kubernetes context for ${{ github.event.inputs.environment || 'dev' }} environment"
+          # Add your Kubernetes configuration here
+          # kubectl config use-context ${{ secrets.KUBE_CONTEXT }}
+
+      - name: Deploy backend services to Kubernetes
+        run: |
+          echo "Deploying platform services to ${{ github.event.inputs.environment || 'dev' }} environment"
+          # kubectl apply -f k8s/${{ github.event.inputs.environment || 'dev' }}/
+
+      - name: Deploy frontend service to Kubernetes
+        run: |
+          echo "Deploying platform frontend to ${{ github.event.inputs.environment || 'dev' }} environment"
+          # kubectl apply -f k8s/${{ github.event.inputs.environment || 'dev' }}/frontend/
+
+      - name: Verify deployment
+        run: |
+          echo "Verifying deployment"
+          # kubectl rollout status deployment/platform-services
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "Deployment successful"
+          else
+            echo "Deployment failed"
+          fi
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      kafka:
+        image: confluentinc/cp-kafka:latest
+        env:
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        ports:
+          - 9092:9092
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Run integration tests
+        working-directory: ./Backend/Java
+        run: mvn verify -DskipUnitTests=true
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/test_db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: integration-test-results
+          path: Backend/Java/**/target/surefire-reports/
+          retention-days: 7
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [build-and-test-backend, build-and-test-frontend, docker-build-backend, docker-build-frontend, security-scan, deploy, integration-test]
+    if: always()
+
+    steps:
+      - name: Clean up old artifacts
+        uses: actions/github-script@1e7e1e5191694a0d13a1d914718b0239a48f7798
+        with:
+          script: |
+            console.log('Cleaning up old artifacts')

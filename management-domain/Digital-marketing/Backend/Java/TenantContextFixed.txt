@@ -1,0 +1,24 @@
+    private RequestContext buildFromJWT(
+            HttpServletRequest request,
+            String correlationId,
+            String traceId) {
+
+        // Extract tenant ID and user ID from headers for simplified authentication
+        String tenantId = request.getHeader("X-Tenant-Id");
+        String userId = request.getHeader("X-User-Id");
+
+        // Use defaults if headers not present
+        if (tenantId == null || tenantId.isBlank()) {
+            tenantId = "default-tenant";
+        }
+        if (userId == null || userId.isBlank()) {
+            userId = "system-user";
+        }
+
+        return RequestContext.builder()
+            .tenantId(tenantId)
+            .userId(userId)
+            .correlationId(correlationId)
+            .traceId(traceId)
+            .build();
+    }

@@ -1,0 +1,104 @@
+# Test Coverage Report - document-management-service
+
+## Overview
+- **Service**: document-management-service
+- **Domain**: Human Resource
+- **Analysis Date**: 2026-03-06T06:12:14Z
+- **Total Classes**: 44
+- **Test Files**: 1
+- **Classes with Tests**: 1
+- **Test Coverage**: 2%
+
+## Source Files
+- `.DocumentDto`
+- `.DocumentResponseDto`
+- `com.gogidix.hr.documentmanagement.DocumentManagementApplication`
+- `.DocumentStatus`
+- `.DocumentType`
+- `.StorageType`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentAccessedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentApprovedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentArchivedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentCreatedEvent`
+- `.DocumentExpiredEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentUpdatedEvent`
+- `.DocumentUploadedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.TemplateCreatedEvent`
+- `com.gogidix.hr.documentmanagement.domain.model.AccessAction`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentAccessLog`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentCategory`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentRetention`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentStatus`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentTemplate`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentType`
+- `com.gogidix.hr.documentmanagement.domain.model.HRDocument`
+- `com.gogidix.hr.documentmanagement.domain.model.RetentionAction`
+- `com.gogidix.hr.documentmanagement.domain.model.StorageProvider`
+- `.Command`
+- `.QueryPort`
+- `.EventPublisher`
+- `com.gogidix.hr.documentmanagement.domain.repository.DocumentAccessLogRepository`
+- `com.gogidix.hr.documentmanagement.domain.repository.DocumentRetentionRepository`
+- `com.gogidix.hr.documentmanagement.domain.repository.DocumentTemplateRepository`
+- `com.gogidix.hr.documentmanagement.domain.repository.HRDocumentRepository`
+- `.KafkaConfig`
+- `com.gogidix.hr.documentmanagement.infrastructure.config.MongoConfig`
+- `.KafkaEventPublisher`
+- `com.gogidix.hr.documentmanagement.infrastructure.security.SecurityConfig`
+- `.DocumentApprovalController`
+- `.DocumentController`
+- `com.gogidix.hr.documentmanagement.shared.base.BaseEntity`
+- `com.gogidix.hr.documentmanagement.shared.exception.ConflictException`
+- `com.gogidix.hr.documentmanagement.shared.exception.NotFoundException`
+- `com.gogidix.hr.documentmanagement.shared.exception.ValidationException`
+- `com.gogidix.hr.documentmanagement.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.documentmanagement.shared.requestcontext.RequestContextHolder`
+
+## Test Files
+- `HRDocumentTest` (65 test methods) - `src/test/java/com/gogidix/hr/documentmanagement/domain/model/HRDocumentTest.java`
+
+## Classes Without Tests
+- `.DocumentDto`
+- `.DocumentResponseDto`
+- `com.gogidix.hr.documentmanagement.DocumentManagementApplication`
+- `.DocumentStatus`
+- `.DocumentType`
+- `.StorageType`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentAccessedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentApprovedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentArchivedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentCreatedEvent`
+- `.DocumentExpiredEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.DocumentUpdatedEvent`
+- `.DocumentUploadedEvent`
+- `com.gogidix.hr.documentmanagement.domain.event.TemplateCreatedEvent`
+- `com.gogidix.hr.documentmanagement.domain.model.AccessAction`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentAccessLog`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentCategory`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentRetention`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentStatus`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentTemplate`
+- `com.gogidix.hr.documentmanagement.domain.model.DocumentType`
+- `com.gogidix.hr.documentmanagement.domain.model.RetentionAction`
+- `com.gogidix.hr.documentmanagement.domain.model.StorageProvider`
+- `.Command`
+- `.QueryPort`
+- `.EventPublisher`
+- `com.gogidix.hr.documentmanagement.domain.repository.DocumentAccessLogRepository`
+- `com.gogidix.hr.documentmanagement.domain.repository.DocumentRetentionRepository`
+- `com.gogidix.hr.documentmanagement.domain.repository.DocumentTemplateRepository`
+- `com.gogidix.hr.documentmanagement.domain.repository.HRDocumentRepository`
+- `.KafkaConfig`
+- `com.gogidix.hr.documentmanagement.infrastructure.config.MongoConfig`
+- `.KafkaEventPublisher`
+- `com.gogidix.hr.documentmanagement.infrastructure.security.SecurityConfig`
+- `.DocumentApprovalController`
+- `.DocumentController`
+- `com.gogidix.hr.documentmanagement.shared.base.BaseEntity`
+- `com.gogidix.hr.documentmanagement.shared.exception.ConflictException`
+- `com.gogidix.hr.documentmanagement.shared.exception.NotFoundException`
+- `com.gogidix.hr.documentmanagement.shared.exception.ValidationException`
+- `com.gogidix.hr.documentmanagement.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.documentmanagement.shared.requestcontext.RequestContextHolder`

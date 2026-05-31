@@ -1,0 +1,14 @@
+{
+  "serviceName": "Integration",
+  "analysisDate": "2026-03-06T13:16:49Z",
+  "summary": {
+    "totalFiles": 0,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

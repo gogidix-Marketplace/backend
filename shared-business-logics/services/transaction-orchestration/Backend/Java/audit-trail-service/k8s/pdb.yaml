@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: audit-trail-service-pdb
+  namespace: transaction-orchestration
+  labels:
+    app: audit-trail-service
+    team: team-b-transaction
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: audit-trail-service

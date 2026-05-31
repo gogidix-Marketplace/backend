@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: marketing-automation-service
+  data:
+    mongodb:
+      database: marketing-automation-service_db

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.gogidix.cargo.management.executive</groupId>
+    <artifactId>executive-services</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>Executive Domain X Services</name>
+    <description>Parent POM for Executive Domain X microservices</description>
+    <modules>
+        <module>ceo-analytics-service</module>
+        <module>ceo-approval-service</module>
+        <module>ceo-strategy-service</module>
+        <module>cfo-financial-consolidation-service</module>
+        <module>coo-operations-service</module>
+        <module>cto-technology-oversight-service</module>
+        <module>executive-alert-service</module>
+        <module>executive-approval-workflow-service</module>
+        <module>executive-audit-service</module>
+        <module>executive-dashboard-service</module>
+    </modules>
+</project>

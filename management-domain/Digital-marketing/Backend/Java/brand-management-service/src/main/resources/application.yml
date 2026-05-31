@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: brand-management-service
+  data:
+    mongodb:
+      database: brand-management-service_db

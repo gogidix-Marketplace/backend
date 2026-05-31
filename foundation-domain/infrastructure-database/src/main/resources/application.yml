@@ -1,0 +1,226 @@
+spring:
+  application:
+    name: infrastructure-database-service
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
+      database: ${MONGODB_DATABASE:infrastructure_database}
+      auto-index-creation: true
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+        max-wait: -1ms
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+      key-prefix: "db:"
+      use-key-prefix: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: infrastructure-database-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8091}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  error:
+    include-message: always
+    include-binding-errors: always
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops,db
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    db:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        db.connections: true
+        db.transactions: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 100
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 10
+    instances:
+      databaseConnection:
+        base-config: default
+      migrationExecution:
+        base-config: default
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.jdbc: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/infrastructure-database-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application properties
+infrastructure-database:
+  connection-pool:
+    default-pool-name: default
+    minimum-idle: 2
+    maximum-pool-size: 10
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+    leak-detection-threshold: 60000
+  migration:
+    enabled: true
+    auto-migrate-on-startup: false
+    migration-timeout: 300000
+    batch-size: 50
+  multi-tenancy:
+    enabled: true
+    strategy: database-per-tenant
+    default-tenant: default
+  backup:
+    enabled: true
+    backup-path: ${BACKUP_PATH:/var/backups/database}
+    retention-days: 30
+    compression: true
+  monitoring:
+    slow-query-threshold: 1000
+    metrics-collection-enabled: true
+    query-logging-enabled: true
+  distributed-transaction:
+    enabled: true
+    timeout: 60000
+    max-retry-attempts: 3
+  health-check:
+    enabled: true
+    interval: 60000
+    timeout: 5000
+    failure-threshold: 3
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: infrastructure_database_dev
+
+logging:
+  level:
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.jdbc: DEBUG
+
+infrastructure-database:
+  migration:
+    auto-migrate-on-startup: false
+  multi-tenancy:
+    enabled: true
+
+---
+# Staging profile
+spring:
+  config:
+    activate:
+      on-profile: staging
+  data:
+    mongodb:
+      database: infrastructure_database_staging
+
+logging:
+  level:
+    com.gogidix: INFO
+    root: INFO
+
+infrastructure-database:
+  migration:
+    auto-migrate-on-startup: true
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  data:
+    mongodb:
+      database: infrastructure_database_prod
+
+logging:
+  level:
+    root: WARN
+    com.gogidix: INFO
+
+infrastructure-database:
+  migration:
+    auto-migrate-on-startup: false
+  backup:
+    retention-days: 90
+  monitoring:
+    slow-query-threshold: 500

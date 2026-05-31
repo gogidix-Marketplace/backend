@@ -1,0 +1,127 @@
+package com.gogidix.management.{service-name};
+
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+/**
+ * Hexagonal Architecture Test for {Service Name}
+ *
+ * <p>This test validates that the service follows hexagonal architecture principles.
+ * All services MUST pass these tests before being considered production-ready.</p>
+ *
+ * <p>Key rules enforced:</p>
+ * <ul>
+ *   <li>Domain layer has NO dependencies on framework code</li>
+ *   <li>Domain layer only depends on application layer</li>
+ *   <li>Application layer only depends on domain and infrastructure</li>
+ *   <li>Infrastructure layer only depends on domain and application ports</li>
+ *   <li>Interfaces layer only depends on application layer</li>
+ * </ul>
+ */
+@AnalyzeClasses(packagesOf = {ServiceName}.class, importOptions = {
+    ImportOption.DoNotIncludeTests.class,
+    ImportOption.DoNotIncludeArchUnitRules.class
+})
+public class HexagonalArchitectureTest {
+
+    @ArchTest
+    static final ArchRule domain_layer_should_not_depend_on_infrastructure =
+        noClasses()
+            .that().resideInAPackage("..domain..")
+            .should().dependOnClassesThat()
+            .resideInAPackage("..infrastructure..")
+            .because("Domain layer must be independent of infrastructure");
+
+    @ArchTest
+    static final ArchRule domain_layer_should_not_depend_on_interfaces =
+        noClasses()
+            .that().resideInAPackage("..domain..")
+            .should().dependOnClassesThat()
+            .resideInAPackage("..interfaces..")
+            .because("Domain layer must be independent of interfaces");
+
+    @ArchTest
+    static final ArchRule domain_layer_should_not_contain_spring_annotations =
+        noClasses()
+            .that().resideInAPackage("..domain..")
+            .should().beAnnotatedWith("org.springframework.stereotype..")
+            .orShould().beAnnotatedWith("org.springframework.web.bind..")
+            .orShould().beAnnotatedWith("org.springframework.data..")
+            .orShould().beAnnotatedWith("org.springframework.kafka..")
+            .because("Domain layer must be framework-agnostic");
+
+    @ArchTest
+    static final ArchRule application_layer_should_only_depend_on_domain =
+        classes()
+            .that().resideInAPackage("..application..")
+            .should().onlyDependOnClassesThat()
+            .resideInAnyPackage(
+                "..application..",
+                "..domain..",
+                "java..",
+                "org.springframework..",
+                "lombok..",
+                "org.mapstruct..",
+                "jakarta.."
+            )
+            .because("Application layer should only use domain and utilities");
+
+    @ArchTest
+    static final ArchRule infrastructure_should_only_depend_on_domain_and_application_ports =
+        classes()
+            .that().resideInAPackage("..infrastructure..")
+            .should().onlyDependOnClassesThat()
+            .resideInAnyPackage(
+                "..infrastructure..",
+                "..domain..",
+                "..application..",
+                "java..",
+                "org.springframework..",
+                "lombok..",
+                "jakarta.."
+            )
+            .because("Infrastructure should implement domain and application ports");
+
+    @ArchTest
+    static final ArchRule interfaces_should_only_depend_on_application =
+        classes()
+            .that().resideInAPackage("..interfaces..")
+            .should().onlyDependOnClassesThat()
+            .resideInAnyPackage(
+                "..interfaces..",
+                "..application..",
+                "java..",
+                "org.springframework.web..",
+                "org.springframework.validation..",
+                "lombok..",
+                "jakarta.."
+            )
+            .because("Interfaces should only use application layer");
+
+    @ArchTest
+    static final ArchRule repositories_should_be_in_infrastructure =
+        classes()
+            .that().haveSimpleNameEndingWith("Repository")
+            .should().resideInAPackage("..infrastructure.persistence..")
+            .because("Repository implementations belong in infrastructure");
+
+    @ArchTest
+    static final ArchRule controllers_should_be_in_interfaces =
+        classes()
+            .that().haveSimpleNameEndingWith("Controller")
+            .should().resideInAPackage("..interfaces.rest..")
+            .because("Controllers belong in interfaces layer");
+
+    @ArchTest
+    static final ArchRule services_should_be_in_application =
+        classes()
+            .that().haveSimpleNameEndingWith("Service")
+            .should().resideInAPackage("..application.service..")
+            .because("Application services belong in application layer");
+}

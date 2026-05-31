@@ -1,0 +1,45 @@
+# Test Configuration for Global Sales Dashboard Service
+
+server:
+  port: 0 # Random port for tests
+
+spring:
+  application:
+    name: global-sales-dashboard-service-test
+
+  # MongoDB Test Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test-global-sales-dashboard-service_db
+      auto-index-creation: true
+
+  # Redis Test Configuration
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+
+  # Kafka Test Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    producer:
+      acks: all
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.dashboard: DEBUG
+    org.springframework.data.mongodb: WARN
+    org.springframework.kafka: WARN
+
+# Application Test Configuration
+global-sales-dashboard-service:
+  dashboard:
+    cache-ttl: 60
+    refresh-interval: 60000

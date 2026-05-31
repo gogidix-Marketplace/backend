@@ -1,0 +1,16 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-data-validation-service
+  namespace: ai-services
+  labels:
+    app: ai-data-validation-service
+    version: v1
+    team: team-ai-data-analytics
+    domain: ai-services
+    component: data-analytics
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-data-validation-service

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-document-classification-service
+  namespace: ai-services
+  labels:
+    app: ai-document-classification-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-document-classification-service
+  ports:
+  - name: http
+    port: 8220
+    targetPort: 8220
+    protocol: TCP

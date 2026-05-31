@@ -1,0 +1,196 @@
+/* Revenue Chart Styles */
+
+.revenue-chart-container {
+  width: 100%;
+  position: relative;
+}
+
+.revenue-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-bars rect {
+  transition: opacity 0.2s ease, height 0.3s ease;
+}
+
+.chart-bars rect:hover {
+  opacity: 1;
+}
+
+.chart-lines circle {
+  transition: r 0.2s ease;
+}
+
+.chart-lines circle:hover {
+  r: 7;
+  cursor: pointer;
+}
+
+.chart-value,
+.chart-label {
+  font-family: var(--font-family-base);
+}
+
+.chart-grid {
+  opacity: 0.8;
+}
+
+.chart-target-line {
+  opacity: 0.7;
+}
+
+/* Country Comparison Chart */
+
+.country-comparison-chart {
+  width: 100%;
+}
+
+.chart-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-4);
+  color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .chart-title {
+  color: var(--color-gray-200);
+}
+
+.country-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.country-bar-item {
+  display: grid;
+  grid-template-columns: 120px 1fr 24px;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.country-bar-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.country-flag {
+  font-size: var(--font-size-xl);
+}
+
+.country-name {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-gray-700);
+}
+
+[data-theme='dark'] .country-name {
+  color: var(--color-gray-300);
+}
+
+.country-bar-track {
+  position: relative;
+  height: 32px;
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+[data-theme='dark'] .country-bar-track {
+  background-color: var(--color-gray-800);
+}
+
+.country-bar-fill {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--spacing-3);
+  border-radius: var(--radius-lg);
+  transition: width 0.5s ease;
+  min-width: 40px;
+}
+
+.country-bar-fill-on_track {
+  background: linear-gradient(90deg, var(--color-success) 0%, #34D399 100%);
+}
+
+.country-bar-fill-at_risk {
+  background: linear-gradient(90deg, var(--color-warning) 0%, #FBBF24 100%);
+}
+
+.country-bar-fill-off_track {
+  background: linear-gradient(90deg, var(--color-error) 0%, #F87171 100%);
+}
+
+.country-bar-value {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.country-status-indicator {
+  font-size: var(--font-size-lg);
+  text-align: center;
+}
+
+.status-up {
+  color: var(--color-success);
+}
+
+.status-down {
+  color: var(--color-error);
+}
+
+.status-neutral {
+  color: var(--color-gray-400);
+}
+
+/* Monthly Trend Chart */
+
+.monthly-trend-chart {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mini Chart Variants */
+
+.revenue-chart--mini {
+  height: 60px;
+}
+
+.revenue-chart--mini .chart-value,
+.revenue-chart--mini .chart-label {
+  display: none;
+}
+
+.revenue-chart--sparkline {
+  height: 40px;
+}
+
+.revenue-chart--sparkline .chart-grid,
+.revenue-chart--sparkline .chart-value,
+.revenue-chart--sparkline .chart-label {
+  display: none;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .country-bar-item {
+    grid-template-columns: 80px 1fr 20px;
+    gap: var(--spacing-2);
+  }
+
+  .country-name {
+    font-size: var(--font-size-xs);
+  }
+
+  .chart-title {
+    font-size: var(--font-size-base);
+  }
+}

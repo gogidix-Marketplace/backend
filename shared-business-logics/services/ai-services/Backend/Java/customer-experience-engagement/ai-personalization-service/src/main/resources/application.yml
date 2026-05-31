@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: ai-personalization-service
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+
+ai:
+  inference:
+    base-url: http://localhost:8081
+    recommendation-endpoint: /api/v1/recommendations
+    affinity-endpoint: /api/v1/affinity
+    segment-endpoint: /api/v1/segment
+    timeout: 5000
+    max-retries: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.aiservices: DEBUG
+    org.springframework.web: INFO

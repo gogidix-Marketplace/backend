@@ -1,0 +1,121 @@
+package com.gogidix.finance.generalledger.application.dto.response;
+
+import com.gogidix.finance.generalledger.application.dto.response.ErrorResponseDto;
+import java.math.BigDecimal;
+import java.time.*;
+import java.util.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import static org.junit.jupiter.api.Assertions.*;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class ErrorResponseDtoTest {
+
+        @Test
+    void testBuilder() {
+        ErrorResponseDto dto = ErrorResponseDto.builder()
+                        .timestamp(Instant.parse("2025-01-15T10:00:00Z"))
+            .status(42)
+            .error("test-error")
+            .message("test-message")
+            .path("test-path")
+            .correlationId("test-correlationId")
+            .tenantId("test-tenantId")
+            .requestId("test-requestId")
+            .errorCode("test-errorCode")
+            .fieldErrors(Collections.emptyList())
+            .details("test-details")
+            .build();
+        assertNotNull(dto);
+        assertEquals(42, dto.getStatus());
+        assertEquals("test-error", dto.getError());
+        assertEquals("test-message", dto.getMessage());
+        assertEquals("test-path", dto.getPath());
+        assertEquals("test-correlationId", dto.getCorrelationId());
+        assertEquals("test-tenantId", dto.getTenantId());
+        assertEquals("test-requestId", dto.getRequestId());
+        assertEquals("test-errorCode", dto.getErrorCode());
+        assertEquals("test-details", dto.getDetails());
+    }
+
+    @Test
+    void testSettersAndGetters() {
+        ErrorResponseDto dto = new ErrorResponseDto();
+        dto.setStatus(99);
+        dto.setError("val-error");
+        dto.setMessage("val-message");
+        dto.setPath("val-path");
+        dto.setCorrelationId("val-correlationId");
+        dto.setTenantId("val-tenantId");
+        dto.setRequestId("val-requestId");
+        dto.setErrorCode("val-errorCode");
+        dto.setDetails("val-details");
+        assertEquals(99, dto.getStatus());
+        assertEquals("val-error", dto.getError());
+        assertEquals("val-message", dto.getMessage());
+        assertEquals("val-path", dto.getPath());
+        assertEquals("val-correlationId", dto.getCorrelationId());
+        assertEquals("val-tenantId", dto.getTenantId());
+        assertEquals("val-requestId", dto.getRequestId());
+        assertEquals("val-errorCode", dto.getErrorCode());
+        assertEquals("val-details", dto.getDetails());
+    }
+
+    @Test
+    void testEqualsAndHashCode() {
+        ErrorResponseDto dto1 = ErrorResponseDto.builder()
+                        .timestamp(Instant.parse("2025-01-15T10:00:00Z"))
+            .status(42)
+            .error("test-error")
+            .message("test-message")
+            .path("test-path")
+            .correlationId("test-correlationId")
+            .tenantId("test-tenantId")
+            .requestId("test-requestId")
+            .errorCode("test-errorCode")
+            .fieldErrors(Collections.emptyList())
+            .details("test-details")
+            .build();
+        ErrorResponseDto dto2 = ErrorResponseDto.builder()
+                        .timestamp(Instant.parse("2025-01-15T10:00:00Z"))
+            .status(42)
+            .error("test-error")
+            .message("test-message")
+            .path("test-path")
+            .correlationId("test-correlationId")
+            .tenantId("test-tenantId")
+            .requestId("test-requestId")
+            .errorCode("test-errorCode")
+            .fieldErrors(Collections.emptyList())
+            .details("test-details")
+            .build();
+        assertEquals(dto1, dto2);
+        assertEquals(dto1.hashCode(), dto2.hashCode());
+    }
+
+    @Test
+    void testToString() {
+        ErrorResponseDto dto = ErrorResponseDto.builder()
+                        .timestamp(Instant.parse("2025-01-15T10:00:00Z"))
+            .status(42)
+            .error("test-error")
+            .message("test-message")
+            .path("test-path")
+            .correlationId("test-correlationId")
+            .tenantId("test-tenantId")
+            .requestId("test-requestId")
+            .errorCode("test-errorCode")
+            .fieldErrors(Collections.emptyList())
+            .details("test-details")
+            .build();
+        String str = dto.toString();
+        assertNotNull(str);
+        assertTrue(str.length() > 0);
+    }
+
+}

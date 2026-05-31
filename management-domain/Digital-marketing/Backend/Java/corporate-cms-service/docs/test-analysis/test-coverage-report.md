@@ -1,0 +1,173 @@
+# Test Coverage Report - corporate-cms-service
+
+## Overview
+- **Service**: corporate-cms-service
+- **Analysis Date**: 2026-03-06T06:15:03Z
+- **Total Classes**: 77
+- **Test Files**: 8
+- **Total Test Methods**: 72
+- **Test Coverage**: 10%
+
+## Source Classes
+
+- `AuditorProvider.java` (`src/main/java/com/gogidix/corporatecms/application/config/AuditorProvider.java`)
+- `CacheConfig.java` (`src/main/java/com/gogidix/corporatecms/application/config/CacheConfig.java`)
+- `MongoConfig.java` (`src/main/java/com/gogidix/corporatecms/application/config/MongoConfig.java`)
+- `SecurityConfig.java` (`src/main/java/com/gogidix/corporatecms/application/config/SecurityConfig.java`)
+- `ApiResponse.java` (`src/main/java/com/gogidix/corporatecms/application/dto/ApiResponse.java`)
+- `ContentDTO.java` (`src/main/java/com/gogidix/corporatecms/application/dto/ContentDTO.java`)
+- `JobDTO.java` (`src/main/java/com/gogidix/corporatecms/application/dto/JobDTO.java`)
+- `LeadDTO.java` (`src/main/java/com/gogidix/corporatecms/application/dto/LeadDTO.java`)
+- `MediaDTO.java` (`src/main/java/com/gogidix/corporatecms/application/dto/MediaDTO.java`)
+- `PageResponse.java` (`src/main/java/com/gogidix/corporatecms/application/dto/PageResponse.java`)
+- `ProductDTO.java` (`src/main/java/com/gogidix/corporatecms/application/dto/ProductDTO.java`)
+- `UserDTO.java` (`src/main/java/com/gogidix/corporatecms/application/dto/UserDTO.java`)
+- `WorkflowDTO.java` (`src/main/java/com/gogidix/corporatecms/application/dto/WorkflowDTO.java`)
+- `DuplicateResourceException.java` (`src/main/java/com/gogidix/corporatecms/application/exception/DuplicateResourceException.java`)
+- `FileStorageException.java` (`src/main/java/com/gogidix/corporatecms/application/exception/FileStorageException.java`)
+- `GlobalExceptionHandler.java` (`src/main/java/com/gogidix/corporatecms/application/exception/GlobalExceptionHandler.java`)
+- `InvalidWorkflowTransitionException.java` (`src/main/java/com/gogidix/corporatecms/application/exception/InvalidWorkflowTransitionException.java`)
+- `ResourceNotFoundException.java` (`src/main/java/com/gogidix/corporatecms/application/exception/ResourceNotFoundException.java`)
+- `UnauthorizedException.java` (`src/main/java/com/gogidix/corporatecms/application/exception/UnauthorizedException.java`)
+- `ContentMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/ContentMapper.java`)
+- `JobMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/JobMapper.java`)
+- `LeadMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/LeadMapper.java`)
+- `MediaMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/MediaMapper.java`)
+- `ProductMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/ProductMapper.java`)
+- `UserMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/UserMapper.java`)
+- `WorkflowActionMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/WorkflowActionMapper.java`)
+- `WorkflowMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/WorkflowMapper.java`)
+- `WorkflowStepMapper.java` (`src/main/java/com/gogidix/corporatecms/application/mapper/WorkflowStepMapper.java`)
+- `JwtAuthenticationFilter.java` (`src/main/java/com/gogidix/corporatecms/application/security/JwtAuthenticationFilter.java`)
+- `JwtTokenProvider.java` (`src/main/java/com/gogidix/corporatecms/application/security/JwtTokenProvider.java`)
+- `UserDetailsImpl.java` (`src/main/java/com/gogidix/corporatecms/application/security/UserDetailsImpl.java`)
+- `UserDetailsServiceImpl.java` (`src/main/java/com/gogidix/corporatecms/application/security/UserDetailsServiceImpl.java`)
+- `CorporateCmsApplication.java` (`src/main/java/com/gogidix/corporatecms/CorporateCmsApplication.java`)
+- `ContentStatus.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/ContentStatus.java`)
+- `ContentType.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/ContentType.java`)
+- `JobStatus.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/JobStatus.java`)
+- `LeadStatus.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/LeadStatus.java`)
+- `MediaType.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/MediaType.java`)
+- `Permission.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/Permission.java`)
+- `UserRole.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/UserRole.java`)
+- `WorkflowStatus.java` (`src/main/java/com/gogidix/corporatecms/domain/enums/WorkflowStatus.java`)
+- `BaseEntity.java` (`src/main/java/com/gogidix/corporatecms/domain/model/BaseEntity.java`)
+- `Content.java` (`src/main/java/com/gogidix/corporatecms/domain/model/Content.java`)
+- `Job.java` (`src/main/java/com/gogidix/corporatecms/domain/model/Job.java`)
+- `Lead.java` (`src/main/java/com/gogidix/corporatecms/domain/model/Lead.java`)
+- `Media.java` (`src/main/java/com/gogidix/corporatecms/domain/model/Media.java`)
+- `Product.java` (`src/main/java/com/gogidix/corporatecms/domain/model/Product.java`)
+- `User.java` (`src/main/java/com/gogidix/corporatecms/domain/model/User.java`)
+- `Workflow.java` (`src/main/java/com/gogidix/corporatecms/domain/model/Workflow.java`)
+- `ContentRepository.java` (`src/main/java/com/gogidix/corporatecms/domain/repository/ContentRepository.java`)
+- `JobRepository.java` (`src/main/java/com/gogidix/corporatecms/domain/repository/JobRepository.java`)
+- `LeadRepository.java` (`src/main/java/com/gogidix/corporatecms/domain/repository/LeadRepository.java`)
+- `MediaRepository.java` (`src/main/java/com/gogidix/corporatecms/domain/repository/MediaRepository.java`)
+- `ProductRepository.java` (`src/main/java/com/gogidix/corporatecms/domain/repository/ProductRepository.java`)
+- `UserRepository.java` (`src/main/java/com/gogidix/corporatecms/domain/repository/UserRepository.java`)
+- `WorkflowRepository.java` (`src/main/java/com/gogidix/corporatecms/domain/repository/WorkflowRepository.java`)
+- `AnalyticsService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/AnalyticsService.java`)
+- `AuthenticationService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/AuthenticationService.java`)
+- `ContentService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/ContentService.java`)
+- `JobService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/JobService.java`)
+- `LeadService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/LeadService.java`)
+- `MediaService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/MediaService.java`)
+- `ProductService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/ProductService.java`)
+- `UserService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/UserService.java`)
+- `WorkflowService.java` (`src/main/java/com/gogidix/corporatecms/domain/service/WorkflowService.java`)
+- `ScheduledTasks.java` (`src/main/java/com/gogidix/corporatecms/infrastructure/adapter/ScheduledTasks.java`)
+- `SecurityConfig.java` (`src/main/java/com/gogidix/corporatecms/infrastructure/security/SecurityConfig.java`)
+- `AnalyticsController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/AnalyticsController.java`)
+- `AuthController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/AuthController.java`)
+- `ContentController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/ContentController.java`)
+- `JobController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/JobController.java`)
+- `LeadController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/LeadController.java`)
+- `MediaController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/MediaController.java`)
+- `ProductController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/ProductController.java`)
+- `UserController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/UserController.java`)
+- `WorkflowController.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/controller/WorkflowController.java`)
+- `OpenApiConfig.java` (`src/main/java/com/gogidix/corporatecms/interfaces/rest/openapi/OpenApiConfig.java`)
+
+## Test Files
+
+- `ContentServiceTest.java` (`src/test/java/com/gogidix/corporatecms/domain/service/ContentServiceTest.java`) - **11 test methods**
+- `JobServiceTest.java` (`src/test/java/com/gogidix/corporatecms/domain/service/JobServiceTest.java`) - **10 test methods**
+- `LeadServiceTest.java` (`src/test/java/com/gogidix/corporatecms/domain/service/LeadServiceTest.java`) - **8 test methods**
+- `MediaServiceTest.java` (`src/test/java/com/gogidix/corporatecms/domain/service/MediaServiceTest.java`) - **10 test methods**
+- `ProductServiceTest.java` (`src/test/java/com/gogidix/corporatecms/domain/service/ProductServiceTest.java`) - **10 test methods**
+- `UserServiceTest.java` (`src/test/java/com/gogidix/corporatecms/domain/service/UserServiceTest.java`) - **8 test methods**
+- `WorkflowServiceTest.java` (`src/test/java/com/gogidix/corporatecms/domain/service/WorkflowServiceTest.java`) - **9 test methods**
+- `ContentControllerTest.java` (`src/test/java/com/gogidix/corporatecms/infrastructure/rest/ContentControllerTest.java`) - **6 test methods**
+
+## Classes Without Tests
+
+- AuditorProvider
+- CacheConfig
+- MongoConfig
+- SecurityConfig
+- ApiResponse
+- ContentDTO
+- JobDTO
+- LeadDTO
+- MediaDTO
+- PageResponse
+- ProductDTO
+- UserDTO
+- WorkflowDTO
+- DuplicateResourceException
+- FileStorageException
+- GlobalExceptionHandler
+- InvalidWorkflowTransitionException
+- ResourceNotFoundException
+- UnauthorizedException
+- ContentMapper
+- JobMapper
+- LeadMapper
+- MediaMapper
+- ProductMapper
+- UserMapper
+- WorkflowActionMapper
+- WorkflowMapper
+- WorkflowStepMapper
+- JwtAuthenticationFilter
+- JwtTokenProvider
+- UserDetailsImpl
+- UserDetailsServiceImpl
+- CorporateCmsApplication
+- ContentStatus
+- ContentType
+- JobStatus
+- LeadStatus
+- MediaType
+- Permission
+- UserRole
+- WorkflowStatus
+- BaseEntity
+- Content
+- Job
+- Lead
+- Media
+- Product
+- User
+- Workflow
+- ContentRepository
+- JobRepository
+- LeadRepository
+- MediaRepository
+- ProductRepository
+- UserRepository
+- WorkflowRepository
+- AnalyticsService
+- AuthenticationService
+- ScheduledTasks
+- SecurityConfig
+- AnalyticsController
+- AuthController
+- JobController
+- LeadController
+- MediaController
+- ProductController
+- UserController
+- WorkflowController
+- OpenApiConfig
+All classes have tests!

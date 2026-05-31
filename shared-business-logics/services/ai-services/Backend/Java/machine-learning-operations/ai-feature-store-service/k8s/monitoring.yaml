@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ai-feature-store-service
+  namespace: ai-services
+  labels:
+    app: ai-feature-store-service
+    team: team-ai-mlops
+spec:
+  selector:
+    matchLabels:
+      app: ai-feature-store-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s

@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: performance-review-service
+  data:
+    mongodb:
+      database: performance-review-service_db

@@ -1,0 +1,235 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lock-service-config
+  namespace: infra-lock
+  labels:
+    app: lock-service
+    version: v1
+data:
+  application.yml: |
+    server:
+      port: 8410
+    spring:
+      application:
+        name: lock-service
+      cloud:
+        discovery:
+          enabled: true
+          service-url:
+            defaultZone: http://discovery-service.infrastructure.svc.cluster.local:8761/eureka/
+        config:
+          enabled: true
+          uri: http://config-server.centralized-config.svc.cluster.local:8210
+          fail-fast: true
+      datasource:
+        url: jdbc:postgresql://postgresql.infrastructure.svc.cluster.local:5432/lock-db
+        username: lock-user
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: update
+        show-sql: false
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+      redis:
+        host: redis-sentinel-cluster.infrastructure.svc.cluster.local
+        port: 26379
+        sentinel:
+          master: mymaster
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: lock-service-secrets
+  namespace: infra-lock
+  labels:
+    app: lock-service
+type: Opaque
+stringData:
+  postgresql-password: "ChangeThisInProduction123!"
+  redis-password: "ChangeThisInProduction123!"
+  jwt-secret: "ChangeThisJwtSecretInProduction"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lock-service
+  namespace: infra-lock
+  labels:
+    app: lock-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lock-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: lock-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8410"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: lock-service
+      containers:
+        - name: lock-service
+          image: gogidix/lock-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8410
+              protocol: TCP
+            - name: management
+              containerPort: 8410
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lock-service-secrets
+                  key: postgresql-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lock-service-secrets
+                  key: redis-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: lock-service-secrets
+                  key: jwt-secret
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: "http://discovery-service.infrastructure.svc.cluster.local:8761/eureka/"
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: "http://config-server.centralized-config.svc.cluster.local:8210"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "health,info,metrics,prometheus"
+          envFrom:
+            - configMapRef:
+                name: lock-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8410
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8410
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - lock-service
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lock-service
+  namespace: infra-lock
+  labels:
+    app: lock-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8410
+      targetPort: 8410
+      protocol: TCP
+  selector:
+    app: lock-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lock-service
+  namespace: infra-lock
+  labels:
+    app: lock-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lock-service-hpa
+  namespace: infra-lock
+  labels:
+    app: lock-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lock-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lock-service-pdb
+  namespace: infra-lock
+  labels:
+    app: lock-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: lock-service

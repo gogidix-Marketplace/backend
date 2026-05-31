@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: supply-chain-optimization-service
+  main:
+    banner-mode: off
+
+server:
+  port: 8081
+
+ai:
+  service:
+    base-url: http://localhost:9091
+    optimization-endpoint: /api/v1/optimize
+    timeout: 30000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.aiservices: INFO
+    org.springframework: WARN

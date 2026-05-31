@@ -1,0 +1,130 @@
+.metric-card {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.metric-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.metric-card-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+}
+
+.metric-card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: var(--spacing-sm);
+}
+
+.metric-card-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-gray-400);
+  margin-left: var(--spacing-xs);
+}
+
+.metric-card-change {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.8125rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.metric-card-change.positive {
+  color: var(--color-success);
+}
+
+.metric-card-change.negative {
+  color: var(--color-error);
+}
+
+.metric-card-change.neutral {
+  color: var(--color-gray-500);
+}
+
+.change-icon {
+  font-weight: 600;
+}
+
+.change-value {
+  font-weight: 600;
+}
+
+.metric-card-target {
+  font-size: 0.8125rem;
+  color: var(--color-gray-500);
+  margin-top: var(--spacing-sm);
+}
+
+.target-label {
+  font-weight: 500;
+}
+
+.metric-card-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.progress-fill.success {
+  background-color: var(--color-success);
+}
+
+.progress-fill.warning {
+  background-color: var(--color-warning);
+}
+
+.progress-fill.danger {
+  background-color: var(--color-error);
+}
+
+.progress-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+  min-width: 2.5rem;
+  text-align: right;
+}

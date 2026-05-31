@@ -1,0 +1,232 @@
+name: Code Quality - Platform Services
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@1de1a71b382c93941688b189d9a18c7049058f84
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run Checkstyle - platform-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/platform-service
+      continue-on-error: true
+
+    - name: Run Checkstyle - subscription-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/subscription-service
+      continue-on-error: true
+
+    - name: Run Checkstyle - tenant-registry-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/tenant-registry-service
+      continue-on-error: true
+
+    - name: Run Checkstyle - usage-metering-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/usage-metering-service
+      continue-on-error: true
+
+  spotbugs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@1de1a71b382c93941688b189d9a18c7049058f84
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run SpotBugs - platform-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/platform-service
+      continue-on-error: true
+
+    - name: Run SpotBugs - subscription-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/subscription-service
+      continue-on-error: true
+
+    - name: Run SpotBugs - tenant-registry-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/tenant-registry-service
+      continue-on-error: true
+
+    - name: Run SpotBugs - usage-metering-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/usage-metering-service
+      continue-on-error: true
+
+    - name: Upload SpotBugs reports
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      with:
+        name: spotbugs-reports
+        path: |
+          Backend/Java/platform-service/target/spotbugsXml.xml
+          Backend/Java/subscription-service/target/spotbugsXml.xml
+          Backend/Java/tenant-registry-service/target/spotbugsXml.xml
+          Backend/Java/usage-metering-service/target/spotbugsXml.xml
+        retention-days: 7
+
+  pmd-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@1de1a71b382c93941688b189d9a18c7049058f84
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run PMD - platform-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/platform-service
+      continue-on-error: true
+
+    - name: Run PMD - subscription-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/subscription-service
+      continue-on-error: true
+
+    - name: Run PMD - tenant-registry-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/tenant-registry-service
+      continue-on-error: true
+
+    - name: Run PMD - usage-metering-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/usage-metering-service
+      continue-on-error: true
+
+  sonarcloud:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      with:
+        fetch-depth: 0
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@1de1a71b382c93941688b189d9a18c7049058f84
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache SonarCloud packages
+      uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Run SonarCloud scan
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -Dsonar.projectKey=gogidix-platform-services \
+          -Dsonar.organization=gogidix \
+          -Dsonar.host.url=https://sonarcloud.io
+      working-directory: Backend/Java
+
+  coverage-report:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@1de1a71b382c93941688b189d9a18c7049058f84
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Generate JaCoCo coverage report
+      run: |
+        mvn clean test jacoco:report
+      working-directory: Backend/Java
+
+    - name: Add coverage comment to PR
+      uses: madrapps/jacoco-report@24171c2c9c06d7a4ec279b318dc4e0d7b4a64970
+      with:
+        paths: |
+          Backend/Java/platform-service/target/site/jacoco/jacoco.xml
+          Backend/Java/subscription-service/target/site/jacoco/jacoco.xml
+          Backend/Java/tenant-registry-service/target/site/jacoco/jacoco.xml
+          Backend/Java/usage-metering-service/target/site/jacoco/jacoco.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+        min-coverage-overall: 40
+        min-coverage-changed-files: 60

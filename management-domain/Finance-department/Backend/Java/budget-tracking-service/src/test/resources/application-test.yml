@@ -1,0 +1,33 @@
+# Test Configuration for Budget Tracking Service
+spring:
+  application:
+    name: budget-tracking-service-test
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: budget-tracking-test-db
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: budget-tracking-test-group
+      auto-offset-reset: earliest
+spring.redis:
+  host: localhost
+  port: 6379
+  database: 7
+server:
+  port: 0
+logging:
+  level:
+    com.gogidix.finance.budgettracking: DEBUG
+    org.springframework.kafka: WARN
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+test:
+  tenant:
+    id: tenant-test-001

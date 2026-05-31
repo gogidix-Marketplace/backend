@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: checkout-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_checkout
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        checkoutEvents-out-0:
+          destination: checkout-events
+          content-type: application/json
+
+server:
+  port: 8318
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.checkout: DEBUG

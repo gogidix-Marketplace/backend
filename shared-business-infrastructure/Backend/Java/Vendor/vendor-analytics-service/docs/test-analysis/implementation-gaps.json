@@ -1,0 +1,14 @@
+{
+  "serviceName": "vendor-analytics-service",
+  "analysisDate": "2026-03-06T13:26:31Z",
+  "summary": {
+    "totalFiles": 0,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

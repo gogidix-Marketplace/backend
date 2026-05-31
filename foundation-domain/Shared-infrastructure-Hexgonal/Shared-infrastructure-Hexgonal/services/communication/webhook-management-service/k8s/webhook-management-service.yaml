@@ -1,0 +1,215 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-management-service-config
+  namespace: infrastructure
+  labels:
+    app: webhook-management-service
+    version: v1
+data:
+  application.yml: |
+    server:
+      port: 8080
+    spring:
+      application:
+        name: webhook-management-service
+      cloud:
+        discovery:
+          enabled: true
+          service-url:
+            defaultZone: http://discovery-service:8761/eureka/
+        config:
+          enabled: true
+          uri: http://config-server:8888
+      data:
+        mongodb:
+          uri: mongodb://webhook-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/webhook-management?authSource=admin
+          auto-index-creation: true
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+    webhook:
+      retry-attempts: 3
+      retry-delay-ms: 1000
+      timeout-seconds: 30
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-management-service-secrets
+  namespace: infrastructure
+  labels:
+    app: webhook-management-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+  webhook-secret: "ChangeThisWebhookSecretInProduction"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-management-service
+  namespace: infrastructure
+  labels:
+    app: webhook-management-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: webhook-management-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: webhook-management-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: webhook-management-service
+      containers:
+        - name: webhook-management-service
+          image: gogidix/webhook-management-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-management-service-secrets
+                  key: mongodb-password
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-management-service-secrets
+                  key: webhook-secret
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: "http://discovery-service:8761/eureka/"
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: "http://config-server:8888"
+          envFrom:
+            - configMapRef:
+                name: webhook-management-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - webhook-management-service
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-management-service
+  namespace: infrastructure
+  labels:
+    app: webhook-management-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: webhook-management-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-management-service
+  namespace: infrastructure
+  labels:
+    app: webhook-management-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: webhook-management-service-hpa
+  namespace: infrastructure
+  labels:
+    app: webhook-management-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: webhook-management-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: webhook-management-service-pdb
+  namespace: infrastructure
+  labels:
+    app: webhook-management-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: webhook-management-service

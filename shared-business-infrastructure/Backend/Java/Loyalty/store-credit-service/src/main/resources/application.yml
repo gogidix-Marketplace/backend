@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: store-credit-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_storecredit
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        storecreditEvents-out-0:
+          destination: storecredit-events
+          content-type: application/json
+server:
+  port: 8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.storecredit: DEBUG

@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: business-logics-api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      routes: []
+  redis:
+    host: localhost
+    port: 6379
+
+jwt:
+  secret: test-secret-key-must-be-at-least-32-characters-long
+
+eureka:
+  client:
+    enabled: false
+
+server:
+  port: 0

@@ -1,0 +1,981 @@
+package com.gogidix.shared.model.domain.model.order;
+
+import com.gogidix.shared.model.domain.model.BaseEntity;
+import com.gogidix.shared.model.domain.model.EntityStatus;
+import com.gogidix.shared.model.domain.model.ValidationResult;
+import com.gogidix.shared.model.domain.model.user.UserStatus;
+import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+/**
+ * Rich Domain Model for Order - HEXAGONAL ARCHITECTURE TEMPLATE
+ * 
+ * This serves as the comprehensive order domain model for Agent B services.
+ * Demonstrates:
+ * - Rich order business logic and lifecycle management
+ * - Zero infrastructure dependencies (NO Lombok, JPA, etc.)
+ * - Immutable design with builder pattern
+ * - Order processing, fulfillment, and financial calculations
+ * - Complex business rules and state management
+ * 
+ * @author Agent A - Foundation Lead
+ * @template-for Agent B Order Management
+ * @version 1.0.0
+ */
+public class Order extends BaseEntity {
+    
+    // Order Identity (immutable)
+    private final String orderNumber;
+    private final String customerOrderReference;
+    private final UUID customerId;
+    private final String customerEmail;
+    private final String customerName;
+    
+    // Order Classification (immutable)
+    private final OrderType orderType;
+    private final OrderStatus orderStatus;
+    private final OrderPriority priority;
+    private final String sourceChannel;
+    private final String salesChannel;
+    private final String region;
+    private final String currency;
+    
+    // Financial Information (immutable)
+    private final BigDecimal subtotalAmount;
+    private final BigDecimal taxAmount;
+    private final BigDecimal shippingAmount;
+    private final BigDecimal discountAmount;
+    private final BigDecimal totalAmount;
+    private final BigDecimal paidAmount;
+    private final BigDecimal refundedAmount;
+    private final PaymentStatus paymentStatus;
+    private final String paymentMethod;
+    private final String paymentTransactionId;
+    
+    // Order Items (immutable)
+    private final List<OrderItem> items;
+    private final int totalQuantity;
+    private final double totalWeight;
+    private final String packageDimensions;
+    
+    // Fulfillment Information (immutable)
+    private final FulfillmentStatus fulfillmentStatus;
+    private final LocalDateTime orderDate;
+    private final LocalDateTime requestedDeliveryDate;
+    private final LocalDateTime promisedDeliveryDate;
+    private final LocalDateTime actualDeliveryDate;
+    private final LocalDateTime shippedDate;
+    private final String trackingNumber;
+    private final String shippingCarrier;
+    private final String shippingMethod;
+    
+    // Address Information (immutable)
+    private final Address billingAddress;
+    private final Address shippingAddress;
+    private final boolean sameAsBilling;
+    
+    // Business Context (immutable)
+    private final String promotionCode;
+    private final Set<String> appliedDiscounts;
+    private final String loyaltyPointsUsed;
+    private final String giftMessage;
+    private final boolean isGiftOrder;
+    private final boolean requiresAgeVerification;
+    private final boolean isInternational;
+    
+    // Order Processing (immutable)
+    private final LocalDateTime cancelledDate;
+    private final String cancellationReason;
+    private final String cancellationSource;
+    private final boolean isRefundable;
+    private final boolean isExchangeable;
+    private final LocalDateTime returnWindowCloses;
+    private final Map<String, Object> orderAttributes;
+    private final String specialInstructions;
+    
+    // Constructor for Order creation
+    public Order(UUID id, Long version, LocalDateTime createdAt, String createdBy,
+                LocalDateTime updatedAt, String updatedBy, boolean deleted,
+                LocalDateTime deletedAt, String deletedBy, String deletionReason,
+                String orderNumber, String customerOrderReference, UUID customerId, 
+                String customerEmail, String customerName,
+                OrderType orderType, OrderStatus orderStatus, OrderPriority priority, 
+                String sourceChannel, String salesChannel, String region, String currency,
+                BigDecimal subtotalAmount, BigDecimal taxAmount, BigDecimal shippingAmount, 
+                BigDecimal discountAmount, BigDecimal totalAmount, BigDecimal paidAmount, 
+                BigDecimal refundedAmount, PaymentStatus paymentStatus, String paymentMethod, 
+                String paymentTransactionId,
+                List<OrderItem> items, int totalQuantity, double totalWeight, String packageDimensions,
+                FulfillmentStatus fulfillmentStatus, LocalDateTime orderDate, 
+                LocalDateTime requestedDeliveryDate, LocalDateTime promisedDeliveryDate, 
+                LocalDateTime actualDeliveryDate, LocalDateTime shippedDate, 
+                String trackingNumber, String shippingCarrier, String shippingMethod,
+                Address billingAddress, Address shippingAddress, boolean sameAsBilling,
+                String promotionCode, Set<String> appliedDiscounts, String loyaltyPointsUsed, 
+                String giftMessage, boolean isGiftOrder, boolean requiresAgeVerification, 
+                boolean isInternational,
+                LocalDateTime cancelledDate, String cancellationReason, String cancellationSource, 
+                boolean isRefundable, boolean isExchangeable, LocalDateTime returnWindowCloses, 
+                Map<String, Object> orderAttributes, String specialInstructions) {
+        
+        super(id, version, "ORDER", createdAt, createdBy, updatedAt, updatedBy, 
+              deleted, deletedAt, deletedBy, deletionReason, 
+              mapOrderStatusToEntityStatus(orderStatus != null ? orderStatus : OrderStatus.PENDING), 
+              null, null, null);
+              
+        this.orderNumber = orderNumber;
+        this.customerOrderReference = customerOrderReference;
+        this.customerId = customerId;
+        this.customerEmail = customerEmail;
+        this.customerName = customerName;
+        this.orderType = orderType;
+        this.orderStatus = orderStatus != null ? orderStatus : OrderStatus.PENDING;
+        this.priority = priority != null ? priority : OrderPriority.NORMAL;
+        this.sourceChannel = sourceChannel;
+        this.salesChannel = salesChannel;
+        this.region = region;
+        this.currency = currency;
+        this.subtotalAmount = subtotalAmount != null ? subtotalAmount : BigDecimal.ZERO;
+        this.taxAmount = taxAmount != null ? taxAmount : BigDecimal.ZERO;
+        this.shippingAmount = shippingAmount != null ? shippingAmount : BigDecimal.ZERO;
+        this.discountAmount = discountAmount != null ? discountAmount : BigDecimal.ZERO;
+        this.totalAmount = totalAmount != null ? totalAmount : BigDecimal.ZERO;
+        this.paidAmount = paidAmount != null ? paidAmount : BigDecimal.ZERO;
+        this.refundedAmount = refundedAmount != null ? refundedAmount : BigDecimal.ZERO;
+        this.paymentStatus = paymentStatus != null ? paymentStatus : PaymentStatus.PENDING;
+        this.paymentMethod = paymentMethod;
+        this.paymentTransactionId = paymentTransactionId;
+        this.items = items != null ? new ArrayList<>(items) : new ArrayList<>();
+        this.totalQuantity = totalQuantity;
+        this.totalWeight = totalWeight;
+        this.packageDimensions = packageDimensions;
+        this.fulfillmentStatus = fulfillmentStatus != null ? fulfillmentStatus : FulfillmentStatus.PENDING;
+        this.orderDate = orderDate;
+        this.requestedDeliveryDate = requestedDeliveryDate;
+        this.promisedDeliveryDate = promisedDeliveryDate;
+        this.actualDeliveryDate = actualDeliveryDate;
+        this.shippedDate = shippedDate;
+        this.trackingNumber = trackingNumber;
+        this.shippingCarrier = shippingCarrier;
+        this.shippingMethod = shippingMethod;
+        this.billingAddress = billingAddress;
+        this.shippingAddress = shippingAddress;
+        this.sameAsBilling = sameAsBilling;
+        this.promotionCode = promotionCode;
+        this.appliedDiscounts = appliedDiscounts != null ? new HashSet<>(appliedDiscounts) : new HashSet<>();
+        this.loyaltyPointsUsed = loyaltyPointsUsed;
+        this.giftMessage = giftMessage;
+        this.isGiftOrder = isGiftOrder;
+        this.requiresAgeVerification = requiresAgeVerification;
+        this.isInternational = isInternational;
+        this.cancelledDate = cancelledDate;
+        this.cancellationReason = cancellationReason;
+        this.cancellationSource = cancellationSource;
+        this.isRefundable = isRefundable;
+        this.isExchangeable = isExchangeable;
+        this.returnWindowCloses = returnWindowCloses;
+        this.orderAttributes = orderAttributes != null ? new HashMap<>(orderAttributes) : new HashMap<>();
+        this.specialInstructions = specialInstructions;
+    }
+    
+    /**
+     * Calculates the total number of items in the order.
+     */
+    public int getTotalItemCount() {
+        return items != null ? items.stream()
+                .mapToInt(OrderItem::getQuantity)
+                .sum() : 0;
+    }
+    
+    /**
+     * Gets the total weight of all items.
+     */
+    public double getTotalWeight() {
+        return items != null ? items.stream()
+                .mapToDouble(item -> item.getWeight() * item.getQuantity())
+                .sum() : 0.0;
+    }
+    
+    /**
+     * Checks if the order can be cancelled.
+     */
+    public boolean canBeCancelled() {
+        return orderStatus == OrderStatus.PENDING || 
+               orderStatus == OrderStatus.CONFIRMED ||
+               orderStatus == OrderStatus.PROCESSING;
+    }
+    
+    /**
+     * Checks if the order can be modified.
+     */
+    public boolean canBeModified() {
+        return orderStatus == OrderStatus.PENDING || orderStatus == OrderStatus.CONFIRMED;
+    }
+    
+    /**
+     * Checks if the order can be shipped.
+     */
+    public boolean canBeShipped() {
+        return orderStatus == OrderStatus.CONFIRMED || orderStatus == OrderStatus.PROCESSING;
+    }
+    
+    /**
+     * Checks if the order is completed.
+     */
+    public boolean isCompleted() {
+        return orderStatus == OrderStatus.DELIVERED || orderStatus == OrderStatus.COMPLETED;
+    }
+    
+    /**
+     * Checks if the order is cancelled.
+     */
+    public boolean isCancelled() {
+        return orderStatus == OrderStatus.CANCELLED;
+    }
+    
+    /**
+     * Checks if payment is required.
+     */
+    public boolean requiresPayment() {
+        return paymentStatus == PaymentStatus.PENDING || 
+               paymentStatus == PaymentStatus.FAILED;
+    }
+    
+    /**
+     * Checks if the order is paid.
+     */
+    public boolean isPaid() {
+        return paymentStatus == PaymentStatus.COMPLETED || 
+               paymentStatus == PaymentStatus.REFUNDED;
+    }
+    
+    /**
+     * Business Logic: Confirm the order (change from PENDING to CONFIRMED)
+     */
+    public Order confirmOrder(String confirmedBy) {
+        if (orderStatus != OrderStatus.PENDING) {
+            throw new IllegalStateException("Only pending orders can be confirmed");
+        }
+        return withOrderStatus(OrderStatus.CONFIRMED);
+    }
+    
+    /**
+     * Business Logic: Start processing the order
+     */
+    public Order startProcessing(String processedBy) {
+        if (orderStatus != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException("Only confirmed orders can be processed");
+        }
+        return withOrderStatus(OrderStatus.PROCESSING);
+    }
+    
+    /**
+     * Business Logic: Ship the order with tracking information
+     */
+    public Order shipOrder(String trackingNumber, String shippedBy) {
+        if (!canBeShipped()) {
+            throw new IllegalStateException("Order cannot be shipped in current status: " + orderStatus);
+        }
+        return withOrderStatus(OrderStatus.SHIPPED).withTrackingNumber(trackingNumber);
+    }
+    
+    /**
+     * Business Logic: Mark order as delivered
+     */
+    public Order deliverOrder(String deliveredBy) {
+        if (orderStatus != OrderStatus.SHIPPED) {
+            throw new IllegalStateException("Only shipped orders can be delivered");
+        }
+        return withOrderStatus(OrderStatus.DELIVERED);
+    }
+    
+    /**
+     * Business Logic: Cancel the order with reason
+     */
+    public Order cancelOrder(String reason, String cancelledBy) {
+        if (!canBeCancelled()) {
+            throw new IllegalStateException("Order cannot be cancelled in current status: " + orderStatus);
+        }
+        return withOrderStatus(OrderStatus.CANCELLED);
+    }
+    
+    /**
+     * Calculates order processing time in hours.
+     */
+    public long getProcessingTimeHours() {
+        if (orderDate == null) return 0;
+        
+        LocalDateTime endTime = switch (orderStatus) {
+            case DELIVERED, COMPLETED -> actualDeliveryDate != null ? actualDeliveryDate : LocalDateTime.now();
+            case CANCELLED -> cancelledDate != null ? cancelledDate : LocalDateTime.now();
+            case SHIPPED -> shippedDate != null ? shippedDate : LocalDateTime.now();
+            default -> LocalDateTime.now();
+        };
+        
+        return java.time.Duration.between(orderDate, endTime).toHours();
+    }
+    
+    /**
+     * Checks if the order is overdue for processing.
+     */
+    public boolean isOverdueForProcessing(int maxHours) {
+        return orderStatus == OrderStatus.PENDING && getProcessingTimeHours() > maxHours;
+    }
+    
+    /**
+     * Checks if delivery is overdue.
+     */
+    public boolean isOverdueForDelivery() {
+        return promisedDeliveryDate != null && 
+               LocalDateTime.now().isAfter(promisedDeliveryDate) &&
+               orderStatus != OrderStatus.DELIVERED && 
+               orderStatus != OrderStatus.COMPLETED &&
+               orderStatus != OrderStatus.CANCELLED;
+    }
+    
+    /**
+     * Gets order priority level.
+     */
+    public OrderPriority getPriorityLevel() {
+        return priority != null ? priority : OrderPriority.NORMAL;
+    }
+    
+    /**
+     * Calculates the order value score for analytics.
+     */
+    public double getValueScore() {
+        double baseScore = totalAmount.doubleValue();
+        double itemScore = getTotalItemCount() * 10.0;
+        double priorityMultiplier = switch (priority) {
+            case URGENT -> 1.4;
+            case HIGH -> 1.2;
+            case NORMAL -> 1.0;
+            case LOW -> 0.8;
+        };
+        
+        return (baseScore + itemScore) * priorityMultiplier;
+    }
+    
+    @Override
+    public boolean isValid() {
+        return orderNumber != null && !orderNumber.trim().isEmpty() &&
+               customerId != null &&
+               orderStatus != null &&
+               paymentStatus != null &&
+               totalAmount != null &&
+               items != null && !items.isEmpty() &&
+               orderDate != null;
+    }
+    
+    @Override
+    public String getEntityType() {
+        return "ORDER";
+    }
+    
+    /**
+     * Determines if this order can be deleted.
+     */
+    @Override
+    public boolean canBeDeleted() {
+        return super.canBeDeleted() && 
+               (orderStatus == OrderStatus.CANCELLED || 
+                (orderStatus == OrderStatus.PENDING && paymentStatus != PaymentStatus.COMPLETED));
+    }
+    
+    /**
+     * Business Logic: Check if order is in a final state
+     */
+    public boolean isFinalState() {
+        return orderStatus == OrderStatus.DELIVERED || 
+               orderStatus == OrderStatus.COMPLETED ||
+               orderStatus == OrderStatus.CANCELLED ||
+               orderStatus == OrderStatus.REFUNDED;
+    }
+    
+    /**
+     * Business Logic: Check if order can be tracked
+     */
+    public boolean canBeTracked() {
+        return trackingNumber != null && !trackingNumber.trim().isEmpty() &&
+               orderStatus == OrderStatus.SHIPPED;
+    }
+    
+    /**
+     * Business Logic: Check if order is eligible for refund
+     */
+    public boolean isEligibleForRefund() {
+        return isRefundable && 
+               paymentStatus == PaymentStatus.COMPLETED &&
+               (orderStatus == OrderStatus.DELIVERED || orderStatus == OrderStatus.COMPLETED) &&
+               isWithinRefundWindow();
+    }
+    
+    /**
+     * Business Logic: Check if order is within refund window
+     */
+    public boolean isWithinRefundWindow() {
+        if (actualDeliveryDate == null) return false;
+        return actualDeliveryDate.plusDays(30).isAfter(LocalDateTime.now());
+    }
+    
+    /**
+     * Business Logic: Check if order is eligible for exchange
+     */
+    public boolean isEligibleForExchange() {
+        return isExchangeable &&
+               orderStatus == OrderStatus.DELIVERED &&
+               isWithinExchangeWindow();
+    }
+    
+    /**
+     * Business Logic: Check if order is within exchange window
+     */
+    public boolean isWithinExchangeWindow() {
+        if (actualDeliveryDate == null) return false;
+        return actualDeliveryDate.plusDays(14).isAfter(LocalDateTime.now());
+    }
+    
+    /**
+     * Business Calculation: Get order profit margin
+     */
+    public BigDecimal getProfitMargin() {
+        BigDecimal cost = items.stream()
+            .map(item -> item.getCostPrice().multiply(item.getQuantity()).getAmount())
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        if (totalAmount.equals(BigDecimal.ZERO)) return BigDecimal.ZERO;
+        
+        BigDecimal profit = totalAmount.subtract(cost);
+        return profit.divide(totalAmount, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+    }
+    
+    /**
+     * Business Logic: Calculate estimated delivery date based on shipping method
+     */
+    public LocalDateTime calculateEstimatedDelivery() {
+        if (orderDate == null) return null;
+        
+        int businessDays = switch (shippingMethod.toLowerCase()) {
+            case "express", "overnight" -> 1;
+            case "priority", "2-day" -> 2;
+            case "standard" -> 5;
+            case "economy" -> 7;
+            case "international" -> 14;
+            default -> 5;
+        };
+        
+        LocalDateTime estimated = orderDate.plusDays(businessDays);
+        
+        // Adjust for international orders
+        if (isInternational) {
+            estimated = estimated.plusDays(3);
+        }
+        
+        // Adjust for priority
+        if (priority == OrderPriority.URGENT) {
+            estimated = estimated.minusDays(1);
+        }
+        
+        return estimated;
+    }
+    
+    /**
+     * Business Logic: Get order status summary
+     */
+    public OrderStatusSummary getStatusSummary() {
+        return new OrderStatusSummary(
+            orderNumber,
+            orderStatus,
+            paymentStatus,
+            fulfillmentStatus,
+            getProcessingTimeHours(),
+            isOverdueForProcessing(24),
+            isOverdueForDelivery(),
+            canBeCancelled(),
+            requiresPayment()
+        );
+    }
+    
+    /**
+     * Business Logic: Calculate shipping cost based on weight and destination
+     */
+    public BigDecimal calculateShippingCost() {
+        BigDecimal baseCost = BigDecimal.valueOf(5.00); // Base shipping cost
+        BigDecimal weightCost = BigDecimal.valueOf(totalWeight * 0.50); // Per pound/kg
+        BigDecimal priorityCost = switch (priority) {
+            case URGENT -> BigDecimal.valueOf(15.00);
+            case HIGH -> BigDecimal.valueOf(10.00);
+            case NORMAL -> BigDecimal.valueOf(5.00);
+            case LOW -> BigDecimal.ZERO;
+        };
+        
+        BigDecimal total = baseCost.add(weightCost).add(priorityCost);
+        
+        // International surcharge
+        if (isInternational) {
+            total = total.multiply(BigDecimal.valueOf(1.5));
+        }
+        
+        return total.setScale(2, RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * Business Logic: Update order with payment completion
+     */
+    public Order completePayment(String transactionId, String paymentMethod, String updatedBy) {
+        if (paymentStatus == PaymentStatus.COMPLETED) {
+            throw new IllegalStateException("Payment already completed");
+        }
+        
+        return new Order(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), LocalDateTime.now(), updatedBy,
+            isDeleted(), getDeletedAt(), getDeletedBy(), getDeletionReason(),
+            orderNumber, customerOrderReference, customerId, customerEmail, customerName,
+            orderType, orderStatus, priority, sourceChannel, salesChannel, region, currency,
+            subtotalAmount, taxAmount, shippingAmount, discountAmount, totalAmount, 
+            totalAmount, refundedAmount, PaymentStatus.COMPLETED, paymentMethod, transactionId,
+            items, totalQuantity, totalWeight, packageDimensions,
+            fulfillmentStatus, orderDate, requestedDeliveryDate, promisedDeliveryDate, 
+            actualDeliveryDate, shippedDate, trackingNumber, shippingCarrier, shippingMethod,
+            billingAddress, shippingAddress, sameAsBilling,
+            promotionCode, appliedDiscounts, loyaltyPointsUsed, giftMessage, isGiftOrder, 
+            requiresAgeVerification, isInternational,
+            cancelledDate, cancellationReason, cancellationSource, isRefundable, isExchangeable, 
+            returnWindowCloses, orderAttributes, specialInstructions
+        );
+    }
+    
+    /**
+     * Business Logic: Process refund
+     */
+    public Order processRefund(BigDecimal refundAmount, String reason, String processedBy) {
+        if (!isEligibleForRefund()) {
+            throw new IllegalStateException("Order is not eligible for refund");
+        }
+        
+        if (refundAmount.compareTo(paidAmount) > 0) {
+            throw new IllegalArgumentException("Refund amount cannot exceed paid amount");
+        }
+        
+        return new Order(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), LocalDateTime.now(), processedBy,
+            isDeleted(), getDeletedAt(), getDeletedBy(), getDeletionReason(),
+            orderNumber, customerOrderReference, customerId, customerEmail, customerName,
+            orderType, OrderStatus.REFUNDED, priority, sourceChannel, salesChannel, region, currency,
+            subtotalAmount, taxAmount, shippingAmount, discountAmount, totalAmount, 
+            paidAmount, refundAmount, PaymentStatus.REFUNDED, paymentMethod, paymentTransactionId,
+            items, totalQuantity, totalWeight, packageDimensions,
+            fulfillmentStatus, orderDate, requestedDeliveryDate, promisedDeliveryDate, 
+            actualDeliveryDate, shippedDate, trackingNumber, shippingCarrier, shippingMethod,
+            billingAddress, shippingAddress, sameAsBilling,
+            promotionCode, appliedDiscounts, loyaltyPointsUsed, giftMessage, isGiftOrder, 
+            requiresAgeVerification, isInternational,
+            cancelledDate, reason, processedBy, isRefundable, isExchangeable, 
+            returnWindowCloses, orderAttributes, specialInstructions
+        );
+    }
+    
+    /**
+     * Business Logic: Add order notes
+     */
+    public Order addOrderNotes(String notes, String addedBy) {
+        Map<String, Object> updatedAttributes = new HashMap<>(orderAttributes);
+        String existingNotes = (String) updatedAttributes.getOrDefault("notes", "");
+        String timestamp = LocalDateTime.now().toString();
+        String newNotes = existingNotes + (existingNotes.isEmpty() ? "" : "\n") + 
+                         "[" + timestamp + " by " + addedBy + "] " + notes;
+        updatedAttributes.put("notes", newNotes);
+        
+        return new Order(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), LocalDateTime.now(), addedBy,
+            isDeleted(), getDeletedAt(), getDeletedBy(), getDeletionReason(),
+            orderNumber, customerOrderReference, customerId, customerEmail, customerName,
+            orderType, orderStatus, priority, sourceChannel, salesChannel, region, currency,
+            subtotalAmount, taxAmount, shippingAmount, discountAmount, totalAmount, 
+            paidAmount, refundedAmount, paymentStatus, paymentMethod, paymentTransactionId,
+            items, totalQuantity, totalWeight, packageDimensions,
+            fulfillmentStatus, orderDate, requestedDeliveryDate, promisedDeliveryDate, 
+            actualDeliveryDate, shippedDate, trackingNumber, shippingCarrier, shippingMethod,
+            billingAddress, shippingAddress, sameAsBilling,
+            promotionCode, appliedDiscounts, loyaltyPointsUsed, giftMessage, isGiftOrder, 
+            requiresAgeVerification, isInternational,
+            cancelledDate, cancellationReason, cancellationSource, isRefundable, isExchangeable, 
+            returnWindowCloses, updatedAttributes, specialInstructions
+        );
+    }
+    
+    /**
+     * Business Logic: Update shipping address (if order allows modifications)
+     */
+    public Order updateShippingAddress(Address newShippingAddress, String updatedBy) {
+        if (!canBeModified()) {
+            throw new IllegalStateException("Order cannot be modified in current status: " + orderStatus);
+        }
+        
+        return new Order(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), LocalDateTime.now(), updatedBy,
+            isDeleted(), getDeletedAt(), getDeletedBy(), getDeletionReason(),
+            orderNumber, customerOrderReference, customerId, customerEmail, customerName,
+            orderType, orderStatus, priority, sourceChannel, salesChannel, region, currency,
+            subtotalAmount, taxAmount, shippingAmount, discountAmount, totalAmount, 
+            paidAmount, refundedAmount, paymentStatus, paymentMethod, paymentTransactionId,
+            items, totalQuantity, totalWeight, packageDimensions,
+            fulfillmentStatus, orderDate, requestedDeliveryDate, promisedDeliveryDate, 
+            actualDeliveryDate, shippedDate, trackingNumber, shippingCarrier, shippingMethod,
+            billingAddress, newShippingAddress, sameAsBilling,
+            promotionCode, appliedDiscounts, loyaltyPointsUsed, giftMessage, isGiftOrder, 
+            requiresAgeVerification, isInternational,
+            cancelledDate, cancellationReason, cancellationSource, isRefundable, isExchangeable, 
+            returnWindowCloses, orderAttributes, specialInstructions
+        );
+    }
+    
+    /**
+     * Business Logic: Validate order completeness
+     */
+    @Override
+    public boolean isComplete() {
+        return orderNumber != null && !orderNumber.trim().isEmpty() &&
+               customerId != null &&
+               customerEmail != null && !customerEmail.trim().isEmpty() &&
+               items != null && !items.isEmpty() &&
+               totalAmount != null && totalAmount.compareTo(BigDecimal.ZERO) > 0 &&
+               billingAddress != null &&
+               shippingAddress != null;
+    }
+    
+    /**
+     * Business Rule: Validate business rules for order
+     */
+    @Override
+    public ValidationResult validateBusinessRules() {
+        List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+        
+        // Validate order number format
+        if (orderNumber == null || !orderNumber.matches("^ORD-\\d{8}-[A-Z]{3}$")) {
+            errors.add("Order number must follow format: ORD-YYYYMMDD-XXX");
+        }
+        
+        // Validate total amount calculation
+        BigDecimal calculatedTotal = subtotalAmount.add(taxAmount).add(shippingAmount).subtract(discountAmount);
+        if (calculatedTotal.compareTo(totalAmount) != 0) {
+            errors.add("Total amount calculation mismatch");
+        }
+        
+        // Validate payment amount
+        if (paidAmount.compareTo(totalAmount) > 0) {
+            warnings.add("Paid amount exceeds total amount - refund may be due");
+        }
+        
+        // Validate delivery dates
+        if (promisedDeliveryDate != null && requestedDeliveryDate != null && 
+            promisedDeliveryDate.isBefore(requestedDeliveryDate)) {
+            warnings.add("Promised delivery date is before requested delivery date");
+        }
+        
+        // Validate international order requirements
+        if (isInternational && !requiresAgeVerification) {
+            warnings.add("International orders typically require age verification");
+        }
+        
+        if (errors.isEmpty()) {
+            return warnings.isEmpty() ? ValidationResult.valid() : ValidationResult.withWarnings(warnings);
+        } else {
+            return ValidationResult.invalid(errors);
+        }
+    }
+    
+    /**
+     * Business Logic: Generate order recommendations
+     */
+    public List<String> generateOrderRecommendations() {
+        List<String> recommendations = new ArrayList<>();
+        
+        if (priority == OrderPriority.LOW && paidAmount.compareTo(BigDecimal.valueOf(100)) > 0) {
+            recommendations.add("Consider upgrading to higher priority shipping for valuable orders");
+        }
+        
+        if (isInternational && !requiresAgeVerification) {
+            recommendations.add("Enable age verification for international compliance");
+        }
+        
+        if (getProcessingTimeHours() > 48 && orderStatus == OrderStatus.PROCESSING) {
+            recommendations.add("Order processing is taking longer than expected - investigate delays");
+        }
+        
+        if (isOverdueForDelivery()) {
+            recommendations.add("Contact customer about delivery delay and provide updated timeline");
+        }
+        
+        if (items.size() > 10) {
+            recommendations.add("Large order - consider split shipment for faster processing");
+        }
+        
+        return recommendations;
+    }
+    
+    private static EntityStatus mapOrderStatusToEntityStatus(OrderStatus orderStatus) {
+        return switch (orderStatus) {
+            case PENDING -> EntityStatus.DRAFT;
+            case CONFIRMED, PROCESSING -> EntityStatus.ACTIVE;
+            case SHIPPED, DELIVERED, COMPLETED -> EntityStatus.ACTIVE;
+            case CANCELLED -> EntityStatus.ARCHIVED;
+            case REFUNDED -> EntityStatus.PERMANENTLY_DELETED;
+            default -> EntityStatus.DRAFT;
+        };
+    }
+    
+    // ==============================================
+    // GETTERS (Immutable Access)
+    // ==============================================
+    
+    public String getOrderNumber() { return orderNumber; }
+    public String getCustomerOrderReference() { return customerOrderReference; }
+    public UUID getCustomerId() { return customerId; }
+    public String getCustomerEmail() { return customerEmail; }
+    public String getCustomerName() { return customerName; }
+    public OrderType getOrderType() { return orderType; }
+    public OrderStatus getOrderStatus() { return orderStatus; }
+    public OrderPriority getPriority() { return priority; }
+    public String getSourceChannel() { return sourceChannel; }
+    public String getSalesChannel() { return salesChannel; }
+    public String getRegion() { return region; }
+    public String getCurrency() { return currency; }
+    public BigDecimal getSubtotalAmount() { return subtotalAmount; }
+    public BigDecimal getTaxAmount() { return taxAmount; }
+    public BigDecimal getShippingAmount() { return shippingAmount; }
+    public BigDecimal getDiscountAmount() { return discountAmount; }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public BigDecimal getRefundedAmount() { return refundedAmount; }
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public String getPaymentTransactionId() { return paymentTransactionId; }
+    public List<OrderItem> getItems() { return new ArrayList<>(items); }
+    public int getTotalQuantity() { return totalQuantity; }
+    // getTotalWeight() already defined as business logic method at line 196
+    public String getPackageDimensions() { return packageDimensions; }
+    public FulfillmentStatus getFulfillmentStatus() { return fulfillmentStatus; }
+    public LocalDateTime getOrderDate() { return orderDate; }
+    public LocalDateTime getRequestedDeliveryDate() { return requestedDeliveryDate; }
+    public LocalDateTime getPromisedDeliveryDate() { return promisedDeliveryDate; }
+    public LocalDateTime getActualDeliveryDate() { return actualDeliveryDate; }
+    public LocalDateTime getShippedDate() { return shippedDate; }
+    public String getTrackingNumber() { return trackingNumber; }
+    public String getShippingCarrier() { return shippingCarrier; }
+    public String getShippingMethod() { return shippingMethod; }
+    public Address getBillingAddress() { return billingAddress; }
+    public Address getShippingAddress() { return shippingAddress; }
+    public boolean isSameAsBilling() { return sameAsBilling; }
+    public String getPromotionCode() { return promotionCode; }
+    public Set<String> getAppliedDiscounts() { return new HashSet<>(appliedDiscounts); }
+    public String getLoyaltyPointsUsed() { return loyaltyPointsUsed; }
+    public String getGiftMessage() { return giftMessage; }
+    public boolean isGiftOrder() { return isGiftOrder; }
+    public boolean isRequiresAgeVerification() { return requiresAgeVerification; }
+    public boolean isInternational() { return isInternational; }
+    public LocalDateTime getCancelledDate() { return cancelledDate; }
+    public String getCancellationReason() { return cancellationReason; }
+    public String getCancellationSource() { return cancellationSource; }
+    public boolean isRefundable() { return isRefundable; }
+    public boolean isExchangeable() { return isExchangeable; }
+    public LocalDateTime getReturnWindowCloses() { return returnWindowCloses; }
+    public Map<String, Object> getOrderAttributes() { return new HashMap<>(orderAttributes); }
+    public String getSpecialInstructions() { return specialInstructions; }
+    
+    // ==============================================
+    // BUILDER METHODS (For Immutable Updates)
+    // ==============================================
+    
+    public Order withOrderStatus(OrderStatus newStatus) {
+        return new Order(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), getUpdatedAt(), getUpdatedBy(),
+            isDeleted(), getDeletedAt(), getDeletedBy(), getDeletionReason(),
+            orderNumber, customerOrderReference, customerId, customerEmail, customerName,
+            orderType, newStatus, priority, sourceChannel, salesChannel, region, currency,
+            subtotalAmount, taxAmount, shippingAmount, discountAmount, totalAmount, 
+            paidAmount, refundedAmount, paymentStatus, paymentMethod, paymentTransactionId,
+            items, totalQuantity, totalWeight, packageDimensions,
+            fulfillmentStatus, orderDate, requestedDeliveryDate, promisedDeliveryDate, 
+            actualDeliveryDate, shippedDate, trackingNumber, shippingCarrier, shippingMethod,
+            billingAddress, shippingAddress, sameAsBilling,
+            promotionCode, appliedDiscounts, loyaltyPointsUsed, giftMessage, isGiftOrder, 
+            requiresAgeVerification, isInternational,
+            cancelledDate, cancellationReason, cancellationSource, isRefundable, isExchangeable, 
+            returnWindowCloses, orderAttributes, specialInstructions
+        );
+    }
+    
+    public Order withTrackingNumber(String newTrackingNumber) {
+        return new Order(
+            getId(), getVersion(), getCreatedAt(), getCreatedBy(), getUpdatedAt(), getUpdatedBy(),
+            isDeleted(), getDeletedAt(), getDeletedBy(), getDeletionReason(),
+            orderNumber, customerOrderReference, customerId, customerEmail, customerName,
+            orderType, orderStatus, priority, sourceChannel, salesChannel, region, currency,
+            subtotalAmount, taxAmount, shippingAmount, discountAmount, totalAmount, 
+            paidAmount, refundedAmount, paymentStatus, paymentMethod, paymentTransactionId,
+            items, totalQuantity, totalWeight, packageDimensions,
+            fulfillmentStatus, orderDate, requestedDeliveryDate, promisedDeliveryDate, 
+            actualDeliveryDate, shippedDate, newTrackingNumber, shippingCarrier, shippingMethod,
+            billingAddress, shippingAddress, sameAsBilling,
+            promotionCode, appliedDiscounts, loyaltyPointsUsed, giftMessage, isGiftOrder, 
+            requiresAgeVerification, isInternational,
+            cancelledDate, cancellationReason, cancellationSource, isRefundable, isExchangeable, 
+            returnWindowCloses, orderAttributes, specialInstructions
+        );
+    }
+    
+    /**
+     * Order priority levels for business logic.
+     */
+    public enum OrderPriority {
+        LOW, NORMAL, HIGH, URGENT
+    }
+}
+
+/**
+ * Order Status enumeration for order lifecycle management
+ */
+enum OrderStatus {
+    PENDING("Order placed, waiting for confirmation"),
+    CONFIRMED("Order confirmed and ready for processing"),
+    PROCESSING("Order is being processed"),
+    SHIPPED("Order has been shipped"),
+    DELIVERED("Order has been delivered"),
+    COMPLETED("Order completed successfully"),
+    CANCELLED("Order has been cancelled"),
+    REFUNDED("Order has been refunded");
+    
+    private final String description;
+    
+    OrderStatus(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Order Type enumeration for order classification
+ */
+enum OrderType {
+    STANDARD("Standard order"),
+    EXPRESS("Express delivery order"),
+    GIFT("Gift order"),
+    SUBSCRIPTION("Subscription order"),
+    BULK("Bulk order"),
+    PREORDER("Pre-order"),
+    BACKORDER("Back order");
+    
+    private final String description;
+    
+    OrderType(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Payment Status enumeration for payment tracking
+ */
+enum PaymentStatus {
+    PENDING("Payment pending"),
+    PROCESSING("Payment being processed"),
+    COMPLETED("Payment completed"),
+    FAILED("Payment failed"),
+    CANCELLED("Payment cancelled"),
+    REFUNDED("Payment refunded"),
+    PARTIAL_REFUND("Partially refunded");
+    
+    private final String description;
+    
+    PaymentStatus(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Fulfillment Status enumeration for order fulfillment tracking
+ */
+enum FulfillmentStatus {
+    PENDING("Fulfillment pending"),
+    IN_PROGRESS("Fulfillment in progress"),
+    PICKING("Items being picked"),
+    PACKING("Items being packed"),
+    READY_TO_SHIP("Ready for shipment"),
+    SHIPPED("Order shipped"),
+    DELIVERED("Order delivered"),
+    EXCEPTION("Fulfillment exception");
+    
+    private final String description;
+    
+    FulfillmentStatus(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+
+/**
+ * Address domain model for billing and shipping addresses
+ */
+class Address {
+    private final String street;
+    private final String city;
+    private final String state;
+    private final String zipCode;
+    private final String country;
+    private final String addressType;
+    
+    public Address(String street, String city, String state, String zipCode, String country, String addressType) {
+        this.street = street;
+        this.city = city;
+        this.state = state;
+        this.zipCode = zipCode;
+        this.country = country;
+        this.addressType = addressType;
+    }
+    
+    public String getStreet() { return street; }
+    public String getCity() { return city; }
+    public String getState() { return state; }
+    public String getZipCode() { return zipCode; }
+    public String getCountry() { return country; }
+    public String getAddressType() { return addressType; }
+    
+    public boolean isInternational() {
+        return !"US".equalsIgnoreCase(country) && !"USA".equalsIgnoreCase(country);
+    }
+}
+
+/**
+ * Order Status Summary record for reporting
+ */
+record OrderStatusSummary(
+    String orderNumber,
+    OrderStatus orderStatus,
+    PaymentStatus paymentStatus,
+    FulfillmentStatus fulfillmentStatus,
+    long processingTimeHours,
+    boolean isOverdueForProcessing,
+    boolean isOverdueForDelivery,
+    boolean canBeCancelled,
+    boolean requiresPayment
+) {}

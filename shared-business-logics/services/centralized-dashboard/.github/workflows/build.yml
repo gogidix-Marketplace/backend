@@ -1,0 +1,159 @@
+name: Build Centralized Dashboard Services
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+  DOCKER_REGISTRY: ghcr.io
+  DOMAIN_NAME: centralized-dashboard
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    # Analytics Services
+    - name: Build metrics-aggregation-service
+      run: mvn clean compile
+      working-directory: Backend/Java/analytics-services/metrics-aggregation-service
+
+    - name: Build business-intelligence-service
+      run: mvn clean compile
+      working-directory: Backend/Java/analytics-services/business-intelligence-service
+
+    - name: Build analytics-data-service
+      run: mvn clean compile
+      working-directory: Backend/Java/analytics-services/analytics-data-service
+
+    # Core Services
+    - name: Build dashboard-core-service
+      run: mvn clean compile
+      working-directory: Backend/Java/core-services/dashboard-core-service
+
+    - name: Build data-aggregation-service
+      run: mvn clean compile
+      working-directory: Backend/Java/core-services/data-aggregation-service
+
+    # Gateway Services
+    - name: Build api-gateway-service
+      run: mvn clean compile
+      working-directory: Backend/Java/gateway-services/api-gateway-service
+
+    - name: Build websocket-gateway-service
+      run: mvn clean compile
+      working-directory: Backend/Java/gateway-services/websocket-gateway-service
+
+    - name: Build chart-service
+      run: mvn clean compile
+      working-directory: Backend/Java/gateway-services/chart-service
+
+    # Package Services
+    - name: Package metrics-aggregation-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/analytics-services/metrics-aggregation-service
+
+    - name: Package business-intelligence-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/analytics-services/business-intelligence-service
+
+    - name: Package analytics-data-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/analytics-services/analytics-data-service
+
+    - name: Package dashboard-core-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/core-services/dashboard-core-service
+
+    - name: Package data-aggregation-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/core-services/data-aggregation-service
+
+    - name: Package api-gateway-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/gateway-services/api-gateway-service
+
+    - name: Package websocket-gateway-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/gateway-services/websocket-gateway-service
+
+    - name: Package chart-service
+      run: mvn package -DskipTests
+      working-directory: Backend/Java/gateway-services/chart-service
+
+    # Build Docker Images
+    - name: Build Docker image - metrics-aggregation-service
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/metrics-aggregation-service:${{ github.sha }} .
+        docker tag ghcr.io/${{ github.repository_owner }}/metrics-aggregation-service:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/metrics-aggregation-service:latest
+      working-directory: Backend/Java/analytics-services/metrics-aggregation-service
+
+    - name: Build Docker image - api-gateway-service
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/api-gateway-service:${{ github.sha }} .
+        docker tag ghcr.io/${{ github.repository_owner }}/api-gateway-service:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/api-gateway-service:latest
+      working-directory: Backend/Java/gateway-services/api-gateway-service
+
+    - name: Build Docker image - chart-service
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/chart-service:${{ github.sha }} .
+        docker tag ghcr.io/${{ github.repository_owner }}/chart-service:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/chart-service:latest
+      working-directory: Backend/Java/gateway-services/chart-service
+
+    - name: Log in to Docker Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Docker images
+      if: github.event_name != 'pull_request'
+      run: |
+        docker push ghcr.io/${{ github.repository_owner }}/metrics-aggregation-service:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository_owner }}/metrics-aggregation-service:latest
+        docker push ghcr.io/${{ github.repository_owner }}/api-gateway-service:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository_owner }}/api-gateway-service:latest
+        docker push ghcr.io/${{ github.repository_owner }}/chart-service:${{ github.sha }}
+        docker push ghcr.io/${{ github.repository_owner }}/chart-service:latest
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: centralized-dashboard-build-artifacts
+        path: |
+          Backend/Java/analytics-services/metrics-aggregation-service/target/
+          Backend/Java/analytics-services/business-intelligence-service/target/
+          Backend/Java/analytics-services/analytics-data-service/target/
+          Backend/Java/core-services/dashboard-core-service/target/
+          Backend/Java/core-services/data-aggregation-service/target/
+          Backend/Java/gateway-services/api-gateway-service/target/
+          Backend/Java/gateway-services/websocket-gateway-service/target/
+          Backend/Java/gateway-services/chart-service/target/
+        retention-days: 7

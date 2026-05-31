@@ -1,0 +1,278 @@
+/* Pipeline Chart Styles */
+
+.pipeline-funnel {
+  width: 100%;
+}
+
+.funnel-stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.funnel-stage {
+  position: relative;
+}
+
+.funnel-stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.stage-name {
+  font-weight: 600;
+  color: var(--color-gray-700);
+  font-size: var(--font-size-sm);
+}
+
+[data-theme='dark'] .stage-name {
+  color: var(--color-gray-300);
+}
+
+.stage-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.funnel-bar-container {
+  width: 100%;
+  height: 48px;
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+[data-theme='dark'] .funnel-bar-container {
+  background-color: var(--color-gray-800);
+}
+
+.funnel-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-right: var(--spacing-4);
+  transition: width 0.5s ease;
+  min-width: 60px;
+}
+
+.funnel-bar-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.funnel-value {
+  font-weight: 600;
+  color: white;
+  font-size: var(--font-size-sm);
+}
+
+.funnel-percentage {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.funnel-stage-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.weighted-value {
+  font-weight: 500;
+}
+
+.conversion-rate {
+  color: var(--color-success);
+}
+
+.funnel-arrow {
+  display: flex;
+  justify-content: center;
+  margin: var(--spacing-1) 0;
+  color: var(--color-gray-400);
+}
+
+/* Pipeline Stage Chart */
+
+.pipeline-stage-chart {
+  width: 100%;
+  height: 100%;
+}
+
+/* Pipeline Donut */
+
+.pipeline-donut {
+  margin: 0 auto;
+}
+
+.donut-segment {
+  transition: opacity 0.2s ease, stroke-width 0.2s ease;
+  cursor: pointer;
+}
+
+.donut-segment:hover {
+  opacity: 0.8;
+  stroke-width: 24;
+}
+
+/* Pipeline Velocity Chart */
+
+.pipeline-velocity-chart {
+  width: 100%;
+}
+
+.velocity-header {
+  margin-bottom: var(--spacing-3);
+}
+
+.velocity-header h4 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-gray-700);
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+[data-theme='dark'] .velocity-header h4 {
+  color: var(--color-gray-300);
+}
+
+.velocity-summary {
+  display: flex;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.velocity-current {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.velocity-target {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+}
+
+.velocity-variance {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.velocity-variance.positive {
+  color: var(--color-success);
+}
+
+.velocity-variance.negative {
+  color: var(--color-error);
+}
+
+.velocity-bars {
+  width: 100%;
+  height: 100%;
+}
+
+/* Pipeline Heatmap */
+
+.pipeline-heatmap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.heatmap-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+
+.heatmap-table th,
+.heatmap-table td {
+  padding: var(--spacing-2) var(--spacing-3);
+  text-align: center;
+  border-radius: var(--radius-md);
+}
+
+.heatmap-table th {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+[data-theme='dark'] .heatmap-table th {
+  color: var(--color-gray-400);
+}
+
+.heatmap-table .country-cell {
+  text-align: left;
+  font-weight: 500;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.heatmap-cell {
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.05);
+  z-index: 1;
+}
+
+.heatmap-value {
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Mini Variant */
+
+.pipeline-funnel--mini {
+  font-size: 0.875em;
+}
+
+.pipeline-funnel--mini .funnel-bar-container {
+  height: 32px;
+}
+
+.pipeline-funnel--mini .funnel-bar {
+  padding-right: var(--spacing-2);
+}
+
+.pipeline-funnel--mini .funnel-value {
+  font-size: var(--font-size-xs);
+}
+
+/* Responsive */
+
+@media (max-width: 640px) {
+  .funnel-stage-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-1);
+  }
+
+  .velocity-summary {
+    flex-direction: column;
+    gap: var(--spacing-2);
+  }
+
+  .heatmap-table {
+    font-size: var(--font-size-xs);
+  }
+
+  .heatmap-table th,
+  .heatmap-table td {
+    padding: var(--spacing-1) var(--spacing-2);
+  }
+}

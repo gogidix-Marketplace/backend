@@ -1,0 +1,101 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+  labels:
+    name: platform
+    domain: foundation-domain
+    environment: production
+spec:
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: platform-network-policy
+  namespace: platform
+spec:
+  podSelector:
+    matchLabels:
+      namespace: platform
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: platform
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: infrastructure
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: centralized-config
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              namespace: platform
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              namespace: infrastructure
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              domain: kube-system
+          ports:
+            - protocol: TCP
+              port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/cluster: ""
+        ports:
+            - protocol: TCP
+              port: 443
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: platform-resource-quota
+  namespace: platform
+spec:
+  hard:
+    requests.cpu: "3"
+    requests.memory: "6Gi"
+    limits.cpu: "6"
+    limits.memory: "12Gi"
+    persistentvolumeclaims: "30Gi"
+    pods: "15"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: platform-container-limits
+  namespace: platform
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: "250m"
+        memory: "512Mi"
+      defaultLimit:
+        cpu: "1000m"
+        memory: "1Gi"
+      maxLimit:
+        cpu: "2000m"
+        memory: "2Gi"
+---
+apiVersion: v1
+kind: PriorityClass
+metadata:
+  name: platform-priority-class
+  namespace: platform
+spec:
+  value: 500
+  globalDefault: true
+  description: "Standard priority for platform services"

@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-content-generation-service
+  namespace: ai-services
+  labels:
+    app: ai-content-generation-service
+    team: team-ai-customer-experience
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-content-generation-service

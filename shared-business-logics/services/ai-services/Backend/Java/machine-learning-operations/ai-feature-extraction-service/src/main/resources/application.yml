@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: ai-feature-extraction-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/feature_extraction
+  redis:
+    host: localhost
+    port: 6379
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: INFO
+    org.springframework.data.mongodb: DEBUG

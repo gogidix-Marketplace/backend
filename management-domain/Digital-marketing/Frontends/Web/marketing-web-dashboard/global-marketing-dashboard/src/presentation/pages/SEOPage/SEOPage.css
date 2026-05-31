@@ -1,0 +1,133 @@
+/* SEOPage Styles */
+
+.seo-page {
+  min-height: 100vh;
+}
+
+.chart-card {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.chart-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.keywords-table {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.keywords-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.keywords-table th,
+.keywords-table td {
+  padding: var(--spacing-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.keywords-table th {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.keywords-table tbody tr:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.rank {
+  font-weight: 600;
+}
+
+.rank--high { color: var(--color-success); }
+.rank--medium { color: var(--color-warning); }
+.rank--low { color: var(--color-danger); }
+
+.positive { color: var(--color-success); }
+.negative { color: var(--color-danger); }
+
+/* Backlinks */
+.backlinks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.backlink-card {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+}
+
+.backlink-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.backlink-domain {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.backlink-authority {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.backlink-links {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Audit */
+.audit-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.audit-card {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.audit-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+}
+
+.audit-score {
+  font-size: 2rem;
+  font-weight: 700;
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.audit--good .audit-score { color: var(--color-success); }
+.audit--warning .audit-score { color: var(--color-warning); }
+.audit--bad .audit-score { color: var(--color-danger); }
+
+.audit-card p {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}

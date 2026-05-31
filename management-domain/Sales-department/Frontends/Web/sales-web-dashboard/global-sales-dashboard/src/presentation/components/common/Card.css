@@ -1,0 +1,133 @@
+/* Card Styles */
+
+.card {
+  background-color: var(--color-white, white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+[data-theme='dark'] .card {
+  background-color: var(--color-gray-800);
+}
+
+/* Card Variants */
+.card-default {
+  border: 1px solid var(--color-gray-200);
+}
+
+[data-theme='dark'] .card-default {
+  border-color: var(--color-gray-700);
+}
+
+.card-bordered {
+  border: 2px solid var(--color-gray-200);
+}
+
+[data-theme='dark'] .card-bordered {
+  border-color: var(--color-gray-700);
+}
+
+.card-elevated {
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-gray-100);
+}
+
+.card-outlined {
+  border: 1px solid var(--color-gray-300);
+}
+
+[data-theme='dark'] .card-outlined {
+  border-color: var(--color-gray-600);
+}
+
+/* Card Padding */
+.card-padding-none > *:not(.card-header):not(.card-footer) {
+  padding: 0;
+}
+
+.card-padding-sm {
+  padding: var(--spacing-3);
+}
+
+.card-padding-md {
+  padding: var(--spacing-4);
+}
+
+.card-padding-lg {
+  padding: var(--spacing-6);
+}
+
+/* Card Hoverable */
+.card-hoverable {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.card-hoverable:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-4) 0;
+  border-bottom: 1px solid var(--color-gray-200);
+  margin-bottom: var(--spacing-4);
+}
+
+[data-theme='dark'] .card-header {
+  border-bottom-color: var(--color-gray-700);
+}
+
+.card-header-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.card-header h3,
+.card-header h4 {
+  margin: 0;
+}
+
+.card-header-action {
+  flex-shrink: 0;
+}
+
+/* Card Body */
+.card-body {
+  flex: 1;
+}
+
+.card-body h3:first-child,
+.card-body h4:first-child,
+.card-body p:first-child {
+  margin-top: 0;
+}
+
+.card-body h3:last-child,
+.card-body h4:last-child,
+.card-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Card Footer */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) 0 0;
+  border-top: 1px solid var(--color-gray-200);
+  margin-top: var(--spacing-4);
+}
+
+[data-theme='dark'] .card-footer {
+  border-top-color: var(--color-gray-700);
+}
+
+.card-footer > * + * {
+  margin-left: var(--spacing-3);
+}

@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lead-generation-ai-service-pdb
+  namespace: ai-services
+  labels:
+    app: lead-generation-ai-service
+    team: team-ai-business-ops
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: lead-generation-ai-service

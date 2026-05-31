@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.*.local
+logs
+*.log
+.DS_Store
+coverage
+.vscode
+.idea
+*.swp
+*.swo
+tests
+.temp
+tmp
+dist

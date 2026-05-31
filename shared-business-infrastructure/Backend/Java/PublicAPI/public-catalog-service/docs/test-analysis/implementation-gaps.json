@@ -1,0 +1,14 @@
+{
+  "serviceName": "public-catalog-service",
+  "analysisDate": "2026-03-06T13:22:14Z",
+  "summary": {
+    "totalFiles": 13,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

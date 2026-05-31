@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: onboarding-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_onboarding
+
+server:
+  port: 8402
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.vendor.onboarding: DEBUG

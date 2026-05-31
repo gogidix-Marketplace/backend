@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: research-intelligence-service-pdb
+  namespace: ai-services
+  labels:
+    app: research-intelligence-service
+    team: team-ai-business-intelligence
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: research-intelligence-service

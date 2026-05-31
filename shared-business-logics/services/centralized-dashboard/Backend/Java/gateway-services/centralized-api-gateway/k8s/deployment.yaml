@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: centralized-api-gateway
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-api-gateway
+    team: team-f-centralized-dashboard
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: centralized-api-gateway
+  template:
+    metadata:
+      labels:
+        app: centralized-api-gateway
+        team: team-f-centralized-dashboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: centralized-api-gateway
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: centralized-api-gateway
+        image: gogidix/centralized-api-gateway:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SERVER_PORT
+          value: "8080"
+        - name: REDIS_HOST
+          value: "redis.internal"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: EUREKA_CLIENT_SERVICE_URL
+          value: "http://eureka-server:8761/eureka"
+        - name: OAUTH2_ISSUER_URI
+          valueFrom:
+            secretKeyRef:
+              name: centralized-api-gateway-secrets
+              key: oauth2-issuer-uri
+        - name: OAUTH2_JWK_SET_URI
+          valueFrom:
+            secretKeyRef:
+              name: centralized-api-gateway-secrets
+              key: oauth2-jwk-set-uri
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: "health,info,metrics,prometheus,gateway"
+        - name: GATEWAY_CUSTOM_SECURITY_ENABLED
+          value: "true"
+        - name: GATEWAY_CUSTOM_RATE_LIMITING_ENABLED
+          value: "true"
+        - name: GATEWAY_CUSTOM_DEFAULT_REPLENISH_RATE
+          value: "100"
+        - name: GATEWAY_CUSTOM_DEFAULT_BURST_CAPACITY
+          value: "200"
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health/startup
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - centralized-api-gateway
+              topologyKey: kubernetes.io/hostname

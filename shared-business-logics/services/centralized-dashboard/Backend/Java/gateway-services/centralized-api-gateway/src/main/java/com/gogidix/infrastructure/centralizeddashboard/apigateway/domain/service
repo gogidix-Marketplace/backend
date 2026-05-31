@@ -1,0 +1,159 @@
+package com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.service;
+
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.model.*;
+import java.util.List;
+import java.util.Optional;
+
+public class GatewayRoutingService {
+    
+    public RouteConfiguration createRoute(String serviceName, String path, String uri, 
+                                        List<String> predicates, List<FilterRule> filters,
+                                        RateLimitConfig rateLimitConfig, CircuitBreakerConfig circuitBreakerConfig,
+                                        AuthenticationConfig authConfig) {
+        validateRouteCreation(serviceName, path, uri);
+        
+        RouteId routeId = RouteId.generate();
+        return new RouteConfiguration(routeId, serviceName, path, uri, predicates, filters,
+                                    null, null, rateLimitConfig, circuitBreakerConfig, authConfig);
+    }
+
+    public boolean canActivateRoute(RouteConfiguration route, List<RouteConfiguration> existingRoutes) {
+        return !hasPathConflict(route, existingRoutes) && 
+               !hasServiceConflict(route, existingRoutes) &&
+               isConfigurationValid(route);
+    }
+
+    public RouteConfiguration updateRouteStatus(RouteConfiguration route, RouteConfiguration.RouteStatus newStatus) {
+        validateStatusTransition(route.getStatus(), newStatus);
+        return route.withStatus(newStatus);
+    }
+
+    public List<FilterRule> optimizeFilterOrder(List<FilterRule> filters) {
+        return filters.stream()
+                .sorted((f1, f2) -> {
+                    int priorityCompare = getFilterPriority(f1.getType()) - getFilterPriority(f2.getType());
+                    if (priorityCompare != 0) return priorityCompare;
+                    return Integer.compare(f1.getOrder(), f2.getOrder());
+                })
+                .toList();
+    }
+
+    public boolean shouldApplyRateLimit(RouteConfiguration route, String clientKey, int currentRequests) {
+        if (!route.hasRateLimit()) return false;
+        
+        RateLimitConfig config = route.getRateLimitConfig();
+        return config.isExceeded(currentRequests);
+    }
+
+    public boolean shouldTriggerCircuitBreaker(RouteConfiguration route, int failures, int totalCalls, double failureRate) {
+        if (!route.hasCircuitBreaker()) return false;
+        
+        CircuitBreakerConfig config = route.getCircuitBreakerConfig();
+        return config.shouldOpenCircuit(failures, totalCalls, failureRate);
+    }
+
+    public Optional<String> validateAuthentication(RouteConfiguration route, String path, String token) {
+        if (!route.requiresAuthentication()) return Optional.empty();
+        
+        AuthenticationConfig authConfig = route.getAuthConfig();
+        
+        if (authConfig.isPathPublic(path)) {
+            return Optional.empty();
+        }
+        
+        if (token == null || token.trim().isEmpty()) {
+            return Optional.of("Authentication token required");
+        }
+        
+        if (authConfig.isJwtBased() && !isValidJwtToken(token, authConfig)) {
+            return Optional.of("Invalid JWT token");
+        }
+        
+        return Optional.empty();
+    }
+
+    private void validateRouteCreation(String serviceName, String path, String uri) {
+        if (serviceName == null || serviceName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Service name is required");
+        }
+        if (path == null || !path.startsWith("/")) {
+            throw new IllegalArgumentException("Path must start with /");
+        }
+        if (uri == null || uri.trim().isEmpty()) {
+            throw new IllegalArgumentException("URI is required");
+        }
+    }
+
+    private boolean hasPathConflict(RouteConfiguration newRoute, List<RouteConfiguration> existingRoutes) {
+        return existingRoutes.stream()
+                .filter(RouteConfiguration::isActive)
+                .anyMatch(existing -> pathsConflict(newRoute.getPath(), existing.getPath()));
+    }
+
+    private boolean hasServiceConflict(RouteConfiguration newRoute, List<RouteConfiguration> existingRoutes) {
+        return existingRoutes.stream()
+                .filter(RouteConfiguration::isActive)
+                .anyMatch(existing -> existing.getServiceName().equals(newRoute.getServiceName()) &&
+                                    existing.getPath().equals(newRoute.getPath()));
+    }
+
+    private boolean pathsConflict(String path1, String path2) {
+        if (path1.equals(path2)) return true;
+        
+        if (path1.endsWith("/**") || path2.endsWith("/**")) {
+            String prefix1 = path1.endsWith("/**") ? path1.substring(0, path1.length() - 3) : path1;
+            String prefix2 = path2.endsWith("/**") ? path2.substring(0, path2.length() - 3) : path2;
+            return prefix1.startsWith(prefix2) || prefix2.startsWith(prefix1);
+        }
+        
+        return false;
+    }
+
+    private boolean isConfigurationValid(RouteConfiguration route) {
+        if (route.hasRateLimit() && route.getRateLimitConfig().getRequestsPerWindow() <= 0) {
+            return false;
+        }
+        
+        if (route.hasCircuitBreaker() && route.getCircuitBreakerConfig().getFailureThreshold() <= 0) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    private void validateStatusTransition(RouteConfiguration.RouteStatus currentStatus, 
+                                        RouteConfiguration.RouteStatus newStatus) {
+        if (currentStatus == RouteConfiguration.RouteStatus.DEPRECATED && 
+            newStatus == RouteConfiguration.RouteStatus.ACTIVE) {
+            throw new IllegalStateException("Cannot reactivate deprecated route");
+        }
+    }
+
+    private int getFilterPriority(FilterRule.FilterType type) {
+        return switch (type) {
+            case AUTHENTICATION -> 1;
+            case AUTHORIZATION -> 2;
+            case RATE_LIMIT -> 3;
+            case CORS -> 4;
+            case REQUEST_HEADER -> 5;
+            case VALIDATION -> 6;
+            case TRANSFORMATION -> 7;
+            case CIRCUIT_BREAKER -> 8;
+            case LOAD_BALANCER -> 9;
+            case CACHE -> 10;
+            case LOGGING -> 11;
+            case RESPONSE_HEADER -> 12;
+            default -> 99;
+        };
+    }
+
+    private boolean isValidJwtToken(String token, AuthenticationConfig authConfig) {
+        try {
+            if (!token.startsWith("Bearer ")) return false;
+            String jwt = token.substring(7);
+            return jwt.split("\\.").length == 3;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}

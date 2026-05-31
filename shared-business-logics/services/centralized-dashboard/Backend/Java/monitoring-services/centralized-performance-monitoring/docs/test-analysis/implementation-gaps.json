@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "centralized-performance-monitoring",
+    "location": "Backend/Java/monitoring-services/centralized-performance-monitoring",
+    "totalGaps": 1,
+    "criticalGaps": 0,
+    "highGaps": 1,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "centralized-performance-monitoring/src/main/java",
+      "type": "Duplicate/Missing Implementation",
+      "line": 0,
+      "description": "No Java source files found. Potential duplicate of centralized-performance-metrics in the same monitoring-services directory.",
+      "severity": "HIGH",
+      "recommendation": "Consolidate with centralized-performance-metrics or clarify the distinction between monitoring and metrics."
+    }
+  ]
+}

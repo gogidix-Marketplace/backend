@@ -1,0 +1,15 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/": "pages/index.js",
+  "/login": "pages/login.js",
+  "/dashboard": "pages/dashboard.js",
+  "/analytics": "pages/analytics.js",
+  "/performance": "pages/performance.js",
+  "/recruitment": "pages/recruitment.js",
+  "/reports": "pages/reports.js",
+  "/settings": "pages/settings.js",
+  "/payroll": "pages/payroll.js",
+  "/countries": "pages/countries.js"
+}

@@ -1,0 +1,1 @@
+export { TeamPerformancePage } from './TeamPerformancePage';

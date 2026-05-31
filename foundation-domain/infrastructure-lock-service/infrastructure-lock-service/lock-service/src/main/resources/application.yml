@@ -1,0 +1,98 @@
+spring:
+  application:
+    name: lock-service
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 60s
+      connection-pool:
+        size: 8
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: lock-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+# OpenAPI/Swagger configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    try-it-out-enabled: true
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+    org.springframework.data.redis: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/lock-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Lock service configuration
+lock:
+  default-ttl-seconds: 300
+  default-wait-time-seconds: 30
+  default-max-retries: 3
+  default-retry-interval-ms: 100
+  enable-auto-cleanup: true
+  cleanup:
+    enabled: true
+    cron: "0 0 * * * ?"
+    batch-size: 100
+
+# Resilience4j configuration
+resilience4j:
+  retry:
+    max-attempts: 3
+    wait-duration: 100ms
+    retry-exception-predicate: com.gogidix.infrastructure.lockservice.infrastructure.config.RetryPredicate
+
+# Application info
+info:
+  app:
+    name: ${spring.application.name}
+    description: Infrastructure Lock Service - Distributed locking with Redis
+    version: 1.0.0

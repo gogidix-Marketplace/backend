@@ -1,0 +1,546 @@
+{
+  "common": {
+    "appName": "Gogidix",
+    "tagline": "Transform Your Business Operations",
+    "description": "Enterprise-grade solutions for logistics, e-commerce, procurement, and business operations.",
+    "loading": "Loading...",
+    "search": "Search",
+    "searchPlaceholder": "Search products, solutions, documentation...",
+    "language": "Language",
+    "region": "Region",
+    "cookies": {
+      "title": "We use cookies",
+      "description": "We use cookies to improve your experience and analyze our traffic.",
+      "accept": "Accept All",
+      "decline": "Decline",
+      "settings": "Cookie Settings",
+      "necessary": "Necessary cookies",
+      "necessaryDesc": "Required for the site to function",
+      "preferences": "Preference cookies",
+      "preferencesDesc": "Remember your settings",
+      "analytics": "Analytics cookies",
+      "analyticsDesc": "Help us improve our website"
+    },
+    "newsletter": {
+      "title": "Subscribe to our newsletter",
+      "description": "Get the latest updates, articles, and resources delivered to your inbox.",
+      "placeholder": "Enter your email",
+      "subscribe": "Subscribe",
+      "success": "Thank you for subscribing!",
+      "error": "Something went wrong. Please try again."
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "of": "of"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "notFound": "Page not found",
+      "unauthorized": "You are not authorized to access this resource",
+      "serverError": "Server error. Please try again later."
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "solutions": "Solutions",
+    "developers": "Developers",
+    "partners": "Partners",
+    "company": "Company",
+    "resources": "Resources",
+    "pricing": "Pricing",
+    "login": "Login",
+    "signup": "Sign Up",
+    "contact": "Contact",
+    "support": "Support",
+    "docs": "Documentation"
+  },
+  "home": {
+    "hero": {
+      "title": "Transform Your Business Operations with Intelligent Automation",
+      "subtitle": "Streamline logistics, e-commerce, procurement, and operations with our unified enterprise platform.",
+      "cta": {
+        "primary": "Start Free Trial",
+        "secondary": "Watch Demo"
+      },
+      "trust": "Trusted by 10,000+ businesses worldwide"
+    },
+    "products": {
+      "title": "Our Products",
+      "subtitle": "Comprehensive solutions for every aspect of your business",
+      "logistics": {
+        "title": "Logistics Management",
+        "description": "End-to-end supply chain optimization with real-time tracking and AI-powered route planning."
+      },
+      "ecommerce": {
+        "title": "E-commerce Platform",
+        "description": "Build and scale your online store with powerful commerce tools and integrations."
+      },
+      "procurement": {
+        "title": "Procurement Suite",
+        "description": "Streamline purchasing, vendor management, and spend analytics in one platform."
+      },
+      "operations": {
+        "title": "Business Operations",
+        "description": "Automate workflows, manage projects, and optimize resource allocation."
+      },
+      "enterprise": {
+        "title": "Enterprise Solutions",
+        "description": "Scalable platform for large organizations with advanced security and compliance."
+      },
+      "infrastructure": {
+        "title": "Infrastructure",
+        "description": "Cloud-native architecture with 99.99% uptime and global CDN."
+      }
+    },
+    "features": {
+      "title": "Why Choose Gogidix?",
+      "subtitle": "Built for scale, security, and simplicity",
+      "feature1": {
+        "title": "Unified Platform",
+        "description": "One platform for all your business operations. No more silos."
+      },
+      "feature2": {
+        "title": "AI-Powered",
+        "description": "Intelligent automation and predictive analytics powered by machine learning."
+      },
+      "feature3": {
+        "title": "Enterprise Security",
+        "description": "SOC 2 Type II certified with end-to-end encryption and SSO."
+      },
+      "feature4": {
+        "title": "99.99% Uptime",
+        "description": "Guaranteed availability with 24/7 monitoring and disaster recovery."
+      },
+      "feature5": {
+        "title": "Global Scale",
+        "description": "Multi-region deployment with localized compliance and data residency."
+      },
+      "feature6": {
+        "title": "Developer First",
+        "description": "Comprehensive APIs, SDKs, and webhooks for custom integrations."
+      }
+    },
+    "cta": {
+      "title": "Ready to Transform Your Business?",
+      "subtitle": "Join thousands of companies that trust Gogidix for their operations.",
+      "primary": "Get Started Free",
+      "secondary": "Contact Sales"
+    },
+    "socialProof": {
+      "title": "Trusted by Industry Leaders"
+    }
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Enterprise-grade solutions for modern businesses",
+    "logistics": {
+      "title": "Logistics Management",
+      "subtitle": "End-to-end supply chain optimization",
+      "description": "Transform your logistics operations with real-time visibility, intelligent routing, and automated fulfillment.",
+      "features": {
+        "realTimeTracking": "Real-time shipment tracking",
+        "routeOptimization": "AI-powered route optimization",
+        "inventory": "Multi-warehouse inventory management",
+        "analytics": "Predictive analytics and forecasting",
+        "integrations": "Carrier integrations (500+ carriers)",
+        "returns": "Automated returns management"
+      },
+      "cta": "Start Logistics Trial"
+    },
+    "ecommerce": {
+      "title": "E-commerce Platform",
+      "subtitle": "Build and scale your online business",
+      "description": "Create seamless shopping experiences with our headless commerce platform designed for growth.",
+      "features": {
+        "headless": "Headless architecture for flexibility",
+        "payments": "100+ payment gateway integrations",
+        "catalog": "Advanced product catalog management",
+        "personalization": "AI-powered product recommendations",
+        "checkout": "Optimized checkout flows",
+        "multichannel": "Multi-channel selling"
+      },
+      "cta": "Start E-commerce Trial"
+    },
+    "procurement": {
+      "title": "Procurement Suite",
+      "subtitle": "Streamline purchasing and spend management",
+      "description": "Gain control over procurement with automated workflows, vendor management, and spend analytics.",
+      "features": {
+        "automation": "Automated purchase orders",
+        "vendorManagement": "Vendor performance tracking",
+        "catalog": "Punch-out catalogs",
+        "approvals": "Custom approval workflows",
+        "analytics": "Spend analytics and reporting",
+        "contracts": "Contract management"
+      },
+      "cta": "Start Procurement Trial"
+    },
+    "operations": {
+      "title": "Business Operations",
+      "subtitle": "Automate and optimize your workflows",
+      "description": "Streamline operations with workflow automation, project management, and resource optimization.",
+      "features": {
+        "automation": "Workflow automation builder",
+        "projectManagement": "Project and task management",
+        "reporting": "Custom dashboards and reporting",
+        "collaboration": "Team collaboration tools",
+        "integration": "Third-party integrations",
+        "mobile": "Mobile apps for field operations"
+      },
+      "cta": "Start Operations Trial"
+    },
+    "enterprise": {
+      "title": "Enterprise Solutions",
+      "subtitle": "Scalable platform for large organizations",
+      "description": "Purpose-built for enterprise with advanced security, compliance, and dedicated support.",
+      "features": {
+        "security": "Enterprise-grade security",
+        "sso": "SSO and SAML integration",
+        "compliance": "GDPR, HIPAA, SOC 2 compliance",
+        "sla": "99.99% uptime SLA",
+        "support": "24/7 dedicated support",
+        "custom": "Custom development services"
+      },
+      "cta": "Contact Enterprise Sales"
+    },
+    "infrastructure": {
+      "title": "Infrastructure",
+      "subtitle": "Cloud-native, scalable foundation",
+      "description": "Built on modern cloud architecture with global availability and edge computing.",
+      "features": {
+        "cloud": "Multi-cloud deployment",
+        "cdn": "Global CDN with edge computing",
+        "monitoring": "Advanced monitoring and alerting",
+        "backup": "Automated backups and disaster recovery",
+        "api": "RESTful and GraphQL APIs",
+        "webhooks": "Real-time webhooks"
+      },
+      "cta": "View Infrastructure Docs"
+    }
+  },
+  "solutions": {
+    "title": "Solutions",
+    "subtitle": "Tailored solutions for your industry and needs",
+    "byIndustry": {
+      "title": "By Industry",
+      "subtitle": "Specialized solutions for your sector",
+      "retail": {
+        "title": "Retail & E-commerce",
+        "description": "Omnichannel retail solutions with inventory management and customer engagement."
+      },
+      "manufacturing": {
+        "title": "Manufacturing",
+        "description": "Supply chain visibility and production optimization."
+      },
+      "healthcare": {
+        "title": "Healthcare",
+        "description": "HIPAA-compliant procurement and inventory management."
+      },
+      "food": {
+        "title": "Food & Beverage",
+        "description": "Temperature-controlled logistics and batch tracking."
+      },
+      "automotive": {
+        "title": "Automotive",
+        "description": "Just-in-time logistics and parts management."
+      },
+      "technology": {
+        "title": "Technology",
+        "description": "Rapid deployment and API-first architecture."
+      }
+    },
+    "bySize": {
+      "title": "By Company Size",
+      "subtitle": "Solutions that grow with you",
+      "startup": {
+        "title": "Startups",
+        "description": "Quick setup, flexible pricing, and powerful APIs."
+      },
+      "smb": {
+        "title": "Small & Medium Business",
+        "description": "All-in-one platform with dedicated support."
+      },
+      "enterprise": {
+        "title": "Enterprise",
+        "description": "Custom solutions and enterprise-grade security."
+      }
+    },
+    "byRegion": {
+      "title": "By Region",
+      "subtitle": "Global presence with local expertise",
+      "northAmerica": "North America",
+      "europe": "Europe",
+      "asiaPacific": "Asia Pacific",
+      "latinAmerica": "Latin America",
+      "middleEast": "Middle East & Africa"
+    },
+    "caseStudies": {
+      "title": "Case Studies",
+      "subtitle": "See how companies succeed with Gogidix",
+      "viewAll": "View All Case Studies",
+      "results": "Results"
+    }
+  },
+  "developers": {
+    "title": "Developers",
+    "subtitle": "Build with Gogidix APIs and tools",
+    "hero": {
+      "title": "Developer Portal",
+      "subtitle": "Everything you need to integrate Gogidix into your workflow"
+    },
+    "apiReference": {
+      "title": "API Reference",
+      "description": "Complete documentation for all Gogidix APIs",
+      "endpoints": "API Endpoints",
+      "authentication": "Authentication",
+      "webhooks": "Webhooks",
+      "errors": "Error Codes"
+    },
+    "sdks": {
+      "title": "SDKs & Libraries",
+      "description": "Official SDKs for popular programming languages",
+      "javascript": "JavaScript/Node.js",
+      "python": "Python",
+      "java": "Java",
+      "csharp": "C#/.NET",
+      "php": "PHP",
+      "ruby": "Ruby",
+      "go": "Go"
+    },
+    "webhooks": {
+      "title": "Webhooks",
+      "description": "Real-time event notifications to your endpoints",
+      "events": "Event Types",
+      "security": "Webhook Security",
+      "retry": "Retry Policy"
+    },
+    "sandbox": {
+      "title": "Sandbox Environment",
+      "description": "Test your integrations in a safe environment",
+      "status": "Sandbox Status",
+      "limits": "Rate Limits",
+      "data": "Test Data"
+    },
+    "gettingStarted": {
+      "title": "Getting Started",
+      "quickstart": "Quick Start Guide",
+      "authentication": "Authentication",
+      "examples": "Code Examples",
+      "tutorials": "Tutorials"
+    }
+  },
+  "partners": {
+    "title": "Partners",
+    "subtitle": "Build success together with our partner ecosystem",
+    "whiteLabel": {
+      "title": "White-Label Partners",
+      "description": "Resell Gogidix under your brand with our white-label program.",
+      "benefits": [
+        "Full platform customization",
+        "Revenue sharing model",
+        "Dedicated account manager",
+        "Marketing resources",
+        "Training and certification"
+      ],
+      "cta": "Become a White-Label Partner"
+    },
+    "technology": {
+      "title": "Technology Partners",
+      "description": "Integrate with leading technology platforms.",
+      "categories": {
+        "erp": "ERP Systems",
+        "crm": "CRM Platforms",
+        "payment": "Payment Gateways",
+        "analytics": "Analytics Tools"
+      },
+      "cta": "Become a Technology Partner"
+    },
+    "integrators": {
+      "title": "System Integrators",
+      "description": "Expert implementation partners for complex deployments.",
+      "benefits": [
+        "Implementation certifications",
+        "Lead generation",
+        "Co-selling opportunities",
+        "Technical support",
+        "Partner portal access"
+      ],
+      "cta": "Become a System Integrator"
+    },
+    "directory": {
+      "title": "Partner Directory",
+      "description": "Find a certified partner near you"
+    }
+  },
+  "company": {
+    "title": "Company",
+    "aboutUs": {
+      "title": "About Us",
+      "subtitle": "Powering digital transformation since 2018",
+      "mission": "Our Mission",
+      "missionText": "To empower businesses of all sizes with intelligent automation tools that drive efficiency and growth.",
+      "vision": "Our Vision",
+      "visionText": "A world where every business operation is optimized by intelligent automation.",
+      "values": {
+        "title": "Our Values",
+        "innovation": "Continuous Innovation",
+        "customer": "Customer Success",
+        "integrity": "Integrity & Transparency",
+        "collaboration": "Collaboration",
+        "excellence": "Excellence"
+      }
+    },
+    "leadership": {
+      "title": "Leadership",
+      "subtitle": "Meet the team behind Gogidix",
+      "ceo": "Chief Executive Officer",
+      "cto": "Chief Technology Officer",
+      "cfo": "Chief Financial Officer",
+      "coo": "Chief Operating Officer",
+      "cpo": "Chief Product Officer"
+    },
+    "careers": {
+      "title": "Careers",
+      "subtitle": "Build the future of business automation with us",
+      "openings": "Open Positions",
+      "culture": {
+        "title": "Our Culture",
+        "description": "We're building a diverse, inclusive workplace where innovation thrives."
+      },
+      "benefits": {
+        "title": "Benefits",
+        "remote": "Remote-first culture",
+        "health": "Comprehensive health coverage",
+        "learning": "Learning & development budget",
+        "equity": "Competitive equity package",
+        "pto": "Unlimited PTO",
+        "retirement": "401(k) matching"
+      },
+      "locations": {
+        "title": "Locations",
+        "remote": "Remote (Worldwide)",
+        "sf": "San Francisco, CA",
+        "ny": "New York, NY",
+        "london": "London, UK",
+        "singapore": "Singapore"
+      },
+      "cta": "View All Openings"
+    },
+    "press": {
+      "title": "Press",
+      "subtitle": "News and updates from Gogidix",
+      "releases": "Press Releases",
+      "coverage": "Media Coverage",
+      "assets": "Press Assets",
+      "contact": "Press Contact"
+    },
+    "contact": {
+      "title": "Contact Us",
+      "subtitle": "Get in touch with our team",
+      "sales": "Sales",
+      "salesDescription": "Talk to our sales team about your needs",
+      "support": "Support",
+      "supportDescription": "Get help with your account or technical issues",
+      "partnerships": "Partnerships",
+      "partnershipsDescription": "Explore partnership opportunities",
+      "press": "Press Inquiries",
+      "pressDescription": "Media and press related questions",
+      "form": {
+        "name": "Full Name",
+        "email": "Email Address",
+        "company": "Company",
+        "subject": "Subject",
+        "message": "Message",
+        "submit": "Send Message",
+        "success": "Message sent successfully!",
+        "error": "Failed to send message. Please try again."
+      },
+      "offices": {
+        "title": "Our Offices",
+        "hq": "Headquarters",
+        "us": "United States",
+        "uk": "United Kingdom",
+        "singapore": "Singapore"
+      }
+    }
+  },
+  "resources": {
+    "title": "Resources",
+    "subtitle": "Learn, grow, and succeed with Gogidix",
+    "documentation": {
+      "title": "Documentation",
+      "description": "Comprehensive guides and documentation",
+      "gettingStarted": "Getting Started",
+      "guides": "Guides",
+      "api": "API Reference",
+      "tutorials": "Tutorials"
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Latest insights and best practices",
+      "latest": "Latest Posts",
+      "categories": "Categories",
+      "tags": "Tags"
+    },
+    "webinars": {
+      "title": "Webinars",
+      "description": "Live and on-demand educational sessions",
+      "upcoming": "Upcoming",
+      "onDemand": "On-Demand"
+    },
+    "security": {
+      "title": "Security",
+      "subtitle": "Enterprise-grade security you can trust",
+      "compliance": {
+        "title": "Compliance",
+        "soc2": "SOC 2 Type II",
+        "gdpr": "GDPR Compliant",
+        "hipaa": "HIPAA Ready",
+        "iso": "ISO 27001"
+      },
+      "features": {
+        "encryption": "End-to-end Encryption",
+        "sso": "Single Sign-On (SSO)",
+        "audit": "Audit Logs",
+        "backup": "Data Backup & Recovery"
+      },
+      "bugBounty": {
+        "title": "Bug Bounty Program",
+        "description": "Help us keep Gogidix secure",
+        "cta": "Report a Vulnerability"
+      }
+    },
+    "helpCenter": {
+      "title": "Help Center",
+      "description": "Find answers to common questions"
+    },
+    "community": {
+      "title": "Community",
+      "description": "Connect with other Gogidix users"
+    }
+  },
+  "footer": {
+    "products": "Products",
+    "solutions": "Solutions",
+    "developers": "Developers",
+    "partners": "Partners",
+    "company": "Company",
+    "resources": "Resources",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "security": "Security",
+    "cookie": "Cookie Policy",
+    "status": "System Status",
+    "social": {
+      "twitter": "Twitter",
+      "linkedin": "LinkedIn",
+      "github": "GitHub",
+      "youtube": "YouTube"
+    },
+    "copyright": "© 2024 Gogidix. All rights reserved."
+  }
+}

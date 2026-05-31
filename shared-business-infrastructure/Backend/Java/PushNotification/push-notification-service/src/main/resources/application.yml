@@ -1,0 +1,34 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: PushNotification-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_pushnotification
+  cloud:
+    stream:
+      function:
+        definition: pushnotificationEvents
+      bindings:
+        pushnotificationEvents-out-0:
+          destination: pushnotificationEvents
+          contentType: application/json
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true

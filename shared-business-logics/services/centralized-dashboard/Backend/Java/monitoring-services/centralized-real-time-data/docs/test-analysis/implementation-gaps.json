@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "centralized-real-time-data (monitoring)",
+    "location": "Backend/Java/monitoring-services/centralized-real-time-data",
+    "totalGaps": 1,
+    "criticalGaps": 0,
+    "highGaps": 1,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "centralized-real-time-data/src/main/java",
+      "type": "Duplicate Directory",
+      "line": 0,
+      "description": "No Java source files found. This appears to be a duplicate of centralized-real-time-data service in data-services folder.",
+      "severity": "HIGH",
+      "recommendation": "Remove this duplicate directory and use the centralized-real-time-data service from data-services."
+    }
+  ]
+}

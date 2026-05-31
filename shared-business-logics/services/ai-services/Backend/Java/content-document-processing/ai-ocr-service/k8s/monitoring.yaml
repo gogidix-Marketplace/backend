@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-ocr-service
+  namespace: ai-services
+  labels:
+    app: ai-ocr-service
+    version: v1
+    team: team-ai-content-processing
+    component: content-document-processing
+    environment: production
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app: ai-ocr-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - ai-services
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ai-ocr-service
+  namespace: ai-services
+  labels:
+    app: ai-ocr-service
+    version: v1
+    team: team-ai-content-processing
+    component: content-document-processing
+    environment: production
+    release: prometheus-operator
+spec:
+  groups:
+  - name: ai-ocr-service
+    interval: 30s
+    rules:
+    - alert: AiOcrServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{app="ai-ocr-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: High error rate detected for AI OCR Service
+        description: "Error rate is {{ $value }} errors/sec"
+    - alert: AiOcrServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{app="ai-ocr-service"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: High latency detected for AI OCR Service
+        description: "P95 latency is {{ $value }} seconds"
+    - alert: AiOcrServicePodNotReady
+      expr: kube_pod_status_ready{app="ai-ocr-service",namespace="ai-services"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-content-processing
+      annotations:
+        summary: AI OCR Service pod not ready
+        description: "Pod {{ $labels.pod }} is not ready"
+    - alert: AiOcrServiceHighMemoryUsage
+      expr: rate(container_memory_working_set_bytes{app="ai-ocr-service"}[5m]) > 1200000000
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: High memory usage detected for AI OCR Service
+        description: "Memory usage is {{ $value }} bytes"
+    - alert: AiOcrServiceHighCpuUsage
+      expr: rate(container_cpu_usage_seconds_total{app="ai-ocr-service"}[5m]) > 0.8
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: High CPU usage detected for AI OCR Service
+        description: "CPU usage is {{ $value }} cores"

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-feature-extraction-service-config
+  namespace: ai-services
+  labels:
+    app: ai-feature-extraction-service
+    team: team-f-ai-services
+data:
+  mongodb-host: "mongodb"
+  mongodb-port: "27017"
+  mongodb-db: "ai-feature-extraction-service"
+  redis-host: "redis"
+  redis-port: "6379"
+  kafka-bootstrap-servers: "kafka:9092"

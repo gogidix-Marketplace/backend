@@ -1,0 +1,177 @@
+# Test Coverage Report - corporate-website-service
+
+## Overview
+- **Service**: corporate-website-service
+- **Analysis Date**: 2026-03-06T06:15:03Z
+- **Total Classes**: 79
+- **Test Files**: 5
+- **Total Test Methods**: 34
+- **Test Coverage**: 6%
+
+## Source Classes
+
+- `BlogPostDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/BlogPostDto.java`)
+- `CaseStudyDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/CaseStudyDto.java`)
+- `ContentRequest.java` (`src/main/java/com/gogidix/corporate/website/application/dto/ContentRequest.java`)
+- `JobDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/JobDto.java`)
+- `LeadCaptureRequest.java` (`src/main/java/com/gogidix/corporate/website/application/dto/LeadCaptureRequest.java`)
+- `LocalizedContentDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/LocalizedContentDto.java`)
+- `PageDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/PageDto.java`)
+- `PressReleaseDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/PressReleaseDto.java`)
+- `ProductDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/ProductDto.java`)
+- `SeoMetadataDto.java` (`src/main/java/com/gogidix/corporate/website/application/dto/SeoMetadataDto.java`)
+- `SitemapEntry.java` (`src/main/java/com/gogidix/corporate/website/application/dto/SitemapEntry.java`)
+- `CorporateWebsiteApplication.java` (`src/main/java/com/gogidix/corporate/website/CorporateWebsiteApplication.java`)
+- `BaseEntity.java` (`src/main/java/com/gogidix/corporate/website/domain/model/BaseEntity.java`)
+- `BlogPost.java` (`src/main/java/com/gogidix/corporate/website/domain/model/BlogPost.java`)
+- `CaseStudy.java` (`src/main/java/com/gogidix/corporate/website/domain/model/CaseStudy.java`)
+- `ContentStatus.java` (`src/main/java/com/gogidix/corporate/website/domain/model/ContentStatus.java`)
+- `Job.java` (`src/main/java/com/gogidix/corporate/website/domain/model/Job.java`)
+- `Language.java` (`src/main/java/com/gogidix/corporate/website/domain/model/Language.java`)
+- `LocalizedContent.java` (`src/main/java/com/gogidix/corporate/website/domain/model/LocalizedContent.java`)
+- `MediaAsset.java` (`src/main/java/com/gogidix/corporate/website/domain/model/MediaAsset.java`)
+- `Metric.java` (`src/main/java/com/gogidix/corporate/website/domain/model/Metric.java`)
+- `Page.java` (`src/main/java/com/gogidix/corporate/website/domain/model/Page.java`)
+- `PageVersion.java` (`src/main/java/com/gogidix/corporate/website/domain/model/PageVersion.java`)
+- `PressRelease.java` (`src/main/java/com/gogidix/corporate/website/domain/model/PressRelease.java`)
+- `PricingInfo.java` (`src/main/java/com/gogidix/corporate/website/domain/model/PricingInfo.java`)
+- `Product.java` (`src/main/java/com/gogidix/corporate/website/domain/model/Product.java`)
+- `ProductFeature.java` (`src/main/java/com/gogidix/corporate/website/domain/model/ProductFeature.java`)
+- `Region.java` (`src/main/java/com/gogidix/corporate/website/domain/model/Region.java`)
+- `SeoMetadata.java` (`src/main/java/com/gogidix/corporate/website/domain/model/SeoMetadata.java`)
+- `BlogPostRepository.java` (`src/main/java/com/gogidix/corporate/website/domain/repository/BlogPostRepository.java`)
+- `CaseStudyRepository.java` (`src/main/java/com/gogidix/corporate/website/domain/repository/CaseStudyRepository.java`)
+- `JobRepository.java` (`src/main/java/com/gogidix/corporate/website/domain/repository/JobRepository.java`)
+- `PageRepository.java` (`src/main/java/com/gogidix/corporate/website/domain/repository/PageRepository.java`)
+- `PressReleaseRepository.java` (`src/main/java/com/gogidix/corporate/website/domain/repository/PressReleaseRepository.java`)
+- `ProductRepository.java` (`src/main/java/com/gogidix/corporate/website/domain/repository/ProductRepository.java`)
+- `BlogPostDomainService.java` (`src/main/java/com/gogidix/corporate/website/domain/service/BlogPostDomainService.java`)
+- `CaseStudyDomainService.java` (`src/main/java/com/gogidix/corporate/website/domain/service/CaseStudyDomainService.java`)
+- `JobDomainService.java` (`src/main/java/com/gogidix/corporate/website/domain/service/JobDomainService.java`)
+- `PageDomainService.java` (`src/main/java/com/gogidix/corporate/website/domain/service/PageDomainService.java`)
+- `PressReleaseDomainService.java` (`src/main/java/com/gogidix/corporate/website/domain/service/PressReleaseDomainService.java`)
+- `ProductDomainService.java` (`src/main/java/com/gogidix/corporate/website/domain/service/ProductDomainService.java`)
+- `SitemapService.java` (`src/main/java/com/gogidix/corporate/website/domain/service/SitemapService.java`)
+- `CacheConfig.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/CacheConfig.java`)
+- `EnumConverter.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/EnumConverter.java`)
+- `I18nConfig.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/I18nConfig.java`)
+- `LocalDateTimeConverter.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/LocalDateTimeConverter.java`)
+- `MongoDBConfig.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/MongoDBConfig.java`)
+- `OpenApiConfig.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/OpenApiConfig.java`)
+- `ResilienceConfig.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/ResilienceConfig.java`)
+- `ScheduledContentPublisher.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/config/ScheduledContentPublisher.java`)
+- `AnalyticsClient.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/analytics/AnalyticsClient.java`)
+- `CustomEvent.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/analytics/CustomEvent.java`)
+- `PageViewEvent.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/analytics/PageViewEvent.java`)
+- `ContentDto.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/content/ContentDto.java`)
+- `ContentManagementClient.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/content/ContentManagementClient.java`)
+- `LeadCaptureResponse.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/lead/LeadCaptureResponse.java`)
+- `LeadEventRequest.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/lead/LeadEventRequest.java`)
+- `LeadGenerationClient.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/external/lead/LeadGenerationClient.java`)
+- `BlogPostMongoRepository.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/BlogPostMongoRepository.java`)
+- `BlogPostRepositoryImpl.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/BlogPostRepositoryImpl.java`)
+- `CaseStudyMongoRepository.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/CaseStudyMongoRepository.java`)
+- `CaseStudyRepositoryImpl.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/CaseStudyRepositoryImpl.java`)
+- `JobMongoRepository.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/JobMongoRepository.java`)
+- `JobRepositoryImpl.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/JobRepositoryImpl.java`)
+- `PageMongoRepository.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/PageMongoRepository.java`)
+- `PageRepositoryImpl.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/PageRepositoryImpl.java`)
+- `PressReleaseMongoRepository.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/PressReleaseMongoRepository.java`)
+- `PressReleaseRepositoryImpl.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/PressReleaseRepositoryImpl.java`)
+- `ProductMongoRepository.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/ProductMongoRepository.java`)
+- `ProductRepositoryImpl.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/persistence/ProductRepositoryImpl.java`)
+- `SecurityConfig.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/security/SecurityConfig.java`)
+- `BlogController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/BlogController.java`)
+- `CaseStudyController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/CaseStudyController.java`)
+- `JobController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/JobController.java`)
+- `LeadController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/LeadController.java`)
+- `PageController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/PageController.java`)
+- `PressReleaseController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/PressReleaseController.java`)
+- `ProductController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/ProductController.java`)
+- `SitemapController.java` (`src/main/java/com/gogidix/corporate/website/infrastructure/web/rest/SitemapController.java`)
+
+## Test Files
+
+- `BlogPostDomainServiceTest.java` (`src/test/java/com/gogidix/corporate/website/domain/service/BlogPostDomainServiceTest.java`) - **8 test methods**
+- `PageDomainServiceTest.java` (`src/test/java/com/gogidix/corporate/website/domain/service/PageDomainServiceTest.java`) - **11 test methods**
+- `SitemapServiceTest.java` (`src/test/java/com/gogidix/corporate/website/domain/service/SitemapServiceTest.java`) - **2 test methods**
+- `BlogControllerTest.java` (`src/test/java/com/gogidix/corporate/website/infrastructure/web/rest/BlogControllerTest.java`) - **6 test methods**
+- `PageControllerTest.java` (`src/test/java/com/gogidix/corporate/website/infrastructure/web/rest/PageControllerTest.java`) - **7 test methods**
+
+## Classes Without Tests
+
+- BlogPostDto
+- CaseStudyDto
+- ContentRequest
+- JobDto
+- LeadCaptureRequest
+- LocalizedContentDto
+- PageDto
+- PressReleaseDto
+- ProductDto
+- SeoMetadataDto
+- SitemapEntry
+- CorporateWebsiteApplication
+- BaseEntity
+- BlogPost
+- CaseStudy
+- ContentStatus
+- Job
+- Language
+- LocalizedContent
+- MediaAsset
+- Metric
+- Page
+- PageVersion
+- PressRelease
+- PricingInfo
+- Product
+- ProductFeature
+- Region
+- SeoMetadata
+- BlogPostRepository
+- CaseStudyRepository
+- JobRepository
+- PageRepository
+- PressReleaseRepository
+- ProductRepository
+- CaseStudyDomainService
+- JobDomainService
+- PressReleaseDomainService
+- ProductDomainService
+- CacheConfig
+- EnumConverter
+- I18nConfig
+- LocalDateTimeConverter
+- MongoDBConfig
+- OpenApiConfig
+- ResilienceConfig
+- ScheduledContentPublisher
+- AnalyticsClient
+- CustomEvent
+- PageViewEvent
+- ContentDto
+- ContentManagementClient
+- LeadCaptureResponse
+- LeadEventRequest
+- LeadGenerationClient
+- BlogPostMongoRepository
+- BlogPostRepositoryImpl
+- CaseStudyMongoRepository
+- CaseStudyRepositoryImpl
+- JobMongoRepository
+- JobRepositoryImpl
+- PageMongoRepository
+- PageRepositoryImpl
+- PressReleaseMongoRepository
+- PressReleaseRepositoryImpl
+- ProductMongoRepository
+- ProductRepositoryImpl
+- SecurityConfig
+- CaseStudyController
+- JobController
+- LeadController
+- PressReleaseController
+- ProductController
+- SitemapController
+All classes have tests!

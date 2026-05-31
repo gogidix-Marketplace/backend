@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: training-service
+  data:
+    mongodb:
+      database: training-service_db

@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: lead-generation-ai-service
+  namespace: ai-services
+  labels:
+    app: lead-generation-ai-service
+    team: team-ai-business-ops
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: lead-generation-ai-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: lead-generation-ai-service-alerts
+  namespace: ai-services
+  labels:
+    app: lead-generation-ai-service
+    team: team-ai-business-ops
+    release: prometheus
+spec:
+  groups:
+  - name: lead-generation-ai-service
+    interval: 30s
+    rules:
+    - alert: LeadGenerationAiServiceDown
+      expr: up{job="lead-generation-ai-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-business-ops
+      annotations:
+        summary: "Lead Generation AI Service is down"
+        description: "Lead Generation AI Service has been down for more than 5 minutes"
+    - alert: LeadGenerationAiServiceHighErrorRate
+      expr: rate(http_requests_total{job="lead-generation-ai-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-business-ops
+      annotations:
+        summary: "Lead Generation AI Service high error rate"
+        description: "Lead Generation AI Service error rate is {{ $value }} errors/sec"
+    - alert: LeadGenerationAiServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="lead-generation-ai-service"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-business-ops
+      annotations:
+        summary: "Lead Generation AI Service high latency"
+        description: "95th percentile latency is {{ $value }}s"
+    - alert: LeadGenerationAiServiceLowLeadScore
+      expr: avg(lead_score{job="lead-generation-ai-service"}) < 0.5
+      for: 15m
+      labels:
+        severity: info
+        team: team-ai-business-ops
+      annotations:
+        summary: "Lead Generation AI Service low lead scores"
+        description: "Average lead score is below 0.5 for the last 15 minutes"
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: lead-generation-ai-service-metrics
+  namespace: ai-services
+  labels:
+    app: lead-generation-ai-service
+    team: team-ai-business-ops
+spec:
+  from:
+  - group: monitoring.coreos.com
+    kind: Prometheus
+    namespace: monitoring
+  to:
+  - group: ""
+    kind: Service

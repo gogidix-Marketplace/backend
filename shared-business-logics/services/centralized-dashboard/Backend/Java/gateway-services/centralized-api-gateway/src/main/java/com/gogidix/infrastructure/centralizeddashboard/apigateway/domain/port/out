@@ -1,0 +1,33 @@
+package com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.port.out;
+
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.model.RouteConfiguration;
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.model.RouteId;
+import java.util.List;
+import java.util.Optional;
+
+public interface RouteConfigurationRepository {
+    
+    RouteConfiguration save(RouteConfiguration route);
+    
+    Optional<RouteConfiguration> findById(RouteId routeId);
+    
+    List<RouteConfiguration> findByServiceName(String serviceName);
+    
+    List<RouteConfiguration> findByStatus(RouteConfiguration.RouteStatus status);
+    
+    List<RouteConfiguration> findActiveRoutes();
+    
+    List<RouteConfiguration> findAll();
+    
+    boolean existsByPath(String path);
+    
+    boolean existsByServiceNameAndPath(String serviceName, String path);
+    
+    void deleteById(RouteId routeId);
+    
+    void deleteByServiceName(String serviceName);
+    
+    long countActiveRoutes();
+    
+    long countByServiceName(String serviceName);
+}

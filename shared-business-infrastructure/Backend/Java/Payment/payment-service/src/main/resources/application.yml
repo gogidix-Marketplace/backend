@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: payment-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_payment
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        paymentEvents-out-0:
+          destination: payment-events
+          content-type: application/json
+server:
+  port: 8088
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.payment: DEBUG

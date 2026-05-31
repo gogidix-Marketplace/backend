@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gogidix.cargo.businesslogics</groupId>
+    <artifactId>shared-business-logics</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Gogidix Shared Business Logics</name>
+    <description>Root parent POM for all Gogidix business logic services</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Dependency Versions -->
+        <spring-boot.version>3.1.5</spring-boot.version>
+        <spring-cloud.version>2022.0.3</spring-cloud.version>
+        <lombok.version>1.18.30</lombok.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <jacoco.version>0.8.10</jacoco.version>
+        <pitest.version>1.15.2</pitest.version>
+        <pitest.junit5.version>1.2.1</pitest.junit5.version>
+        <archunit.version>1.2.1</archunit.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
+
+        <!-- Foundation Shared Libraries Version -->
+        <gogidix.shared.version>1.0.0</gogidix.shared.version>
+        <gogidix.shared.bom.version>1.0.0</gogidix.shared.bom.version>
+
+        <!-- Test Coverage Thresholds (Financial-Grade) -->
+        <fg.coverage.minimum>0.85</fg.coverage.minimum>
+        <fg.branch.minimum>0.75</fg.branch.minimum>
+        <fg.mutation.minimum>60</fg.mutation.minimum>
+
+        <!-- Memory Configuration for CI/Standard Environments -->
+        <surefire.heap.min>128m</surefire.heap.min>
+        <surefire.heap.max>512m</surefire.heap.max>
+        <pitest.heap.min>128m</pitest.heap.min>
+        <pitest.heap.max>512m</pitest.heap.max>
+
+        <!-- Test Parallelism -->
+        <surefire.parallel.tests>1</surefire.parallel.tests>
+        <surefire.parallel.methods>1</surefire.parallel.methods>
+
+        <!-- Test timeout for integration tests -->
+        <surefire.timeout>180</surefire.timeout>
+
+        <!-- JVM Arguments - Optimized for memory-constrained environments -->
+        <surefire.jvm.args>-Xms${surefire.heap.min} -Xmx${surefire.heap.max} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:CompressedClassSpaceSize=64m -Xss256k -Djava.awt.headless=true</surefire.jvm.args>
+    </properties>
+        <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Shared-Infrastructure</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+
+    <!-- Dependency Management -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Import Foundation Shared Libraries BOM -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-libraries-bom</artifactId>
+                <version>${gogidix.shared.bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Override shared library versions to SNAPSHOT (BOM uses 1.0.0, JARs are at 1.0.0-SNAPSHOT) -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-exceptions</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-model-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-validation-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-audit</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-security-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-messaging</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-testing-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-utilities</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-multitenancy</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+
+            <!-- Spring Boot Dependencies BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Cloud Dependencies BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <optional>true</optional>
+            </dependency>
+
+            <!-- MapStruct -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- JaCoCo -->
+            <dependency>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+            </dependency>
+
+            <!-- PIT Mutation Testing -->
+            <dependency>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>${pitest.version}</version>
+            </dependency>
+
+            <!-- ArchUnit -->
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+
+            <!-- Testcontainers -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mongodb</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>kafka</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- Build Plugin Management -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Spring Boot Maven Plugin -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+
+                <!-- Maven Compiler Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok-mapstruct-binding</artifactId>
+                                <version>0.2.0</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+
+                <!-- Maven Surefire Plugin (Tests) -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.0.0</version>
+                    <configuration>
+                        <argLine>${surefire.jvm.args} @{argLine} -Dsurefire.timeout=${surefire.timeout}</argLine>
+                        <parallel>methods</parallel>
+                        <threadCount>${surefire.parallel.methods}</threadCount>
+                        <perCoreThreadCount>false</perCoreThreadCount>
+                        <useSystemClassLoader>false</useSystemClassLoader>
+                        <includes>
+                            <include>**/*Test.java</include>
+                            <include>**/*Tests.java</include>
+                        </includes>
+                        <forkCount>1</forkCount>
+                        <reuseForks>false</reuseForks>
+                    </configuration>
+                </plugin>
+
+                <!-- JaCoCo Coverage Plugin -->
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>check</id>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <rule>
+                                        <element>PACKAGE</element>
+                                        <limits>
+                                            <limit>
+                                                <counter>LINE</counter>
+                                                <value>COVEREDRATIO</value>
+                                                <minimum>${fg.coverage.minimum}</minimum>
+                                            </limit>
+                                            <limit>
+                                                <counter>BRANCH</counter>
+                                                <value>COVEREDRATIO</value>
+                                                <minimum>${fg.branch.minimum}</minimum>
+                                            </limit>
+                                        </limits>
+                                    </rule>
+                                </rules>
+                                <haltOnFailure>true</haltOnFailure>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- PIT Mutation Testing Plugin -->
+                <plugin>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-maven</artifactId>
+                    <version>${pitest.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.pitest</groupId>
+                            <artifactId>pitest-junit5-plugin</artifactId>
+                            <version>1.2.1</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <mutationThreshold>${fg.mutation.minimum}</mutationThreshold>
+                        <coverageThreshold>85</coverageThreshold>
+                        <timeoutConstant>5000</timeoutConstant>
+                        <features>+CLASSLIMIT(limit[200])</features>
+                        <jvmArgs>
+                            <jvmArg>-Xms256m</jvmArg>
+                            <jvmArg>-Xmx768m</jvmArg>
+                            <jvmArg>-XX:+UseG1GC</jvmArg>
+                        </jvmArgs>
+                        <outputFormats>
+                            <param>HTML</param>
+                            <param>XML</param>
+                        </outputFormats>
+                        <failWhenNoMutations>false</failWhenNoMutations>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <!-- Profiles -->
+    <profiles>
+        <!-- CI Profile: Coverage-focused, skip mutation testing -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Shared-Infrastructure</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+        </profile>
+
+        <!-- Local Development Profile: Skip mutation testing -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Shared-Infrastructure</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+        </profile>
+
+        <!-- Certification Profile: Full testing including mutation -->
+        <profile>
+            <id>certification</id>
+            <properties>
+                <pitest.skip>false</pitest.skip>
+            </properties>
+        <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Shared-Infrastructure</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+        </profile>
+    </profiles>
+
+    <modules>
+        <module>api-gateway</module>
+        <module>services/ai-services/Backend/Java</module>
+        <module>services/business-operations</module>
+        <module>services/business-support</module>
+        <module>services/centralized-dashboard/Backend/Java</module>
+        <module>services/event-driven-architecture</module>
+        <module>services/security</module>
+        <module>services/transaction-orchestration/Backend/Java</module>
+        <module>services/universal-tracking-services/Backend/Java</module>
+    </modules>
+</project>

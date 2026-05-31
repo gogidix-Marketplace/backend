@@ -1,0 +1,19 @@
+{
+  "serviceName": "social-media-service",
+  "analysisDate": "2026-03-06T10:13:01Z",
+  "summary": {
+    "totalFiles": 35,
+    "filesWithGaps": 0,
+    "totalGaps": 0,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "XXX": 0,
+      "HACK": 0,
+      "STUB": 0,
+      "PLACEHOLDER": 0,
+      "MOCK_IN_PRODUCTION": 0
+    }
+  },
+  "gaps": []
+}

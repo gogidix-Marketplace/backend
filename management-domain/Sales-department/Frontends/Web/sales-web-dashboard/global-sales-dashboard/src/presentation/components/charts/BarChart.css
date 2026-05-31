@@ -1,0 +1,131 @@
+/* BarChart Component Styles */
+
+.bar-chart {
+  width: 100%;
+}
+
+.bar-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gray-400);
+  gap: 12px;
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-gray-300);
+}
+
+.bar-chart-header {
+  margin-bottom: 16px;
+}
+
+.bar-chart-title {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.bar-chart-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-gray-500);
+}
+
+.bar-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.bar-chart-bar {
+  transition: opacity 150ms ease;
+}
+
+.bar-chart-bar:hover {
+  opacity: 0.8;
+}
+
+.bar-chart-label {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  fill: var(--color-gray-500);
+}
+
+.bar-chart-value {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bar-chart-group-label {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bar-chart-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-label {
+  font-weight: 500;
+}
+
+/* Horizontal variant */
+.bar-chart-horizontal .bar-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Dark theme */
+[data-theme='dark'] .bar-chart-empty {
+  color: var(--color-gray-600);
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+[data-theme='dark'] .bar-chart-title {
+  color: var(--color-gray-100);
+}
+
+[data-theme='dark'] .bar-chart-subtitle {
+  color: var(--color-gray-400);
+}
+
+[data-theme='dark'] .bar-chart-label {
+  fill: var(--color-gray-500);
+}
+
+[data-theme='dark'] .bar-chart-value {
+  fill: var(--color-gray-200);
+}
+
+[data-theme='dark'] .bar-chart-grid line {
+  stroke: var(--color-gray-700);
+}
+
+[data-theme='dark'] .legend-item {
+  color: var(--color-gray-400);
+}

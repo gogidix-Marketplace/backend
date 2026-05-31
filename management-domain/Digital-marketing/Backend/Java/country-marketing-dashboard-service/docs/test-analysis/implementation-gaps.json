@@ -1,0 +1,19 @@
+{
+  "serviceName": "country-marketing-dashboard-service",
+  "analysisDate": "2026-03-06T06:15:03Z",
+  "summary": {
+    "totalFiles": 37,
+    "filesWithGaps": 1,
+    "totalGaps": 1,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "XXX": 0,
+      "HACK": 0,
+      "STUB": 0,
+      "PLACEHOLDER": 1,
+      "MOCK_IN_PRODUCTION": 0
+    }
+  },
+  "gaps": []
+}

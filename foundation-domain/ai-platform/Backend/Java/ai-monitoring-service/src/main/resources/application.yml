@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: ai-monitoring-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/aimonitoring
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.gogidix: INFO

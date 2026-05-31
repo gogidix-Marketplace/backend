@@ -1,0 +1,285 @@
+{
+  "domain": "transaction-orchestration",
+  "analysisDate": "2026-03-01",
+  "basePath": "C:\\Users\\TEMP.LAPTOP-1QDBFFCA\\Desktop\\Gogidix-ecosystem\\x-gogidix-domain\\Foundation-domain\\transaction-orchestration",
+  "services": [
+    {
+      "name": "audit-trail-service",
+      "status": "complete",
+      "testCoverage": "~85%",
+      "gaps": [],
+      "notes": [
+        "Kafka integration disabled for local development",
+        "Configuration classes not tested",
+        "Port interfaces not directly tested (tested through service layer)"
+      ],
+      "implementationStatus": {
+        "domain": "complete",
+        "application": "complete",
+        "infrastructure": "complete",
+        "interfaces": "complete",
+        "tests": "good"
+      }
+    },
+    {
+      "name": "onboarding-tracker-service",
+      "status": "no_tests",
+      "testCoverage": "0%",
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "critical",
+          "description": "No test files exist for this service",
+          "affectedClasses": [
+            "com.gogidix.transaction.onboarding.service.OnboardingTrackerService",
+            "com.gogidix.transaction.onboarding.controller.OnboardingTrackerController",
+            "com.gogidix.transaction.onboarding.domain.entity.OnboardingTracker",
+            "com.gogidix.transaction.onboarding.domain.entity.OnboardingStageHistory"
+          ]
+        },
+        {
+          "type": "missing_kafka_integration",
+          "severity": "medium",
+          "description": "Kafka event publishing stubbed with logging only",
+          "location": "OnboardingTrackerService.java:382-386",
+          "codeSnippet": "private void publishOnboardingEvent(String eventType, OnboardingTracker tracker) {\n        // Kafka removed for local development - just logging the event\n        log.debug(\"Onboarding event: {} for tracker: {}, transactionId: {}, stage: {}, status: {}\",\n            eventType, tracker.getId(), tracker.getTransactionId(), tracker.getCurrentStage(), tracker.getCurrentStatus());\n    }"
+        },
+        {
+          "type": "mongodb_dependency",
+          "severity": "info",
+          "description": "Uses MongoDB instead of PostgreSQL - may need different testing approach"
+        }
+      ],
+      "recommendedTests": [
+        "OnboardingTrackerServiceTest - createOnboarding with idempotency",
+        "OnboardingTrackerServiceTest - stage transition validation",
+        "OnboardingTrackerServiceTest - progress calculation",
+        "OnboardingTrackerServiceTest - duplicate detection",
+        "OnboardingTrackerServiceTest - search and filtering",
+        "OnboardingTrackerControllerTest - all REST endpoints",
+        "OnboardingTrackerTest - state machine validation",
+        "OnboardingTrackerServiceIntegrationTest - with MongoDB Testcontainers"
+      ],
+      "implementationStatus": {
+        "domain": "complete",
+        "application": "complete",
+        "infrastructure": "complete",
+        "interfaces": "complete",
+        "tests": "none"
+      }
+    },
+    {
+      "name": "progress-step-service",
+      "status": "no_tests",
+      "testCoverage": "0%",
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "critical",
+          "description": "No test files exist for this service",
+          "affectedClasses": [
+            "com.gogidix.transaction.progress.service.ProgressStepService",
+            "com.gogidix.transaction.progress.controller.ProgressStepController",
+            "com.gogidix.transaction.progress.domain.entity.ProgressStep"
+          ]
+        },
+        {
+          "type": "missing_kafka_integration",
+          "severity": "medium",
+          "description": "Kafka event publishing stubbed with logging only",
+          "location": "ProgressStepService.java:310-314",
+          "codeSnippet": "private void publishStepEvent(String eventType, ProgressStep step) {\n        // Kafka removed for local development - just logging the event\n        log.debug(\"Step event: {} for step: {}, transaction: {}, status: {}\",\n            eventType, step.getId(), step.getTransactionId(), step.getStatus());\n    }"
+        },
+        {
+          "type": "missing_kafka_compensation",
+          "severity": "medium",
+          "description": "Compensation action would trigger via Kafka - stubbed",
+          "location": "ProgressStepService.java:213-216",
+          "codeSnippet": "if (step.getCompensationAction() != null && !step.getCompensationAction().isBlank()) {\n            // Kafka removed for local development - compensation would be triggered here\n            log.info(\"Compensation triggered for step: {}, action: {}\", stepId, step.getCompensationAction());\n        }"
+        }
+      ],
+      "recommendedTests": [
+        "ProgressStepServiceTest - create single/batch steps",
+        "ProgressStepServiceTest - step lifecycle (PENDING->IN_PROGRESS->COMPLETED/FAILED)",
+        "ProgressStepServiceTest - retry mechanism with delay",
+        "ProgressStepServiceTest - timeout handling",
+        "ProgressStepServiceTest - dependency resolution",
+        "ProgressStepServiceTest - parallel execution",
+        "ProgressStepServiceTest - compensation execution",
+        "ProgressStepControllerTest - all REST endpoints",
+        "ProgressStepServiceTest - checkTimeoutSteps scheduled task"
+      ],
+      "implementationStatus": {
+        "domain": "complete",
+        "application": "complete",
+        "infrastructure": "complete",
+        "interfaces": "complete",
+        "tests": "none"
+      }
+    },
+    {
+      "name": "status-broadcast-service",
+      "status": "no_tests",
+      "testCoverage": "0%",
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "critical",
+          "description": "No test files exist for this service",
+          "affectedClasses": [
+            "com.gogidix.transaction.status.service.StatusBroadcastService",
+            "com.gogidix.transaction.status.controller.StatusBroadcastController",
+            "com.gogidix.transaction.status.websocket.StatusWebSocketHandler",
+            "com.gogidix.transaction.status.domain.entity.Subscriber"
+          ]
+        },
+        {
+          "type": "missing_kafka_integration",
+          "severity": "medium",
+          "description": "Kafka listener removed for local development - status updates must be triggered manually",
+          "location": "StatusBroadcastService.java:31-32",
+          "codeSnippet": "// Kafka listener removed for local development\n        // Status updates will need to be triggered manually via REST API in local mode"
+        },
+        {
+          "type": "websocket_testing_complexity",
+          "severity": "medium",
+          "description": "WebSocket testing requires specialized setup (Spring WebSocket test support)"
+        }
+      ],
+      "recommendedTests": [
+        "StatusBroadcastServiceTest - subscribe/unsubscribe",
+        "StatusBroadcastServiceTest - broadcast to transaction subscribers",
+        "StatusBroadcastServiceTest - broadcast to all",
+        "StatusBroadcastServiceTest - register/unregister subscriber",
+        "StatusBroadcastServiceTest - cleanupInactiveSubscribers scheduled task",
+        "StatusWebSocketHandlerTest - connection handling",
+        "StatusWebSocketHandlerTest - message routing",
+        "StatusBroadcastControllerTest - all REST endpoints",
+        "SubscriberTest - entity lifecycle and status transitions"
+      ],
+      "implementationStatus": {
+        "domain": "complete",
+        "application": "complete",
+        "infrastructure": "complete",
+        "interfaces": "complete",
+        "tests": "none"
+      }
+    },
+    {
+      "name": "transaction-monitoring-service",
+      "status": "no_tests",
+      "testCoverage": "0%",
+      "gaps": [
+        {
+          "type": "missing_tests",
+          "severity": "critical",
+          "description": "No test files exist for this service",
+          "affectedClasses": [
+            "com.gogidix.transaction.monitoring.service.TransactionMonitoringService",
+            "com.gogidix.transaction.monitoring.controller.TransactionMonitoringController",
+            "com.gogidix.transaction.monitoring.domain.entity.TransactionMetrics",
+            "com.gogidix.transaction.monitoring.domain.entity.Alert"
+          ]
+        },
+        {
+          "type": "missing_kafka_integration",
+          "severity": "medium",
+          "description": "Alert event publishing stubbed with logging only",
+          "location": "TransactionMonitoringService.java:180-184",
+          "codeSnippet": "private void publishAlertEvent(Alert alert) {\n        // Kafka removed for local development - just logging the alert\n        log.debug(\"Alert created: {}, type: {}, severity: {}, transaction: {}\",\n            alert.getId(), alert.getAlertType(), alert.getSeverity(), alert.getTransactionId());\n    }"
+        },
+        {
+          "type": "incomplete_cleanup_logic",
+          "severity": "low",
+          "description": "Metrics cleanup is simplified - needs more sophisticated logic for production",
+          "location": "TransactionMonitoringService.java:186-196",
+          "codeSnippet": "@Scheduled(fixedDelay = 60000)\n    public void cleanupOldMetrics() {\n        log.debug(\"Cleaning up old metrics\");\n        LocalDateTime cutoff = LocalDateTime.now().minusDays(30);\n        List<TransactionMetrics> oldMetrics = metricsRepository.findTop50ByMetricTypeOrderByTimestampDesc(\n            TransactionMetrics.MetricType.CUSTOM_METRIC);\n        // This is a simplified cleanup - in production, you'd want more sophisticated logic\n        log.info(\"Metrics cleanup completed\");\n    }"
+        }
+      ],
+      "recommendedTests": [
+        "TransactionMonitoringServiceTest - recordMetric with threshold evaluation",
+        "TransactionMonitoringServiceTest - automatic alert creation on threshold exceeded",
+        "TransactionMonitoringServiceTest - manual alert creation",
+        "TransactionMonitoringServiceTest - alert acknowledgment",
+        "TransactionMonitoringServiceTest - alert resolution",
+        "TransactionMonitoringServiceTest - dashboard data aggregation",
+        "TransactionMonitoringServiceTest - critical alert detection",
+        "TransactionMonitoringServiceTest - cleanupOldMetrics scheduled task",
+        "TransactionMonitoringControllerTest - all REST endpoints",
+        "TransactionMetricsTest - threshold comparison logic",
+        "AlertTest - status transitions and lifecycle"
+      ],
+      "implementationStatus": {
+        "domain": "complete",
+        "application": "complete",
+        "infrastructure": "complete",
+        "interfaces": "complete",
+        "tests": "none"
+      }
+    }
+  ],
+  "overallSummary": {
+    "totalServices": 5,
+    "servicesWithTests": 1,
+    "servicesWithoutTests": 4,
+    "overallTestCoverage": "~17%",
+    "criticalGaps": 5,
+    "mediumGaps": 7,
+    "lowGaps": 2,
+    "primaryGap": "4 out of 5 services have zero test coverage"
+  },
+  "gapCategories": {
+    "missing_tests": {
+      "count": 4,
+      "severity": "critical",
+      "description": "Services with no test files at all"
+    },
+    "missing_kafka_integration": {
+      "count": 4,
+      "severity": "medium",
+      "description": "Kafka messaging disabled/stubbed for local development"
+    },
+    "mongodb_dependency": {
+      "count": 1,
+      "severity": "info",
+      "description": "Service uses MongoDB requiring different test setup"
+    },
+    "websocket_testing_complexity": {
+      "count": 1,
+      "severity": "medium",
+      "description": "WebSocket requires specialized testing approach"
+    },
+    "incomplete_cleanup_logic": {
+      "count": 1,
+      "severity": "low",
+      "description": "Scheduled task logic marked as simplified"
+    }
+  },
+  "actionItems": [
+    {
+      "priority": "critical",
+      "action": "Add test suites for 4 services without any tests",
+      "services": ["onboarding-tracker-service", "progress-step-service", "status-broadcast-service", "transaction-monitoring-service"]
+    },
+    {
+      "priority": "high",
+      "action": "Implement integration tests for all services using Testcontainers",
+      "services": ["all"]
+    },
+    {
+      "priority": "medium",
+      "action": "Add Kafka integration tests or contract tests",
+      "services": ["all"]
+    },
+    {
+      "priority": "medium",
+      "action": "Complete cleanup logic implementation",
+      "services": ["transaction-monitoring-service"]
+    },
+    {
+      "priority": "low",
+      "action": "Add architecture compliance tests for all services",
+      "services": ["onboarding-tracker-service", "progress-step-service", "status-broadcast-service", "transaction-monitoring-service"]
+    }
+  ]
+}

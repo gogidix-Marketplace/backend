@@ -1,0 +1,16 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-fraud-detection-service
+  namespace: ai-services
+  labels:
+    app: ai-fraud-detection-service
+    version: v1
+    team: team-ai-security
+    domain: ai-services
+    component: security-fraud-prevention
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-fraud-detection-service

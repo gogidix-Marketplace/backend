@@ -1,0 +1,3060 @@
+version: '3.8'
+
+# ============================================================================
+# Gogidix E-Commerce Core - Docker Compose Configuration
+# ============================================================================
+# This docker-compose file orchestrates all 44+ microservices in the
+# shared-ecommerce-core domain, including infrastructure components.
+#
+# Infrastructure Services:
+#   - MongoDB Replica Set (ports 27017-27019)
+#   - Zookeeper (port 2181)
+#   - Kafka (port 9092)
+#   - Eureka Server (port 8761)
+#
+# Usage:
+#   docker-compose -f docker-compose-ecommerce.yml up -d
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # INFRASTRUCTURE SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # MongoDB Replica Set Configuration
+  # ------------------------------------------------------------------------
+  mongodb-primary:
+    image: mongo:7.0
+    container_name: mongodb-primary
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_REPLICA_SET_NAME: rs0
+    volumes:
+      - mongodb-primary-data:/data/db
+      - mongodb-config:/data/configdb
+      - ./scripts/mongodb-init.sh:/docker-entrypoint-initdb.d/mongodb-init.sh:ro
+    command: mongod --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  mongodb-secondary-1:
+    image: mongo:7.0
+    container_name: mongodb-secondary-1
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_REPLICA_SET_NAME: rs0
+    volumes:
+      - mongodb-secondary-1-data:/data/db
+      - mongodb-config:/data/configdb
+    command: mongod --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  mongodb-secondary-2:
+    image: mongo:7.0
+    container_name: mongodb-secondary-2
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_REPLICA_SET_NAME: rs0
+    volumes:
+      - mongodb-secondary-2-data:/data/db
+      - mongodb-config:/data/configdb
+    command: mongod --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # MongoDB Replica Set Initialization
+  # ------------------------------------------------------------------------
+  mongodb-init:
+    image: mongo:7.0
+    container_name: mongodb-init
+    depends_on:
+      - mongodb-primary
+      - mongodb-secondary-1
+      - mongodb-secondary-2
+    networks:
+      - ecommerce-network
+    volumes:
+      - ./scripts/mongodb-init.sh:/mongodb-init.sh:ro
+    command: >
+      bash -c "
+        sleep 20 &&
+        mongosh --host mongodb-primary:27017 -u admin -p admin123 --authenticationDatabase admin --eval '
+        rs.initiate({
+          _id: \"rs0\",
+          members: [
+            {_id: 0, host: \"mongodb-primary:27017\"},
+            {_id: 1, host: \"mongodb-secondary-1:27017\"},
+            {_id: 2, host: \"mongodb-secondary-2:27017\"}
+          ]
+        })
+        ' &&
+        sleep 10 &&
+        mongosh --host mongodb-primary:27017 -u admin -p admin123 --authenticationDatabase admin --eval 'rs.status()'
+      "
+    restart: "no"
+
+  # ------------------------------------------------------------------------
+  # Zookeeper - Required for Kafka
+  # ------------------------------------------------------------------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 0
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Kafka - Message Broker
+  # ------------------------------------------------------------------------
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_NUM_PARTITIONS: 3
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Kafka UI - Optional Management Interface
+  # ------------------------------------------------------------------------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ecommerce-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Eureka Server - Service Discovery
+  # ------------------------------------------------------------------------
+  eureka-server:
+    image: springcloud/eureka:latest
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+      SPRING_CLOUD_CONFIG_ENABLED: "false"
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false"
+      EUREKA_INSTANCE_HOSTNAME: eureka-server
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JAVA_OPTS: "-Xms512m -Xmx512m"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # CORE E-COMMERCE SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # Cart Service
+  # ------------------------------------------------------------------------
+  cart-service:
+    build:
+      context: ./Cart/cart-service
+      dockerfile: Dockerfile
+    container_name: cart-service
+    ports:
+      - "8306:8306"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: cart-service
+      SERVER_PORT: 8306
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,cart-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_HEALTH_MONGODB_ENABLED: "true"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8306/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Order Service
+  # ------------------------------------------------------------------------
+  order-service:
+    build:
+      context: ./Order/order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "8050:8050"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: order-service
+      SERVER_PORT: 8050
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,order-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Checkout Service
+  # ------------------------------------------------------------------------
+  checkout-service:
+    build:
+      context: ./Order/checkout-service
+      dockerfile: Dockerfile
+    container_name: checkout-service
+    ports:
+      - "8051:8051"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: checkout-service
+      SERVER_PORT: 8051
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,checkout-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CART_SERVICE_URL: http://cart-service:8306
+      ORDER_SERVICE_URL: http://order-service:8050
+      PAYMENT_SERVICE_URL: http://payment-service:8052
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8051/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Payment Service
+  # ------------------------------------------------------------------------
+  payment-service:
+    build:
+      context: ./Payment/payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8052:8052"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: payment-service
+      SERVER_PORT: 8052
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,payment-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8052/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Payment Gateway Service
+  # ------------------------------------------------------------------------
+  payment-gateway-service:
+    build:
+      context: ./Payment/payment-gateway-service
+      dockerfile: Dockerfile
+    container_name: payment-gateway-service
+    ports:
+      - "8520:8520"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: payment-gateway-service
+      SERVER_PORT: 8520
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,payment-gateway-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8520/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Payment Method Service
+  # ------------------------------------------------------------------------
+  payment-method-service:
+    build:
+      context: ./Payment/payment-method-service
+      dockerfile: Dockerfile
+    container_name: payment-method-service
+    ports:
+      - "8521:8521"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: payment-method-service
+      SERVER_PORT: 8521
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,payment-method-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8521/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Catalog Service
+  # ------------------------------------------------------------------------
+  catalog-service:
+    build:
+      context: ./Catalog/catalog-service
+      dockerfile: Dockerfile
+    container_name: catalog-service
+    ports:
+      - "8053:8053"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: catalog-service
+      SERVER_PORT: 8053
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,catalog-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8053/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Category Service
+  # ------------------------------------------------------------------------
+  category-service:
+    build:
+      context: ./Catalog/category-service
+      dockerfile: Dockerfile
+    container_name: category-service
+    ports:
+      - "8057:8057"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: category-service
+      SERVER_PORT: 8057
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,category-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8057/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Bundle Service
+  # ------------------------------------------------------------------------
+  bundle-service:
+    build:
+      context: ./Catalog/bundle-service
+      dockerfile: Dockerfile
+    container_name: bundle-service
+    ports:
+      - "8075:8075"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: bundle-service
+      SERVER_PORT: 8075
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,bundle-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8075/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Variant Service
+  # ------------------------------------------------------------------------
+  variant-service:
+    build:
+      context: ./Catalog/variant-service
+      dockerfile: Dockerfile
+    container_name: variant-service
+    ports:
+      - "8076:8076"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: variant-service
+      SERVER_PORT: 8076
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,variant-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8076/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Pricing Service
+  # ------------------------------------------------------------------------
+  pricing-service:
+    build:
+      context: ./Catalog/pricing-service
+      dockerfile: Dockerfile
+    container_name: pricing-service
+    ports:
+      - "8066:8066"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: pricing-service
+      SERVER_PORT: 8066
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,pricing-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8066/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Influencer Service
+  # ------------------------------------------------------------------------
+  influencer-service:
+    build:
+      context: ./Influencer/influencer-service
+      dockerfile: Dockerfile
+    container_name: influencer-service
+    ports:
+      - "8054:8054"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: influencer-service
+      SERVER_PORT: 8054
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,influencer-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8054/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Commission Service
+  # ------------------------------------------------------------------------
+  commission-service:
+    build:
+      context: ./Influencer/commission-service
+      dockerfile: Dockerfile
+    container_name: commission-service
+    ports:
+      - "8055:8055"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: commission-service
+      SERVER_PORT: 8055
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,commission-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      INFLUENCER_SERVICE_URL: http://influencer-service:8054
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      influencer-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8055/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Affiliate Service
+  # ------------------------------------------------------------------------
+  affiliate-service:
+    build:
+      context: ./Influencer/affiliate-service
+      dockerfile: Dockerfile
+    container_name: affiliate-service
+    ports:
+      - "8540:8540"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: affiliate-service
+      SERVER_PORT: 8540
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,affiliate-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      COMMISSION_SERVICE_URL: http://commission-service:8055
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8540/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Influencer Dashboard Service
+  # ------------------------------------------------------------------------
+  influencer-dashboard-service:
+    build:
+      context: ./Influencer/influencer-dashboard-service
+      dockerfile: Dockerfile
+    container_name: influencer-dashboard-service
+    ports:
+      - "8541:8541"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: influencer-dashboard-service
+      SERVER_PORT: 8541
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,influencer-dashboard-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      INFLUENCER_SERVICE_URL: http://influencer-service:8054
+      COMMISSION_SERVICE_URL: http://commission-service:8055
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8541/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Customer Service
+  # ------------------------------------------------------------------------
+  customer-service:
+    build:
+      context: ./Customer/customer-service
+      dockerfile: Dockerfile
+    container_name: customer-service
+    ports:
+      - "8056:8056"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: customer-service
+      SERVER_PORT: 8056
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,customer-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8056/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Customer Profile Service
+  # ------------------------------------------------------------------------
+  customer-profile-service:
+    build:
+      context: ./customer-profile-service
+      dockerfile: Dockerfile
+    container_name: customer-profile-service
+    ports:
+      - "8560:8560"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: customer-profile-service
+      SERVER_PORT: 8560
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,customer-profile-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CUSTOMER_SERVICE_URL: http://customer-service:8056
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8560/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Fulfillment Service
+  # ------------------------------------------------------------------------
+  fulfillment-service:
+    build:
+      context: ./Fulfillment/fulfillment-service
+      dockerfile: Dockerfile
+    container_name: fulfillment-service
+    ports:
+      - "8058:8058"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: fulfillment-service
+      SERVER_PORT: 8058
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,fulfillment-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ORDER_SERVICE_URL: http://order-service:8050
+      INVENTORY_SERVICE_URL: http://inventory-service:8074
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8058/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Fulfillment Orchestrator Service
+  # ------------------------------------------------------------------------
+  fulfillment-orchestrator-service:
+    build:
+      context: ./Fulfillment/fulfillment-orchestrator-service
+      dockerfile: Dockerfile
+    container_name: fulfillment-orchestrator-service
+    ports:
+      - "8580:8580"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: fulfillment-orchestrator-service
+      SERVER_PORT: 8580
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,fulfillment-orchestrator-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      FULFILLMENT_SERVICE_URL: http://fulfillment-service:8058
+      DELIVERY_SERVICE_URL: http://delivery-service:8059
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      fulfillment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8580/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Delivery Service
+  # ------------------------------------------------------------------------
+  delivery-service:
+    build:
+      context: ./Fulfillment/delivery-service
+      dockerfile: Dockerfile
+    container_name: delivery-service
+    ports:
+      - "8059:8059"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: delivery-service
+      SERVER_PORT: 8059
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,delivery-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8059/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Shipping Service
+  # ------------------------------------------------------------------------
+  shipping-service:
+    build:
+      context: ./Fulfillment/shipping-service
+      dockerfile: Dockerfile
+    container_name: shipping-service
+    ports:
+      - "8581:8581"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: shipping-service
+      SERVER_PORT: 8581
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,shipping-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      DELIVERY_SERVICE_URL: http://delivery-service:8059
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8581/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Realtime Tracking Service
+  # ------------------------------------------------------------------------
+  realtime-tracking-service:
+    build:
+      context: ./Tracking/realtime-tracking-service
+      dockerfile: Dockerfile
+    container_name: realtime-tracking-service
+    ports:
+      - "8060:8060"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: realtime-tracking-service
+      SERVER_PORT: 8060
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,realtime-tracking-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      DELIVERY_SERVICE_URL: http://delivery-service:8059
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8060/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Order Tracking Service
+  # ------------------------------------------------------------------------
+  order-tracking-service:
+    build:
+      context: ./Tracking/order-tracking-service
+      dockerfile: Dockerfile
+    container_name: order-tracking-service
+    ports:
+      - "8582:8582"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: order-tracking-service
+      SERVER_PORT: 8582
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,order-tracking-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ORDER_SERVICE_URL: http://order-service:8050
+      REALTIME_TRACKING_SERVICE_URL: http://realtime-tracking-service:8060
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8582/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Analytics Service
+  # ------------------------------------------------------------------------
+  analytics-service:
+    build:
+      context: ./Analytics/analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics-service
+    ports:
+      - "8061:8061"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: analytics-service
+      SERVER_PORT: 8061
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,analytics-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8061/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Vendor Service
+  # ------------------------------------------------------------------------
+  vendor-service:
+    build:
+      context: ./Vendor/vendor-service
+      dockerfile: Dockerfile
+    container_name: vendor-service
+    ports:
+      - "8062:8062"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: vendor-service
+      SERVER_PORT: 8062
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,vendor-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8062/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Vendor Dashboard Service
+  # ------------------------------------------------------------------------
+  vendor-dashboard-service:
+    build:
+      context: ./Vendor/vendor-dashboard-service
+      dockerfile: Dockerfile
+    container_name: vendor-dashboard-service
+    ports:
+      - "8590:8590"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: vendor-dashboard-service
+      SERVER_PORT: 8590
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,vendor-dashboard-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      VENDOR_SERVICE_URL: http://vendor-service:8062
+      ANALYTICS_SERVICE_URL: http://analytics-service:8061
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8590/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Vendor Analytics Service
+  # ------------------------------------------------------------------------
+  vendor-analytics-service:
+    build:
+      context: ./Vendor/vendor-analytics-service
+      dockerfile: Dockerfile
+    container_name: vendor-analytics-service
+    ports:
+      - "8591:8591"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: vendor-analytics-service
+      SERVER_PORT: 8591
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,vendor-analytics-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      VENDOR_SERVICE_URL: http://vendor-service:8062
+      ANALYTICS_SERVICE_URL: http://analytics-service:8061
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8591/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Vendor Onboarding Service
+  # ------------------------------------------------------------------------
+  onboarding-service:
+    build:
+      context: ./Vendor/onboarding-service
+      dockerfile: Dockerfile
+    container_name: onboarding-service
+    ports:
+      - "8592:8592"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: onboarding-service
+      SERVER_PORT: 8592
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,onboarding-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      VENDOR_SERVICE_URL: http://vendor-service:8062
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8592/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Dropship Service
+  # ------------------------------------------------------------------------
+  dropship-service:
+    build:
+      context: ./Vendor/dropship-service
+      dockerfile: Dockerfile
+    container_name: dropship-service
+    ports:
+      - "8593:8593"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: dropship-service
+      SERVER_PORT: 8593
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,dropship-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      VENDOR_SERVICE_URL: http://vendor-service:8062
+      FULFILLMENT_SERVICE_URL: http://fulfillment-service:8058
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8593/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Wholesaler Service
+  # ------------------------------------------------------------------------
+  wholesaler-service:
+    build:
+      context: ./Wholesaler/wholesaler-service
+      dockerfile: Dockerfile
+    container_name: wholesaler-service
+    ports:
+      - "8063:8063"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: wholesaler-service
+      SERVER_PORT: 8063
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,wholesaler-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8063/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Wholesaler Dashboard Service
+  # ------------------------------------------------------------------------
+  wholesaler-dashboard-service:
+    build:
+      context: ./Wholesaler/wholesaler-dashboard-service
+      dockerfile: Dockerfile
+    container_name: wholesaler-dashboard-service
+    ports:
+      - "8594:8594"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: wholesaler-dashboard-service
+      SERVER_PORT: 8594
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,wholesaler-dashboard-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      WHOLESALER_SERVICE_URL: http://wholesaler-service:8063
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8594/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Bulk Pricing Service
+  # ------------------------------------------------------------------------
+  bulk-pricing-service:
+    build:
+      context: ./Wholesaler/bulk-pricing-service
+      dockerfile: Dockerfile
+    container_name: bulk-pricing-service
+    ports:
+      - "8595:8595"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: bulk-pricing-service
+      SERVER_PORT: 8595
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,bulk-pricing-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      PRICING_SERVICE_URL: http://pricing-service:8066
+      WHOLESALER_SERVICE_URL: http://wholesaler-service:8063
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8595/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Contract Management Service
+  # ------------------------------------------------------------------------
+  contract-management-service:
+    build:
+      context: ./Wholesaler/contract-management-service
+      dockerfile: Dockerfile
+    container_name: contract-management-service
+    ports:
+      - "8596:8596"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: contract-management-service
+      SERVER_PORT: 8596
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,contract-management-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      WHOLESALER_SERVICE_URL: http://wholesaler-service:8063
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8596/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Discount Service
+  # ------------------------------------------------------------------------
+  discount-service:
+    build:
+      context: ./Discount/discount-service
+      dockerfile: Dockerfile
+    container_name: discount-service
+    ports:
+      - "8064:8064"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: discount-service
+      SERVER_PORT: 8064
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,discount-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      PRICING_SERVICE_URL: http://pricing-service:8066
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8064/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Promotion Service
+  # ------------------------------------------------------------------------
+  promotion-service:
+    build:
+      context: ./Promotion/promotion-service
+      dockerfile: Dockerfile
+    container_name: promotion-service
+    ports:
+      - "8065:8065"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: promotion-service
+      SERVER_PORT: 8065
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,promotion-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      DISCOUNT_SERVICE_URL: http://discount-service:8064
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8065/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Coupon Service
+  # ------------------------------------------------------------------------
+  coupon-service:
+    build:
+      context: ./Promotion/coupon-service
+      dockerfile: Dockerfile
+    container_name: coupon-service
+    ports:
+      - "8078:8078"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: coupon-service
+      SERVER_PORT: 8078
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,coupon-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      PROMOTION_SERVICE_URL: http://promotion-service:8065
+      DISCOUNT_SERVICE_URL: http://discount-service:8064
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8078/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Email Service
+  # ------------------------------------------------------------------------
+  email-service:
+    build:
+      context: ./Notification/email-service
+      dockerfile: Dockerfile
+    container_name: email-service
+    ports:
+      - "8067:8067"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: email-service
+      SERVER_PORT: 8067
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,email-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8067/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # SMS Service
+  # ------------------------------------------------------------------------
+  sms-service:
+    build:
+      context: ./Notification/sms-service
+      dockerfile: Dockerfile
+    container_name: sms-service
+    ports:
+      - "8068:8068"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: sms-service
+      SERVER_PORT: 8068
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,sms-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8068/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Push Notification Service
+  # ------------------------------------------------------------------------
+  push-notification-service:
+    build:
+      context: ./Notification/push-notification-service
+      dockerfile: Dockerfile
+    container_name: push-notification-service
+    ports:
+      - "8069:8069"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: push-notification-service
+      SERVER_PORT: 8069
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,push-notification-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Notification Service
+  # ------------------------------------------------------------------------
+  notification-service:
+    build:
+      context: ./Notification/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "8070:8070"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: notification-service
+      SERVER_PORT: 8070
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,notification-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EMAIL_SERVICE_URL: http://email-service:8067
+      SMS_SERVICE_URL: http://sms-service:8068
+      PUSH_NOTIFICATION_SERVICE_URL: http://push-notification-service:8069
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      email-service:
+        condition: service_healthy
+      sms-service:
+        condition: service_healthy
+      push-notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8070/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Communication Service
+  # ------------------------------------------------------------------------
+  communication-service:
+    build:
+      context: ./Communication/communication-service
+      dockerfile: Dockerfile
+    container_name: communication-service
+    ports:
+      - "8600:8600"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: communication-service
+      SERVER_PORT: 8600
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,communication-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      NOTIFICATION_SERVICE_URL: http://notification-service:8070
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8600/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Marketplace Service
+  # ------------------------------------------------------------------------
+  marketplace-service:
+    build:
+      context: ./Marketplace/marketplace-service
+      dockerfile: Dockerfile
+    container_name: marketplace-service
+    ports:
+      - "8071:8071"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: marketplace-service
+      SERVER_PORT: 8071
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,marketplace-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      VENDOR_SERVICE_URL: http://vendor-service:8062
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8071/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Marketplace Search Service
+  # ------------------------------------------------------------------------
+  marketplace-search-service:
+    build:
+      context: ./Marketplace/marketplace-search-service
+      dockerfile: Dockerfile
+    container_name: marketplace-search-service
+    ports:
+      - "8601:8601"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: marketplace-search-service
+      SERVER_PORT: 8601
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,marketplace-search-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MARKETPLACE_SERVICE_URL: http://marketplace-service:8071
+      SEARCH_SERVICE_URL: http://search-service:8072
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8601/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # SME Marketplace Service
+  # ------------------------------------------------------------------------
+  sme-marketplace-service:
+    build:
+      context: ./Marketplace/sme-marketplace-service
+      dockerfile: Dockerfile
+    container_name: sme-marketplace-service
+    ports:
+      - "8602:8602"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: sme-marketplace-service
+      SERVER_PORT: 8602
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,sme-marketplace-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MARKETPLACE_SERVICE_URL: http://marketplace-service:8071
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8602/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Wholesale Marketplace Service
+  # ------------------------------------------------------------------------
+  wholesale-marketplace-service:
+    build:
+      context: ./Marketplace/wholesale-marketplace-service
+      dockerfile: Dockerfile
+    container_name: wholesale-marketplace-service
+    ports:
+      - "8603:8603"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: wholesale-marketplace-service
+      SERVER_PORT: 8603
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,wholesale-marketplace-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MARKETPLACE_SERVICE_URL: http://marketplace-service:8071
+      WHOLESALER_SERVICE_URL: http://wholesaler-service:8063
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8603/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Search Service
+  # ------------------------------------------------------------------------
+  search-service:
+    build:
+      context: ./Search/search-service
+      dockerfile: Dockerfile
+    container_name: search-service
+    ports:
+      - "8072:8072"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: search-service
+      SERVER_PORT: 8072
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,search-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8072/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Wishlist Service
+  # ------------------------------------------------------------------------
+  wishlist-service:
+    build:
+      context: ./Wishlist/wishlist-service
+      dockerfile: Dockerfile
+    container_name: wishlist-service
+    ports:
+      - "8073:8073"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: wishlist-service
+      SERVER_PORT: 8073
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,wishlist-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CUSTOMER_SERVICE_URL: http://customer-service:8056
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8073/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Inventory Service
+  # ------------------------------------------------------------------------
+  inventory-service:
+    build:
+      context: ./Inventory/inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    ports:
+      - "8074:8074"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: inventory-service
+      SERVER_PORT: 8074
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,inventory-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8074/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Inventory Sync Service
+  # ------------------------------------------------------------------------
+  inventory-sync-service:
+    build:
+      context: ./Inventory/inventory-sync-service
+      dockerfile: Dockerfile
+    container_name: inventory-sync-service
+    ports:
+      - "8610:8610"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: inventory-sync-service
+      SERVER_PORT: 8610
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,inventory-sync-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      INVENTORY_SERVICE_URL: http://inventory-service:8074
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8610/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Loyalty Service
+  # ------------------------------------------------------------------------
+  loyalty-service:
+    build:
+      context: ./Loyalty/loyalty-service
+      dockerfile: Dockerfile
+    container_name: loyalty-service
+    ports:
+      - "8077:8077"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: loyalty-service
+      SERVER_PORT: 8077
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,loyalty-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CUSTOMER_SERVICE_URL: http://customer-service:8056
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8077/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Reward Service
+  # ------------------------------------------------------------------------
+  reward-service:
+    build:
+      context: ./Loyalty/reward-service
+      dockerfile: Dockerfile
+    container_name: reward-service
+    ports:
+      - "8620:8620"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: reward-service
+      SERVER_PORT: 8620
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,reward-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      LOYALTY_SERVICE_URL: http://loyalty-service:8077
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8620/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Gift Card Service
+  # ------------------------------------------------------------------------
+  gift-card-service:
+    build:
+      context: ./Loyalty/gift-card-service
+      dockerfile: Dockerfile
+    container_name: gift-card-service
+    ports:
+      - "8621:8621"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: gift-card-service
+      SERVER_PORT: 8621
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,gift-card-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      LOYALTY_SERVICE_URL: http://loyalty-service:8077
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8621/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Store Credit Service
+  # ------------------------------------------------------------------------
+  store-credit-service:
+    build:
+      context: ./Loyalty/store-credit-service
+      dockerfile: Dockerfile
+    container_name: store-credit-service
+    ports:
+      - "8622:8622"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: store-credit-service
+      SERVER_PORT: 8622
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,store-credit-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      LOYALTY_SERVICE_URL: http://loyalty-service:8077
+      CUSTOMER_SERVICE_URL: http://customer-service:8056
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8622/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Exchange Service
+  # ------------------------------------------------------------------------
+  exchange-service:
+    build:
+      context: ./Order/exchange-service
+      dockerfile: Dockerfile
+    container_name: exchange-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: exchange-service
+      SERVER_PORT: 8080
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,exchange-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ORDER_SERVICE_URL: http://order-service:8050
+      RETURNS_SERVICE_URL: http://returns-service:8081
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Returns Service
+  # ------------------------------------------------------------------------
+  returns-service:
+    build:
+      context: ./Order/returns-service
+      dockerfile: Dockerfile
+    container_name: returns-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: returns-service
+      SERVER_PORT: 8081
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,returns-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ORDER_SERVICE_URL: http://order-service:8050
+      FULFILLMENT_SERVICE_URL: http://fulfillment-service:8058
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # PUBLIC API SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # Public Cart Service
+  # ------------------------------------------------------------------------
+  public-cart-service:
+    build:
+      context: ./PublicAPI/public-cart-service
+      dockerfile: Dockerfile
+    container_name: public-cart-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: public-cart-service
+      SERVER_PORT: 8082
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,public-cart-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CART_SERVICE_URL: http://cart-service:8306
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Public Catalog Service
+  # ------------------------------------------------------------------------
+  public-catalog-service:
+    build:
+      context: ./PublicAPI/public-catalog-service
+      dockerfile: Dockerfile
+    container_name: public-catalog-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: public-catalog-service
+      SERVER_PORT: 8083
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,public-catalog-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      SEARCH_SERVICE_URL: http://search-service:8072
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Public Search Service
+  # ------------------------------------------------------------------------
+  public-search-service:
+    build:
+      context: ./PublicAPI/public-search-service
+      dockerfile: Dockerfile
+    container_name: public-search-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: public-search-service
+      SERVER_PORT: 8084
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,public-search-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SEARCH_SERVICE_URL: http://search-service:8072
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      search-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # TENANT MANAGEMENT SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # Tenant Config Service
+  # ------------------------------------------------------------------------
+  tenant-config-service:
+    build:
+      context: ./Tenant/tenant-config-service
+      dockerfile: Dockerfile
+    container_name: tenant-config-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: tenant-config-service
+      SERVER_PORT: 8085
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,tenant-config-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Tenant Hierarchy Service
+  # ------------------------------------------------------------------------
+  tenant-hierarchy-service:
+    build:
+      context: ./Tenant/tenant-hierarchy-service
+      dockerfile: Dockerfile
+    container_name: tenant-hierarchy-service
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: tenant-hierarchy-service
+      SERVER_PORT: 8086
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,tenant-hierarchy-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      TENANT_CONFIG_SERVICE_URL: http://tenant-config-service:8085
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      tenant-config-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # AI SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # AI Listing Service
+  # ------------------------------------------------------------------------
+  ai-listing-service:
+    build:
+      context: ./ai-listing-service
+      dockerfile: Dockerfile
+    container_name: ai-listing-service
+    ports:
+      - "8500:8500"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: ai-listing-service
+      SERVER_PORT: 8500
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,ai-listing-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Bulk Listing Service
+  # ------------------------------------------------------------------------
+  bulk-listing-service:
+    build:
+      context: ./bulk-listing-service
+      dockerfile: Dockerfile
+    container_name: bulk-listing-service
+    ports:
+      - "8501:8501"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: bulk-listing-service
+      SERVER_PORT: 8501
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,bulk-listing-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_URL: http://catalog-service:8053
+      AI_LISTING_SERVICE_URL: http://ai-listing-service:8500
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Social Integration Service
+  # ------------------------------------------------------------------------
+  social-integration-service:
+    build:
+      context: ./social-integration-service
+      dockerfile: Dockerfile
+    container_name: social-integration-service
+    ports:
+      - "8502:8502"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: social-integration-service
+      SERVER_PORT: 8502
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,social-integration-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      INFLUENCER_SERVICE_URL: http://influencer-service:8054
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8502/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # PROCUREMENT SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # Requisition Service
+  # ------------------------------------------------------------------------
+  requisition-service:
+    build:
+      context: ./Procurement/requisition-service
+      dockerfile: Dockerfile
+    container_name: requisition-service
+    ports:
+      - "8630:8630"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: requisition-service
+      SERVER_PORT: 8630
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,requisition-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      INVENTORY_SERVICE_URL: http://inventory-service:8074
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8630/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Budget Service
+  # ------------------------------------------------------------------------
+  budget-service:
+    build:
+      context: ./Procurement/budget-service
+      dockerfile: Dockerfile
+    container_name: budget-service
+    ports:
+      - "8631:8631"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: budget-service
+      SERVER_PORT: 8631
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,budget-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      REQUISITION_SERVICE_URL: http://requisition-service:8630
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8631/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Approval Workflow Service
+  # ------------------------------------------------------------------------
+  approval-workflow-service:
+    build:
+      context: ./Procurement/approval-workflow-service
+      dockerfile: Dockerfile
+    container_name: approval-workflow-service
+    ports:
+      - "8632:8632"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: approval-workflow-service
+      SERVER_PORT: 8632
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,approval-workflow-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      REQUISITION_SERVICE_URL: http://requisition-service:8630
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8632/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Reconciliation Service
+  # ------------------------------------------------------------------------
+  reconciliation-service:
+    build:
+      context: ./Procurement/reconciliation-service
+      dockerfile: Dockerfile
+    container_name: reconciliation-service
+    ports:
+      - "8633:8633"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: reconciliation-service
+      SERVER_PORT: 8633
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,reconciliation-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      REQUISITION_SERVICE_URL: http://requisition-service:8630
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8633/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # HQ Dashboard Service
+  # ------------------------------------------------------------------------
+  hq-dashboard-service:
+    build:
+      context: ./Procurement/hq-dashboard-service
+      dockerfile: Dockerfile
+    container_name: hq-dashboard-service
+    ports:
+      - "8634:8634"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: hq-dashboard-service
+      SERVER_PORT: 8634
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,hq-dashboard-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      REQUISITION_SERVICE_URL: http://requisition-service:8630
+      BUDGET_SERVICE_URL: http://budget-service:8631
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8634/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Branch Dashboard Service
+  # ------------------------------------------------------------------------
+  branch-dashboard-service:
+    build:
+      context: ./Procurement/branch-dashboard-service
+      dockerfile: Dockerfile
+    container_name: branch-dashboard-service
+    ports:
+      - "8635:8635"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: branch-dashboard-service
+      SERVER_PORT: 8635
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,branch-dashboard-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      REQUISITION_SERVICE_URL: http://requisition-service:8630
+      INVENTORY_SERVICE_URL: http://inventory-service:8074
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8635/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # INTEGRATION SERVICES
+  # ==========================================================================
+
+  # ------------------------------------------------------------------------
+  # Air Freight Integration Service
+  # ------------------------------------------------------------------------
+  air-freight-integration-service:
+    build:
+      context: ./Fulfillment/air-freight-integration-service
+      dockerfile: Dockerfile
+    container_name: air-freight-integration-service
+    ports:
+      - "8640:8640"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: air-freight-integration-service
+      SERVER_PORT: 8640
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,air-freight-integration-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SHIPPING_SERVICE_URL: http://shipping-service:8581
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8640/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Ocean Shipping Integration Service
+  # ------------------------------------------------------------------------
+  ocean-shipping-integration-service:
+    build:
+      context: ./Fulfillment/ocean-shipping-integration-service
+      dockerfile: Dockerfile
+    container_name: ocean-shipping-integration-service
+    ports:
+      - "8641:8641"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: ocean-shipping-integration-service
+      SERVER_PORT: 8641
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,ocean-shipping-integration-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SHIPPING_SERVICE_URL: http://shipping-service:8581
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8641/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Courier Integration Service
+  # ------------------------------------------------------------------------
+  courier-integration-service:
+    build:
+      context: ./Fulfillment/courier-integration-service
+      dockerfile: Dockerfile
+    container_name: courier-integration-service
+    ports:
+      - "8642:8642"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: courier-integration-service
+      SERVER_PORT: 8642
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,courier-integration-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      DELIVERY_SERVICE_URL: http://delivery-service:8059
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8642/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Haulage Integration Service
+  # ------------------------------------------------------------------------
+  haulage-integration-service:
+    build:
+      context: ./Fulfillment/haulage-integration-service
+      dockerfile: Dockerfile
+    container_name: haulage-integration-service
+    ports:
+      - "8643:8643"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: haulage-integration-service
+      SERVER_PORT: 8643
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,haulage-integration-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SHIPPING_SERVICE_URL: http://shipping-service:8581
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8643/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------
+  # Warehouse Integration Service
+  # ------------------------------------------------------------------------
+  warehouse-integration-service:
+    build:
+      context: ./Fulfillment/warehouse-integration-service
+      dockerfile: Dockerfile
+    container_name: warehouse-integration-service
+    ports:
+      - "8644:8644"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_NAME: warehouse-integration-service
+      SERVER_PORT: 8644
+      MONGODB_URI: mongodb://admin:admin123@mongodb-primary:27017,warehouse-integration-db?authSource=admin&replicaSet=rs0
+      KAFKA_BROKERS: kafka:9092
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      INVENTORY_SERVICE_URL: http://inventory-service:8074
+      FULFILLMENT_SERVICE_URL: http://fulfillment-service:8058
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8644/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+# ============================================================================
+# VOLUMES - Persistent Data Storage
+# ============================================================================
+volumes:
+  # MongoDB Data Volumes
+  mongodb-primary-data:
+    driver: local
+  mongodb-secondary-1-data:
+    driver: local
+  mongodb-secondary-2-data:
+    driver: local
+  mongodb-config:
+    driver: local
+
+  # Kafka/Zookeeper Data Volumes
+  kafka-data:
+    driver: local
+  zookeeper-data:
+    driver: local
+  zookeeper-logs:
+    driver: local
+
+# ============================================================================
+# NETWORKS - Container Communication
+# ============================================================================
+networks:
+  ecommerce-network:
+    name: ecommerce-network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16

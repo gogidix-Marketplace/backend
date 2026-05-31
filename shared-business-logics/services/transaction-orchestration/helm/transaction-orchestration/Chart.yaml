@@ -1,0 +1,16 @@
+apiVersion: v2
+name: transaction-orchestration
+description: A Helm chart for Gogidix Transaction Orchestration Services - Team B
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - transaction
+  - orchestration
+  - saga
+  - distributed-transaction
+  - outbox
+  - recovery
+maintainers:
+  - name: Gogidix Team B
+    email: team-b@gogidix.com

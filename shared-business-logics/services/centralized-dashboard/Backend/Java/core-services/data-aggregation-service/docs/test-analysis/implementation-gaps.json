@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "data-aggregation-service",
+    "location": "Backend/Java/core-services/data-aggregation-service",
+    "totalGaps": 1,
+    "criticalGaps": 0,
+    "highGaps": 1,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "data-aggregation-service/src/main/java",
+      "type": "Missing Implementation",
+      "line": 0,
+      "description": "No Java source files found in data-aggregation-service. Service directory exists but contains no implementation. Potential duplication with centralized-data-aggregation in data-services.",
+      "severity": "HIGH",
+      "recommendation": "Either implement this service or consolidate with centralized-data-aggregation to avoid duplication."
+    }
+  ]
+}

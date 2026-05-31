@@ -1,0 +1,249 @@
+name: Code Quality - Transaction Orchestration
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run Checkstyle - audit-trail-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/audit-trail-service
+      continue-on-error: true
+
+    - name: Run Checkstyle - onboarding-tracker-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/onboarding-tracker-service
+      continue-on-error: true
+
+    - name: Run Checkstyle - progress-step-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/progress-step-service
+      continue-on-error: true
+
+    - name: Run Checkstyle - status-broadcast-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/status-broadcast-service
+      continue-on-error: true
+
+    - name: Run Checkstyle - transaction-monitoring-service
+      run: mvn checkstyle:check
+      working-directory: Backend/Java/transaction-monitoring-service
+      continue-on-error: true
+
+  spotbugs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run SpotBugs - audit-trail-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/audit-trail-service
+      continue-on-error: true
+
+    - name: Run SpotBugs - onboarding-tracker-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/onboarding-tracker-service
+      continue-on-error: true
+
+    - name: Run SpotBugs - progress-step-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/progress-step-service
+      continue-on-error: true
+
+    - name: Run SpotBugs - status-broadcast-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/status-broadcast-service
+      continue-on-error: true
+
+    - name: Run SpotBugs - transaction-monitoring-service
+      run: mvn spotbugs:check
+      working-directory: Backend/Java/transaction-monitoring-service
+      continue-on-error: true
+
+    - name: Upload SpotBugs reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: spotbugs-reports
+        path: |
+          Backend/Java/audit-trail-service/target/spotbugsXml.xml
+          Backend/Java/onboarding-tracker-service/target/spotbugsXml.xml
+          Backend/Java/progress-step-service/target/spotbugsXml.xml
+          Backend/Java/status-broadcast-service/target/spotbugsXml.xml
+          Backend/Java/transaction-monitoring-service/target/spotbugsXml.xml
+        retention-days: 7
+
+  pmd-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run PMD - audit-trail-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/audit-trail-service
+      continue-on-error: true
+
+    - name: Run PMD - onboarding-tracker-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/onboarding-tracker-service
+      continue-on-error: true
+
+    - name: Run PMD - progress-step-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/progress-step-service
+      continue-on-error: true
+
+    - name: Run PMD - status-broadcast-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/status-broadcast-service
+      continue-on-error: true
+
+    - name: Run PMD - transaction-monitoring-service
+      run: mvn pmd:check
+      working-directory: Backend/Java/transaction-monitoring-service
+      continue-on-error: true
+
+  sonarcloud:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache SonarCloud packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Run SonarCloud scan
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -Dsonar.projectKey=gogidix-transaction-orchestration \
+          -Dsonar.organization=gogidix \
+          -Dsonar.host.url=https://sonarcloud.io
+      working-directory: Backend/Java
+
+  coverage-report:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Generate JaCoCo coverage report
+      run: |
+        mvn clean test jacoco:report
+      working-directory: Backend/Java
+
+    - name: Add coverage comment to PR
+      uses: madrapps/jacoco-report@v1.6.1
+      with:
+        paths: |
+          Backend/Java/audit-trail-service/target/site/jacoco/jacoco.xml
+          Backend/Java/onboarding-tracker-service/target/site/jacoco/jacoco.xml
+          Backend/Java/progress-step-service/target/site/jacoco/jacoco.xml
+          Backend/Java/status-broadcast-service/target/site/jacoco/jacoco.xml
+          Backend/Java/transaction-monitoring-service/target/site/jacoco/jacoco.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+        min-coverage-overall: 40
+        min-coverage-changed-files: 60

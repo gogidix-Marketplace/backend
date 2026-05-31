@@ -1,0 +1,108 @@
+# Test Coverage Report - leave-management-service
+
+## Overview
+- **Service**: leave-management-service
+- **Domain**: Human Resource
+- **Analysis Date**: 2026-03-06T06:17:51Z
+- **Total Classes**: 46
+- **Test Files**: 2
+- **Classes with Tests**: 2
+- **Test Coverage**: 4%
+
+## Source Files
+- `com.gogidix.hr.leavemanagement.application.service.LeaveBalanceService`
+- `com.gogidix.hr.leavemanagement.application.service.LeaveRequestCommandService`
+- `com.gogidix.hr.leavemanagement.application.service.LeaveRequestQueryService`
+- `com.gogidix.hr.leavemanagement.domain.enums.ApprovalStatus`
+- `com.gogidix.hr.leavemanagement.domain.enums.LeaveStatus`
+- `com.gogidix.hr.leavemanagement.domain.enums.LeaveType`
+- `com.gogidix.hr.leavemanagement.domain.enums.RequestType`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveBalanceUpdatedEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestApprovedEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestCancelledEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestCreatedEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestRejectedEvent`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.leavemanagement.domain.model.Holiday`
+- `com.gogidix.hr.leavemanagement.domain.model.LeaveApprovalFlow`
+- `com.gogidix.hr.leavemanagement.domain.model.LeaveBalance`
+- `com.gogidix.hr.leavemanagement.domain.model.LeavePolicy`
+- `com.gogidix.hr.leavemanagement.domain.model.LeaveRequest`
+- `com.gogidix.hr.leavemanagement.domain.port.in.LeaveCommand`
+- `com.gogidix.hr.leavemanagement.domain.port.in.LeaveQueryPort`
+- `com.gogidix.hr.leavemanagement.domain.port.out.EventPublisher`
+- `com.gogidix.hr.leavemanagement.domain.repository.HolidayRepository`
+- `com.gogidix.hr.leavemanagement.domain.repository.LeaveBalanceRepository`
+- `com.gogidix.hr.leavemanagement.domain.repository.LeavePolicyRepository`
+- `com.gogidix.hr.leavemanagement.domain.repository.LeaveRequestRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.WebConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.messaging.kafka.KafkaEventPublisher`
+- `.MongoHolidayRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.persistence.mongo.MongoLeaveBalanceRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.persistence.mongo.MongoLeavePolicyRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.persistence.mongo.MongoLeaveRequestRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.security.SecurityConfig`
+- `.GlobalExceptionHandler`
+- `.HolidayController`
+- `.LeaveBalanceController`
+- `com.gogidix.hr.leavemanagement.interfaces.rest.LeaveRequestController`
+- `com.gogidix.hr.leavemanagement.LeaveManagementServiceApplication`
+- `com.gogidix.hr.leavemanagement.shared.base.BaseEntity`
+- `com.gogidix.hr.leavemanagement.shared.exception.LeaveException`
+- `com.gogidix.hr.leavemanagement.shared.exception.LeaveNotFoundException`
+- `com.gogidix.hr.leavemanagement.shared.exception.LeaveValidationException`
+- `com.gogidix.hr.leavemanagement.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.leavemanagement.shared.requestcontext.RequestContextHolder`
+
+## Test Files
+- `LeaveBalanceTest` (50 test methods) - `src/test/java/com/gogidix/hr/leavemanagement/domain/model/LeaveBalanceTest.java`
+- `LeaveRequestTest` (59 test methods) - `src/test/java/com/gogidix/hr/leavemanagement/domain/model/LeaveRequestTest.java`
+
+## Classes Without Tests
+- `com.gogidix.hr.leavemanagement.application.service.LeaveBalanceService`
+- `com.gogidix.hr.leavemanagement.application.service.LeaveRequestCommandService`
+- `com.gogidix.hr.leavemanagement.application.service.LeaveRequestQueryService`
+- `com.gogidix.hr.leavemanagement.domain.enums.ApprovalStatus`
+- `com.gogidix.hr.leavemanagement.domain.enums.LeaveStatus`
+- `com.gogidix.hr.leavemanagement.domain.enums.LeaveType`
+- `com.gogidix.hr.leavemanagement.domain.enums.RequestType`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveBalanceUpdatedEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestApprovedEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestCancelledEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestCreatedEvent`
+- `com.gogidix.hr.leavemanagement.domain.event.LeaveRequestRejectedEvent`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.leavemanagement.domain.model.Holiday`
+- `com.gogidix.hr.leavemanagement.domain.model.LeaveApprovalFlow`
+- `com.gogidix.hr.leavemanagement.domain.model.LeavePolicy`
+- `com.gogidix.hr.leavemanagement.domain.port.in.LeaveCommand`
+- `com.gogidix.hr.leavemanagement.domain.port.in.LeaveQueryPort`
+- `com.gogidix.hr.leavemanagement.domain.port.out.EventPublisher`
+- `com.gogidix.hr.leavemanagement.domain.repository.HolidayRepository`
+- `com.gogidix.hr.leavemanagement.domain.repository.LeaveBalanceRepository`
+- `com.gogidix.hr.leavemanagement.domain.repository.LeavePolicyRepository`
+- `com.gogidix.hr.leavemanagement.domain.repository.LeaveRequestRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.config.WebConfig`
+- `com.gogidix.hr.leavemanagement.infrastructure.messaging.kafka.KafkaEventPublisher`
+- `.MongoHolidayRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.persistence.mongo.MongoLeaveBalanceRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.persistence.mongo.MongoLeavePolicyRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.persistence.mongo.MongoLeaveRequestRepository`
+- `com.gogidix.hr.leavemanagement.infrastructure.security.SecurityConfig`
+- `.GlobalExceptionHandler`
+- `.HolidayController`
+- `.LeaveBalanceController`
+- `com.gogidix.hr.leavemanagement.interfaces.rest.LeaveRequestController`
+- `com.gogidix.hr.leavemanagement.LeaveManagementServiceApplication`
+- `com.gogidix.hr.leavemanagement.shared.base.BaseEntity`
+- `com.gogidix.hr.leavemanagement.shared.exception.LeaveException`
+- `com.gogidix.hr.leavemanagement.shared.exception.LeaveNotFoundException`
+- `com.gogidix.hr.leavemanagement.shared.exception.LeaveValidationException`
+- `com.gogidix.hr.leavemanagement.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.leavemanagement.shared.requestcontext.RequestContextHolder`

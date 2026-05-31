@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: predictive-analytics-service
+  namespace: ai-services
+  labels:
+    app: predictive-analytics-service
+    version: v1
+    team: team-ai-data-analytics
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: predictive-analytics-service

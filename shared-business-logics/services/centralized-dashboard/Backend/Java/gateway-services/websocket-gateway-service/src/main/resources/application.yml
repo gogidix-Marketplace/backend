@@ -1,0 +1,117 @@
+spring:
+  application:
+    name: websocket-gateway-service
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/websocket_gateway}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+
+server:
+  port: ${SERVER_PORT:8908}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  file:
+    name: logs/websocket-gateway-service.log
+    max-size: 100MB
+    max-history: 30
+
+# WebSocket Configuration
+websocket:
+  endpoint: /ws
+  allowed-origins: "*"
+  heartbeat-interval-ms: 30000
+  max-session-idle-timeout-ms: 300000
+  max-text-message-buffer-size: 8192
+  max-binary-message-buffer-size: 8192
+
+# Redis Pub/Sub Configuration
+redis:
+  pubsub:
+    channels:
+      dashboard-updates: "dashboard:updates"
+      saga-events: "saga:events"
+      chart-updates: "chart:updates"
+      monitoring-alerts: "monitoring:alerts"
+    pattern-topics:
+      all-events: "events:*"
+      tenant-events: "tenant:*"
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    com.gogidix: DEBUG
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.gogidix: INFO

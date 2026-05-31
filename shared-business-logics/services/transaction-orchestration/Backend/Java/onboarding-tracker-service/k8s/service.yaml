@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: onboarding-tracker-service
+  namespace: transaction-orchestration
+  labels:
+    app: onboarding-tracker-service
+    team: team-b-transaction
+spec:
+  type: ClusterIP
+  selector:
+    app: onboarding-tracker-service
+  ports:
+  - name: http
+    port: 8082
+    targetPort: 8082
+    protocol: TCP
+  sessionAffinity: None

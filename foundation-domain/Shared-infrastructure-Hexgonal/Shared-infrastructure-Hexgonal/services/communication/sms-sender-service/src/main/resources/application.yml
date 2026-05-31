@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: sms-sender-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_sms_sender
+    redis:
+      host: localhost
+      port: 6379
+      database: 5
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: sms-sender-service
+      auto-offset-reset: earliest
+
+server:
+  port: 8094
+
+sms:
+  provider: ${SMS_PROVIDER:twilio}
+  twilio:
+    account.sid: ${TWILIO_ACCOUNT_SID}
+    auth.token: ${TWILIO_AUTH_TOKEN}
+    from.number: ${TWILIO_FROM_NUMBER}
+    api.url: https://api.twilio.com
+    messaging.service.sid: ${TWILIO_MESSAGING_SERVICE_SID:}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    app-name: sms-sender-service
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: INFO

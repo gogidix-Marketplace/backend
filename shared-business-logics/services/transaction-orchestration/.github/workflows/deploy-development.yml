@@ -1,0 +1,124 @@
+name: Deploy Transaction Orchestration to Development
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+  DOCKER_REGISTRY: ghcr.io
+  DEPLOYMENT_ENVIRONMENT: development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and push audit-trail-service
+      run: |
+        mvn clean package -DskipTests
+        docker build -t ${{ secrets.ECR_REGISTRY }}/audit-trail-service:${{ github.sha }} .
+        docker tag ${{ secrets.ECR_REGISTRY }}/audit-trail-service:${{ github.sha }} ${{ secrets.ECR_REGISTRY }}/audit-trail-service:development
+        docker push ${{ secrets.ECR_REGISTRY }}/audit-trail-service:${{ github.sha }}
+        docker push ${{ secrets.ECR_REGISTRY }}/audit-trail-service:development
+      working-directory: Backend/Java/audit-trail-service
+
+    - name: Build and push onboarding-tracker-service
+      run: |
+        mvn clean package -DskipTests
+        docker build -t ${{ secrets.ECR_REGISTRY }}/onboarding-tracker-service:${{ github.sha }} .
+        docker tag ${{ secrets.ECR_REGISTRY }}/onboarding-tracker-service:${{ github.sha }} ${{ secrets.ECR_REGISTRY }}/onboarding-tracker-service:development
+        docker push ${{ secrets.ECR_REGISTRY }}/onboarding-tracker-service:${{ github.sha }}
+        docker push ${{ secrets.ECR_REGISTRY }}/onboarding-tracker-service:development
+      working-directory: Backend/Java/onboarding-tracker-service
+
+    - name: Build and push progress-step-service
+      run: |
+        mvn clean package -DskipTests
+        docker build -t ${{ secrets.ECR_REGISTRY }}/progress-step-service:${{ github.sha }} .
+        docker tag ${{ secrets.ECR_REGISTRY }}/progress-step-service:${{ github.sha }} ${{ secrets.ECR_REGISTRY }}/progress-step-service:development
+        docker push ${{ secrets.ECR_REGISTRY }}/progress-step-service:${{ github.sha }}
+        docker push ${{ secrets.ECR_REGISTRY }}/progress-step-service:development
+      working-directory: Backend/Java/progress-step-service
+
+    - name: Build and push status-broadcast-service
+      run: |
+        mvn clean package -DskipTests
+        docker build -t ${{ secrets.ECR_REGISTRY }}/status-broadcast-service:${{ github.sha }} .
+        docker tag ${{ secrets.ECR_REGISTRY }}/status-broadcast-service:${{ github.sha }} ${{ secrets.ECR_REGISTRY }}/status-broadcast-service:development
+        docker push ${{ secrets.ECR_REGISTRY }}/status-broadcast-service:${{ github.sha }}
+        docker push ${{ secrets.ECR_REGISTRY }}/status-broadcast-service:development
+      working-directory: Backend/Java/status-broadcast-service
+
+    - name: Build and push transaction-monitoring-service
+      run: |
+        mvn clean package -DskipTests
+        docker build -t ${{ secrets.ECR_REGISTRY }}/transaction-monitoring-service:${{ github.sha }} .
+        docker tag ${{ secrets.ECR_REGISTRY }}/transaction-monitoring-service:${{ github.sha }} ${{ secrets.ECR_REGISTRY }}/transaction-monitoring-service:development
+        docker push ${{ secrets.ECR_REGISTRY }}/transaction-monitoring-service:${{ github.sha }}
+        docker push ${{ secrets.ECR_REGISTRY }}/transaction-monitoring-service:development
+      working-directory: Backend/Java/transaction-monitoring-service
+
+    - name: Deploy to Kubernetes cluster
+      uses: azure/k8s-deploy@v4
+      with:
+        manifests: |
+          k8s/development/audit-trail-service.yaml
+          k8s/development/onboarding-tracker-service.yaml
+          k8s/development/progress-step-service.yaml
+          k8s/development/status-broadcast-service.yaml
+          k8s/development/transaction-monitoring-service.yaml
+        images: |
+          ${{ secrets.ECR_REGISTRY }}/audit-trail-service:${{ github.sha }}
+          ${{ secrets.ECR_REGISTRY }}/onboarding-tracker-service:${{ github.sha }}
+          ${{ secrets.ECR_REGISTRY }}/progress-step-service:${{ github.sha }}
+          ${{ secrets.ECR_REGISTRY }}/status-broadcast-service:${{ github.sha }}
+          ${{ secrets.ECR_REGISTRY }}/transaction-monitoring-service:${{ github.sha }}
+        kubectl-version: 'latest'
+
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/audit-trail-service -n development
+        kubectl rollout status deployment/onboarding-tracker-service -n development
+        kubectl rollout status deployment/progress-step-service -n development
+        kubectl rollout status deployment/status-broadcast-service -n development
+        kubectl rollout status deployment/transaction-monitoring-service -n development
+
+    - name: Notify deployment status
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: |
+          Transaction Orchestration deployment to ${{ env.DEPLOYMENT_ENVIRONMENT }}
+          Status: ${{ job.status }}
+          Commit: ${{ github.sha }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}

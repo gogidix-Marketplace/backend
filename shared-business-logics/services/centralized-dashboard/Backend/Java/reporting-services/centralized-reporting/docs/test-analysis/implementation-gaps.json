@@ -1,0 +1,53 @@
+{
+  "summary": {
+    "service": "centralized-reporting",
+    "location": "Backend/Java/reporting-services/centralized-reporting",
+    "totalGaps": 5,
+    "criticalGaps": 2,
+    "highGaps": 2,
+    "mediumGaps": 1,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 138,
+      "description": "generateExcelReport method throws ExportException with message 'Excel export not implemented in this example'. No actual Excel generation logic exists.",
+      "severity": "CRITICAL",
+      "recommendation": "Implement Excel export using Apache POI library: 1) Create XSSFWorkbook, 2) Add sheets with data, 3) Apply formatting, 4) Write to output stream"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 154,
+      "description": "generatePdfReport method throws ExportException with message 'PDF export not implemented in this example'. No actual PDF generation logic exists.",
+      "severity": "CRITICAL",
+      "recommendation": "Implement PDF export using iText or Apache PDFBox: 1) Create PDF document, 2) Add content with formatting, 3) Include charts and tables, 4) Write to output stream"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 190,
+      "description": "scheduleExport method generates random UUID but doesn't implement actual scheduling logic. Comment states 'In a real implementation, this would use a job scheduler like Quartz or Spring Scheduler'.",
+      "severity": "HIGH",
+      "recommendation": "Implement report scheduling using Quartz or Spring Scheduler: 1) Create job detail, 2) Configure trigger, 3) Schedule with job scheduler, 4) Persist scheduled job info"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 210,
+      "description": "getRecentExports method returns empty List.of(). No actual export history retrieval from storage implemented. Comment states 'Implementation omitted for brevity'.",
+      "severity": "HIGH",
+      "recommendation": "Implement export history tracking: 1) Query storage for recent exports, 2) Filter by user ID, 3) Apply limit, 4) Return ordered list of exports"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Service Dependency Gap",
+      "line": 36,
+      "description": "DataFetchService and FileStorageService are dependencies but their implementations are not visible in this analysis.",
+      "severity": "MEDIUM",
+      "recommendation": "Verify implementations of DataFetchService and FileStorageService exist and are tested. Create implementations if missing."
+    }
+  ]
+}

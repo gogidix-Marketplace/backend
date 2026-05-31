@@ -1,0 +1,13 @@
+#!/bin/bash
+# Script 1: Fix POM parent references
+SERVICE_DIR="$1"
+
+# Fix POM parent - use spring-boot-starter-parent
+sed -i 's|<groupId>com.gogidix.digitalmarketing</groupId>|<groupId>org.springframework.boot</groupId>|g' "$SERVICE_DIR/pom.xml"
+sed -i 's|<artifactId>digitalmarketing-services</artifactId>|<artifactId>spring-boot-starter-parent</artifactId>|g' "$SERVICE_DIR/pom.xml"
+sed -i 's|<version>1.0.0</version>|<version>3.2.0</version>\n        <relativePath/>|g' "$SERVICE_DIR/pom.xml"
+
+# Remove duplicate relativePath if exists
+sed -i '/<relativePath\/>$/d' "$SERVICE_DIR/pom.xml"
+
+echo "Fixed POM in: $SERVICE_DIR"

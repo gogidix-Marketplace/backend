@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.gogidix.cargo.management.monitoring</groupId>
+    <artifactId>monitoring-services</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>Foundation Services Monitoring</name>
+    <description>Parent POM for Foundation Services Monitoring microservices</description>
+    <modules>
+        <module>monitoring-data-service</module>
+        <module>alert-management-service</module>
+        <module>service-health-service</module>
+    </modules>
+</project>

@@ -1,0 +1,284 @@
+# =============================================================================
+# Lead Generation Service Configuration
+# Digital-Marketing Domain - Gogidix Ecosystem
+# =============================================================================
+
+server:
+  port: 8086
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: lead-generation-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: digital_marketing_leads
+      # username: ${MONGO_USERNAME:}
+      # password: ${MONGO_PASSWORD:}
+      # authentication-database: admin
+      auto-index-creation: true
+
+  # Redis Configuration (for caching)
+  redis:
+    host: localhost
+    port: 6379
+    database: 1
+    # password: ${REDIS_PASSWORD:}
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000  # 5 minutes
+      cache-null-values: false
+      key-prefix: "lead-gen:"
+
+  # Kafka Configuration (for event streaming)
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      properties:
+        acks: 1
+        retries: 3
+    consumer:
+      group-id: lead-generation-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        max.poll.records: 100
+
+# Mongock Configuration
+mongock:
+  enabled: true
+  migration-scan-package: com.gogidix.digitalmarketing.leadgeneration.migrations
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    io.mongock: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 100
+        minimum-number-of-calls: 10
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 60s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 10s
+    instances:
+      salesService:
+        base-config: default
+
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+    instances:
+      salesService:
+        base-config: default
+
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 10s
+    instances:
+      salesService:
+        base-config: default
+
+# Application-Specific Configuration
+app:
+  lead-generation:
+    # Lead qualification threshold
+    qualification-threshold: 60
+
+    # Hot lead threshold (score above this is hot)
+    hot-lead-threshold: 80
+
+    # Warm lead threshold
+    warm-lead-threshold: 60
+
+    # Cold lead threshold
+    cold-lead-threshold: 40
+
+    # Auto-assignment enabled
+    auto-assignment-enabled: true
+
+    # Maximum leads per sales representative
+    max-leads-per-rep: 50
+
+    # Lead retention period (in days)
+    lead-retention-days: 365
+
+    # Maximum batch size for bulk operations
+    max-batch-size: 1000
+
+    # Lead scoring weights
+    scoring:
+      company-size-weight: 20
+      budget-weight: 25
+      timeline-weight: 20
+      engagement-weight: 25
+      source-weight: 10
+
+    # Lead sources
+    sources:
+      - WEBSITE
+      - EMAIL_CAMPAIGN
+      - SOCIAL_MEDIA
+      - REFERRAL
+      - EVENT
+      - PARTNER
+      - PAID_AD
+      - ORGANIC_SEARCH
+      - DIRECT
+      - WEBINAR
+      - CONTENT_DOWNLOAD
+      - OTHER
+
+  # Integration with Sales Department
+  integration:
+    timeout: 30s
+    retry-attempts: 3
+
+    # Sales Department endpoints
+    services:
+      sales:
+        base-url: http://localhost:8087/api/v1
+        handoff-endpoint: /leads/handoff
+        feedback-endpoint: /leads/feedback
+
+---
+# ============================================================================
+# Profile: test
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  data:
+    mongodb:
+      database: test_digital_marketing_leads
+
+  kafka:
+    bootstrap-servers: ${KAFKA_TEST_SERVER:localhost:9094}
+
+# Mongock disabled in tests (use setup scripts)
+mongock:
+  enabled: false
+
+logging:
+  level:
+    com.gogidix: TRACE
+
+---
+# ============================================================================
+# Profile: integration
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: integration
+
+  data:
+    mongodb:
+      database: test_digital_marketing_leads
+
+mongock:
+  enabled: true
+
+---
+# ============================================================================
+# Profile: production
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: production
+
+  data:
+    mongodb:
+      host: ${MONGO_HOST}
+      port: ${MONGO_PORT:27017}
+      database: ${MONGO_DB:digital_marketing_leads}
+      username: ${MONGO_USERNAME}
+      password: ${MONGO_PASSWORD}
+      authentication-database: admin
+
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+logging:
+  level:
+    root: WARN
+    com.gogidix: INFO
+    org.springframework.data.mongodb: WARN
+
+# Enable production monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized

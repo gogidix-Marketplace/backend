@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: realtime-tracking-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_realtime_tracking
+
+server:
+  port: 8329
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.realtime: DEBUG

@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-reporting-service
+  namespace: ai-services
+  labels:
+    app: ai-reporting-service
+    version: v1
+    team: team-ai-data-analytics
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-reporting-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+  namespaceSelector:
+    matchNames:
+    - ai-services
+---
+apiVersion: v1
+kind: PodMonitor
+metadata:
+  name: ai-reporting-service
+  namespace: ai-services
+  labels:
+    app: ai-reporting-service
+    version: v1
+    team: team-ai-data-analytics
+spec:
+  selector:
+    matchLabels:
+      app: ai-reporting-service
+  podMetricsEndpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ai-reporting-service-metrics-reader
+  labels:
+    app: ai-reporting-service
+    team: team-ai-data-analytics
+rules:
+- nonResourceURLs: ["/metrics", "/actuator/prometheus"]
+  verbs: ["get"]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-reporting-service-grafana-dashboard
+  namespace: ai-services
+  labels:
+    app: ai-reporting-service
+    version: v1
+    team: team-ai-data-analytics
+    grafana_dashboard: "1"
+data:
+  ai-reporting-service-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "AI Reporting Service Dashboard",
+        "tags": ["ai-services", "reporting", "data-analytics"],
+        "timezone": "UTC",
+        "panels": [
+          {
+            "title": "Report Generation Rate",
+            "targets": [{
+              "expr": "rate(report_generation_total{application=\"ai-reporting-service\"}[5m])"
+            }]
+          },
+          {
+            "title": "Request Rate",
+            "targets": [{
+              "expr": "rate(http_server_requests_seconds_count{application=\"ai-reporting-service\"}[5m])"
+            }]
+          },
+          {
+            "title": "Error Rate",
+            "targets": [{
+              "expr": "rate(http_server_requests_seconds_count{application=\"ai-reporting-service\",status=~\"5..\"}[5m])"
+            }]
+          },
+          {
+            "title": "JVM Memory Usage",
+            "targets": [{
+              "expr": "jvm_memory_used_bytes{application=\"ai-reporting-service\"}"
+            }]
+          }
+        ]
+      }
+    }

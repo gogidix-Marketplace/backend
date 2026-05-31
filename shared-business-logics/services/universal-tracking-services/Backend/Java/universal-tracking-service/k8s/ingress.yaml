@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: universal-tracking-service-ingress
+  namespace: universal-tracking-services
+  labels:
+    app: universal-tracking-service
+    team: team-c-universal-tracking
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    nginx.ingress.kubernetes.io/compression-types: "application/json application/xml text/html text/xml text/plain"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - universal-tracking.gogidix.com
+    secretName: universal-tracking-service-tls
+  rules:
+  - host: universal-tracking.gogidix.com
+    http:
+      paths:
+      - path: /api/tracking(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: universal-tracking-service
+            port:
+              number: 8080
+      - path: /api/events(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: universal-tracking-service
+            port:
+              number: 8080
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: universal-tracking-service
+            port:
+              number: 8080

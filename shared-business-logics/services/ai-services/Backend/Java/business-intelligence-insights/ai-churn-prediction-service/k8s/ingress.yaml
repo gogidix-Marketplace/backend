@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-churn-predictionation-service-ingress
+  namespace: ai-services
+  labels:
+    app: ai-churn-predictionation-service
+    team: team-f-ai-services
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ai-churn-predictionation.gogidix.com
+    secretName: ai-churn-predictionation-service-tls
+  rules:
+  - host: ai-churn-predictionation.gogidix.com
+    http:
+      paths:
+      - path: /api/segmentation(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-churn-predictionation-service
+            port:
+              number: 8200
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-churn-predictionation-service
+            port:
+              number: 8200

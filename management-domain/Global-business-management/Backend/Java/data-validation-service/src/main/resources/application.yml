@@ -1,0 +1,51 @@
+server:
+  port: 8210
+  shutdown: graceful
+
+spring:
+  application:
+    name: data-validation-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: data_validation_service_db
+      auto-index-creation: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.gogidix.globalbusiness.datavalidation: DEBUG
+    org.springframework.data.mongodb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# Validation Configuration
+validation:
+  rules:
+    enabled: true
+    cache-size: 1000
+    cache-ttl-minutes: 60
+  quality:
+    excellent-threshold: 95
+    good-threshold: 80
+    acceptable-threshold: 60
+  batch:
+    max-batch-size: 1000
+    timeout-seconds: 300

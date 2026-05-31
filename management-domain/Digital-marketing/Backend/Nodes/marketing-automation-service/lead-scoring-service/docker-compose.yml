@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  lead-scoring:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lead-scoring-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3003
+      - MONGODB_URI=mongodb://mongodb:27017/lead_scoring
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+    networks:
+      - gogidix-network
+    volumes:
+      - ./logs:/app/logs
+
+  mongodb:
+    image: mongo:7
+    container_name: lead-scoring-mongo
+    ports:
+      - "27019:27017"
+    volumes:
+      - lead-mongodb-data:/data/db
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: lead-scoring-redis
+    ports:
+      - "6381:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - lead-redis-data:/data
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+volumes:
+  lead-mongodb-data:
+  lead-redis-data:
+
+networks:
+  gogidix-network:
+    driver: bridge

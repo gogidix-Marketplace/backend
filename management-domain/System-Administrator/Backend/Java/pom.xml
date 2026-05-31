@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.gogidix.cargo.management.systemadmin</groupId>
+    <artifactId>system-admin-services</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>System Administrator Services</name>
+    <description>Parent POM for System Administrator microservices</description>
+    <modules>
+        <module>access-control-service</module>
+        <module>access-request-service</module>
+        <module>alert-management-service</module>
+        <module>audit-service</module>
+        <module>compliance-service</module>
+        <module>configuration-service</module>
+        <module>deployment-service</module>
+        <module>environment-service</module>
+        <module>incident-management-service</module>
+        <module>infrastructure-monitoring-service</module>
+        <module>performance-metrics-service</module>
+        <module>security-monitoring-service</module>
+        <module>user-provisioning-service</module>
+        <module>vulnerability-scanning-service</module>
+    </modules>
+</project>

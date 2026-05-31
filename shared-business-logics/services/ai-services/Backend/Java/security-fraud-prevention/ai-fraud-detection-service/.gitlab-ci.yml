@@ -1,0 +1,142 @@
+# Financial-Grade Testing Blueprint v1.0 - GitLab CI
+# Enforces Line Coverage >=85%, Mutation Score >=60%, Adapter Coverage >=85%
+
+image: maven:3.9-eclipse-temurin-17
+
+variables:
+  # Financial-Grade: Maven memory configuration for CI
+  MAVEN_OPTS: "-Xms512m -Xmx1024m -XX:MaxMetaspaceSize=256m"
+  # Disable Maven extensions not needed for CI
+  MAVEN_CLI_OPTS: "-B --no-transfer-progress"
+
+# Cache Maven dependencies for faster builds
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .m2/repository/
+    - target/
+
+stages:
+  - validate
+  - test
+  - report
+  - security
+
+# Financial-Grade: Compile and validate
+financial-grade-validate:
+  stage: validate
+  script:
+    - mvn $MAVEN_CLI_OPTS compile -Pci
+  artifacts:
+    paths:
+      - target/
+    expire_in: 1 hour
+
+# Financial-Grade: Run tests with JaCoCo coverage
+financial-grade-test:
+  stage: test
+  script:
+    - mvn $MAVEN_CLI_OPTS test -Pci
+  artifacts:
+    paths:
+      - target/surefire-reports/
+      - target/site/jacoco/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+    expire_in: 1 day
+
+# Financial-Grade: Run PIT mutation testing with 60% threshold enforcement
+financial-grade-mutation:
+  stage: test
+  script:
+    - mvn $MAVEN_CLI_OPTS org.pitest:pitest-maven:mutationCoverage -Pci
+  artifacts:
+    paths:
+      - target/pit-reports/
+    expire_in: 1 day
+  allow_failure: false  # Fail build if mutation score < 60%
+
+# Financial-Grade: Coverage and mutation score reporting
+financial-grade-report:
+  stage: report
+  script:
+    - echo "================================"
+    - echo "Financial-Grade Blueprint v1.0"
+    - echo "================================"
+    - echo "Service: AI Fraud Detection Service"
+    - echo "Branch: $CI_COMMIT_REF_NAME"
+    - echo "Commit: $CI_COMMIT_SHA"
+    - echo "================================"
+    - echo "Coverage Requirements:"
+    - echo "  - Line Coverage: >=85%"
+    - echo "  - Branch Coverage: >=75%"
+    - echo "  - Mutation Score: >=60%"
+    - echo "  - Adapter Coverage: >=85%"
+    - echo "================================"
+    # Extract JaCoCo line coverage
+    - |
+      LINE_COVERAGE=$(grep -oP 'Total[^}]*"covered":"\d+","missed":"\d+"[^}]*' target/site/jacoco/index.json 2>/dev/null || echo "0")
+      echo "Line Coverage: $LINE_COVERAGE"
+    # Report PIT mutation score
+    - |
+      if [ -d "target/pit-reports" ]; then
+        for report in target/pit-reports/*/index.html; do
+          if [ -f "$report" ]; then
+            echo "PIT Mutation Report: $report"
+          fi
+        done
+      fi
+  artifacts:
+    paths:
+      - target/site/jacoco/
+      - target/pit-reports/
+    expire_in: 7 days
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Financial-Grade: Security scanning
+security-scan:
+  stage: security
+  script:
+    - mvn $MAVEN_CLI_OPTS org.owasp:dependency-check-maven:check
+  artifacts:
+    paths:
+      - target/dependency-check-report.html
+    expire_in: 7 days
+  allow_failure: true  # Security scan shouldn't block builds
+
+# Financial-Grade: Governance gate - enforce all thresholds before merge
+governance-gate:
+  stage: report
+  script:
+    - |
+      #!/bin/bash
+      set -e
+
+      echo "Financial-Grade Governance Gate Enforcement"
+
+      # Check JaCoCo line coverage
+      if [ -f "target/site/jacoco/jacoco.csv" ]; then
+        COVERAGE=$(awk -F',' 'NR==2 {print $2}' target/site/jacoco/jacoco.csv | sed 's/%//')
+        echo "Line Coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < 85" | bc -l) )); then
+          echo "FAIL: Line coverage $COVERAGE% is below 85% threshold"
+          exit 1
+        fi
+      else
+        echo "WARNING: JaCoCo report not found"
+        exit 1
+      fi
+
+      # Check PIT mutation score (if report exists)
+      if [ -d "target/pit-reports" ]; then
+        echo "PIT mutation testing completed"
+        echo "Mutation threshold enforced by Maven plugin (60%)"
+      fi
+
+      echo "PASS: All governance gates satisfied"
+  only:
+    - merge_requests
+    - main

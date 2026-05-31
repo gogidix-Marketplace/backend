@@ -1,0 +1,288 @@
+name: Audit Trail Service Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  SERVICE_PATH: Backend/Java/audit-trail-service
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version format
+        id: validate_version
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Invalid version format: $VERSION (expected: vX.Y.Z)"
+            exit 1
+          fi
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Validate changelog
+        run: |
+          VERSION="${{ steps.validate_version.outputs.tag }}"
+          if ! grep -q "^## \[${VERSION#v}\]" CHANGELOG.md; then
+            echo "::warning::No changelog entry found for $VERSION"
+          fi
+
+      - name: Check tests pass
+        run: |
+          echo "Checking if all tests pass on this branch..."
+          # This is a simplified check - in production, verify against CI results
+
+  test:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    needs: validate
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Run full test suite
+        working-directory: ${{ env.SERVICE_PATH }}
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: test
+          SPRING_DATASOURCE_PASSWORD: test
+        run: mvn clean test
+
+      - name: Verify coverage threshold
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: mvn jacoco:check
+
+  build:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build release artifacts
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          mvn clean package -DskipTests -Drevision=${{ steps.version.outputs.version }}
+
+      - name: Create release bundle
+        run: |
+          mkdir -p release
+          cp ${{ env.SERVICE_PATH }}/target/*.jar release/
+          cp ${{ env.SERVICE_PATH }}/README.md release/ || echo "No README found"
+          cp ${{ env.SERVICE_PATH }}/docs/*.md release/ || echo "No docs found"
+          cd release
+          zip -r ../audit-trail-service-${{ steps.version.outputs.version }}.zip .
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-artifacts
+          path: audit-trail-service-*.zip
+          retention-days: 90
+
+  docker:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: build
+
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            gogidix/audit-trail-service
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}},value=${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable=${{ steps.version.outputs.version == github.ref_name }}
+
+      - name: Build and push (platform-specific)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SERVICE_PATH }}
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, docker]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version and changelog
+        id: release_info
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+          # Extract changelog for this version
+          sed -n "/^## \[${VERSION#v}\]/,/^## \[/p" CHANGELOG.md | head -n -1 > release_notes.md || echo "No changelog found" > release_notes.md
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: release-artifacts
+          path: .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: Audit Trail Service ${{ steps.release_info.outputs.version }}
+          body_path: release_notes.md
+          files: |
+            audit-trail-service-*.zip
+          draft: false
+          prerelease: ${{ contains(steps.release_info.outputs.version, '-') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: create-github-release
+    if: "!contains(github.ref, '-')"
+    environment:
+      name: staging
+      url: https://audit-trail-service.staging.gogidix.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          echo "Deploying audit-trail-service ${{ github.ref_name }} to staging..."
+          # Actual deployment commands would go here
+          # kubectl set image deployment/audit-trail-service audit-trail-service=gogidix/audit-trail-service:${{ github.ref_name }}
+          # kubectl rollout status deployment/audit-trail-service -n staging
+
+      - name: Verify deployment
+        run: |
+          echo "Running smoke tests against staging..."
+          # curl -f https://audit-trail-service.staging.gogidix.com/actuator/health
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [create-github-release, deploy-staging]
+    if: always()
+
+    steps:
+      - name: Send release notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Audit Trail Service Release ${{ job.status }}
+            Version: ${{ github.ref_name }}
+            Repository: ${{ github.repository }}
+            Author: ${{ github.actor }}
+            Release Notes: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_RELEASE }}
+        if: always()

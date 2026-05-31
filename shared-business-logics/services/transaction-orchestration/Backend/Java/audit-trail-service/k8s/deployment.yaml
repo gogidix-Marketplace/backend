@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: audit-trail-service
+  namespace: transaction-orchestration
+  labels:
+    app: audit-trail-service
+    team: team-b-transaction
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-trail-service
+  namespace: transaction-orchestration
+  labels:
+    app: audit-trail-service
+    team: team-b-transaction
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: audit-trail-service
+  template:
+    metadata:
+      labels:
+        app: audit-trail-service
+        team: team-b-transaction
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: audit-trail-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: audit-trail-service
+        image: ghcr.io/gogidix/audit-trail-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8081
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: audit-trail-service-config
+              key: database-url
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: audit-trail-service-secrets
+              key: database-username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: audit-trail-service-secrets
+              key: database-password
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: audit-trail-service-config
+              key: redis-host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: audit-trail-service-config
+              key: redis-port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: audit-trail-service-secrets
+              key: redis-password
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: audit-trail-service-config
+              key: kafka-bootstrap-servers
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: DDL_AUTO
+          value: "validate"
+        - name: SHOW_SQL
+          value: "false"
+        - name: CORS_ORIGINS
+          value: "https://gogidix.com,https://api.gogidix.com"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health/startup
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      restartPolicy: Always

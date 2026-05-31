@@ -1,0 +1,44 @@
+{
+  "name": "finance-web-dashboard",
+  "version": "1.0.0",
+  "description": "Gogidix Finance Department Web Dashboard - Finance Managers, Controllers, CFO",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3016",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src --ext ts,tsx",
+    "format": "prettier --write src/**/*.{ts,tsx,css}"
+  },
+  "dependencies": {
+    "@stomp/stompjs": "^7.0.0",
+    "@tanstack/react-query": "^5.28.0",
+    "axios": "^1.6.7",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.3.1",
+    "lucide-react": "^0.344.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.22.0",
+    "recharts": "^2.12.0",
+    "sockjs-client": "^1.6.1",
+    "tailwind-merge": "^2.2.1",
+    "zod": "^3.22.4",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/sockjs-client": "^1.5.4",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "~5.4.5",
+    "vite": "^5.2.11",
+    "vitest": "^1.3.1"
+  }
+}

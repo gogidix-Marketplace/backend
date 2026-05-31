@@ -1,0 +1,24 @@
+# Test Configuration for Currency Service
+spring:
+  application:
+    name: currency-service-test
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: currency-test-db
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: localhost:9092
+spring.redis:
+  host: localhost
+  port: 6379
+  database: 12
+server:
+  port: 0
+logging:
+  level:
+    com.gogidix.finance.currency: DEBUG
+test:
+  tenant:
+    id: tenant-test-001

@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metrics-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: metrics-aggregation-service
+    team: team-f-centralized-dashboard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: metrics-aggregation-service
+    team: team-f-centralized-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: metrics-aggregation-service
+  template:
+    metadata:
+      labels:
+        app: metrics-aggregation-service
+        team: team-f-centralized-dashboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8901"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: metrics-aggregation-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: metrics-aggregation-service
+        image: ghcr.io/gogidix/metrics-aggregation-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8901
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          value: "jdbc:postgresql://postgres:5432/metrics_aggregation"
+        - name: DATABASE_USERNAME
+          value: "metrics_aggregation_user"
+        - name: DATABASE_PASSWORD
+          value: "CHANGE_ME_PROD_PASSWORD"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka:9092"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "300m"
+          limits:
+            memory: "2Gi"
+            cpu: "1200m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8901
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8901
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3

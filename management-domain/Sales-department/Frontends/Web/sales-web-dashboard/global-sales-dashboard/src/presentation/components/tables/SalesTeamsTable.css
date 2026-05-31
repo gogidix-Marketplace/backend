@@ -1,0 +1,259 @@
+/* SalesTeamsTable Component Styles */
+
+.sales-teams-table {
+  width: 100%;
+}
+
+.sales-teams-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.team-filter {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background-color: white;
+  color: var(--color-gray-700);
+}
+
+.sales-teams-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+}
+
+.sales-teams-data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sales-teams-data-table thead {
+  background-color: var(--color-gray-50);
+}
+
+.sales-teams-data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-gray-600);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.sales-teams-data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sales-teams-data-table th.sortable:hover {
+  background-color: var(--color-gray-100);
+}
+
+.sales-teams-data-table tbody tr {
+  border-bottom: 1px solid var(--color-gray-100);
+  transition: background-color 150ms ease;
+}
+
+.sales-teams-data-table tbody tr:hover {
+  background-color: var(--color-gray-50);
+}
+
+.sales-teams-data-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.sales-teams-data-table td {
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+}
+
+.rank-cell {
+  text-align: center;
+  width: 50px;
+}
+
+.rank-icon {
+  font-size: 1rem;
+}
+
+.member-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 250px;
+}
+
+.member-avatar,
+.member-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.member-name {
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.member-meta {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+}
+
+.revenue-cell {
+  font-weight: 600;
+}
+
+.revenue-value {
+  color: var(--color-primary);
+}
+
+.attainment-cell {
+  min-width: 120px;
+}
+
+.attainment-bar {
+  width: 60px;
+  height: 6px;
+  background-color: var(--color-gray-200);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.attainment-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.attainment-fill-high {
+  background: linear-gradient(90deg, var(--color-success) 0%, #34D399 100%);
+}
+
+.attainment-fill-medium {
+  background: linear-gradient(90deg, var(--color-warning) 0%, #FBBF24 100%);
+}
+
+.attainment-fill-low {
+  background: linear-gradient(90deg, var(--color-error) 0%, #F87171 100%);
+}
+
+.attainment-value {
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.deals-cell,
+.pipeline-cell,
+.winrate-cell {
+  font-weight: 500;
+}
+
+.sales-teams-summary {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background-color: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+/* Dark theme */
+[data-theme='dark'] .sales-teams-data-table thead {
+  background-color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .sales-teams-data-table th {
+  color: var(--color-gray-400);
+  border-bottom-color: var(--color-gray-700);
+}
+
+[data-theme='dark'] .sales-teams-data-table tbody tr {
+  border-bottom-color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .sales-teams-data-table tbody tr:hover {
+  background-color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .sales-teams-data-table td {
+  color: var(--color-gray-300);
+}
+
+[data-theme='dark'] .member-name {
+  color: var(--color-gray-100);
+}
+
+[data-theme='dark'] .member-meta {
+  color: var(--color-gray-500);
+}
+
+[data-theme='dark'] .attainment-bar {
+  background-color: var(--color-gray-700);
+}
+
+[data-theme='dark'] .sales-teams-summary {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+  color: var(--color-gray-400);
+}
+
+[data-theme='dark'] .team-filter {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-600);
+  color: var(--color-gray-200);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sales-teams-filters {
+    flex-direction: column;
+  }
+
+  .team-filter {
+    width: 100%;
+  }
+
+  .member-cell {
+    min-width: 200px;
+  }
+
+  .sales-teams-data-table th,
+  .sales-teams-data-table td {
+    padding: 10px 12px;
+    font-size: 0.75rem;
+  }
+
+  .sales-teams-summary {
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.75rem;
+  }
+}

@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: global-workforce-analytics-service
+  data:
+    mongodb:
+      database: global-workforce-analytics-service_db

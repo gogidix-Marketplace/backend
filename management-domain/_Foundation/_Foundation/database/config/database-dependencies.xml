@@ -1,0 +1,74 @@
+# =============================================================================
+# Embedded MongoDB Configuration for Testing
+# Adds dependency for fast in-memory MongoDB during tests
+# =============================================================================
+
+<dependency>
+    <groupId>de.flapdoodle.embed</groupId>
+    <artifactId>embed-mongo</artifactId>
+    <version>4.11.0</version>
+    <scope>test</scope>
+</dependency>
+
+# =============================================================================
+# Mongock Migration Framework
+# For version-controlled database migrations
+# =============================================================================
+
+<dependency>
+    <groupId>io.mongock</groupId>
+    <artifactId>mongock-springboot</artifactId>
+    <version>5.4.0</version>
+</dependency>
+
+<dependency>
+    <groupId>io.mongock</groupId>
+    <artifactId>mongodb-springdata-v4-driver</artifactId>
+    <version>5.4.0</version>
+</dependency>
+
+# =============================================================================
+# Usage in pom.xml
+# =============================================================================
+# Add these dependencies to your service's pom.xml under <dependencies>:
+
+<!-- Embedded MongoDB for fast unit tests -->
+<dependency>
+    <groupId>de.flapdoodle.embed</groupId>
+    <artifactId>embed-mongo</artifactId>
+    <version>4.11.0</version>
+    <scope>test</scope>
+</dependency>
+
+<!-- Mongock for database migrations -->
+<dependency>
+    <groupId>io.mongock</groupId>
+    <artifactId>mongock-springboot</artifactId>
+    <version>5.4.0</version>
+</dependency>
+
+<dependency>
+    <groupId>io.mongock</groupId>
+    <artifactId>mongodb-springdata-v4-driver</artifactId>
+    <version>5.4.0</version>
+</dependency>
+
+# =============================================================================
+# Application Configuration for Embedded MongoDB
+# =============================================================================
+# In application-test.yml:
+
+# spring:
+#   data:
+#     mongodb:
+#       host: localhost
+#       port: 27017  # Embedded MongoDB will use this port
+#       database: test_{service-name}
+#   mongock:
+#     enabled: false  # Disable migrations in tests (use setup scripts instead)
+
+# de.flapdoodle.embed.mongo:
+#   version: 7.0.0  # MongoDB version to embed
+#   features: {
+#     enable-sync-delay: true
+#   }

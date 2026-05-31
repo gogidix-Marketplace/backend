@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: centralized-performance-metrics
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-performance-metrics
+    team: team-f-centralized-dashboard
+spec:
+  selector:
+    matchLabels:
+      app: centralized-performance-metrics
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 15s
+    scrapeTimeout: 10s

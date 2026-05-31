@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: email-marketing-service
+
+  data:
+    mongodb:
+      database: test_email_marketing
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

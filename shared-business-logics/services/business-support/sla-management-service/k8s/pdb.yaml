@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sla-management-service-pdb
+  namespace: business-support
+  labels:
+    app: sla-management-service
+    team: team-e-business-support
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sla-management-service

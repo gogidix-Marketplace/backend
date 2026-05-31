@@ -1,0 +1,141 @@
+# Service Level Objectives (SLO) Configuration
+# Financial-Grade Testing Standard - Phase 4
+
+service:
+  name: ai-fraud-detection-service
+  version: 1.0.0
+  environment: production
+
+slo:
+  # Fraud Analysis Latency SLO
+  - name: fraud_analysis_latency
+    description: "Fraud analysis request processing time"
+    objective:
+      target_percentile: 95
+      target_latency_ms: 500
+      window_duration: 1h
+    thresholds:
+      warning_ms: 300
+      critical_ms: 500
+      timeout_ms: 1000
+    tags:
+      - fraud
+      - latency
+      - critical
+
+  # ML Model Prediction Latency SLO
+  - name: ml_prediction_latency
+    description: "ML model prediction response time"
+    objective:
+      target_percentile: 95
+      target_latency_ms: 100
+      window_duration: 1h
+    thresholds:
+      warning_ms: 50
+      critical_ms: 100
+      timeout_ms: 200
+    tags:
+      - ml
+      - latency
+      - critical
+
+  # Database Operation Latency SLO
+  - name: database_save_latency
+    description: "Database save operation time"
+    objective:
+      target_percentile: 95
+      target_latency_ms: 100
+      window_duration: 1h
+    thresholds:
+      warning_ms: 50
+      critical_ms: 100
+      timeout_ms: 200
+    tags:
+      - database
+      - latency
+      - critical
+
+  # Error Rate SLO
+  - name: error_rate
+    description: "Service error rate percentage"
+    objective:
+      target_rate: 0.01  # 1% error rate
+      window_duration: 1h
+    thresholds:
+      warning_rate: 0.005   # 0.5%
+      critical_rate: 0.01    # 1%
+    tags:
+      - availability
+      - critical
+
+  # Availability SLO
+  - name: availability
+    description: "Service uptime percentage"
+    objective:
+      target_uptime: 0.999  # 99.9% uptime (43 minutes downtime per month)
+      window_duration: 24h
+    thresholds:
+      warning_uptime: 0.995   # 99.5%
+      critical_uptime: 0.999   # 99.9%
+    tags:
+      - availability
+      - critical
+
+  # Throughput SLO
+  - name: throughput
+    description: "Requests per second"
+    objective:
+      target_rps: 1000
+      window_duration: 1m
+    thresholds:
+      warning_rps: 800
+      critical_rps: 500
+    tags:
+      - performance
+      - capacity
+
+# Alert Configuration
+alerts:
+  - name: high_latency_alert
+    slo_metric: fraud_analysis_latency
+    condition: "p95 > 500ms"
+    severity: critical
+    notification_channels:
+      - pagerduty
+      - slack
+
+  - name: high_error_rate_alert
+    slo_metric: error_rate
+    condition: "rate > 1%"
+    severity: critical
+    notification_channels:
+      - pagerduty
+      - email
+
+  - name: ml_model_degradation
+    slo_metric: ml_prediction_latency
+    condition: "p95 > 100ms"
+    severity: warning
+    notification_channels:
+      - slack
+      - email
+
+# Budget Configuration
+error_budget:
+  monthly_slo: 99.9
+  monthly_error_budget_minutes: 43.8
+  burn_rate_thresholds:
+    - threshold: 2
+      severity: warning
+    - threshold: 5
+      severity: critical
+
+# Rollout Configuration
+rollout:
+  success_criteria:
+    latency_p95_ms: 500
+    error_rate: 0.01
+    min_successful_requests: 1000
+  rollback_triggers:
+    - latency_p95_ms > 1000
+    - error_rate > 0.05

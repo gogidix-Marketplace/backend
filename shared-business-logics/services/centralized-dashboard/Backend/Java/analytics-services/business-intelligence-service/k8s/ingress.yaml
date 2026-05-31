@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: business-intelligence-service-ingress
+  namespace: centralized-dashboard
+  labels:
+    app: business-intelligence-service
+    team: team-f-centralized-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - business-intelligence.gogidix.com
+    secretName: business-intelligence-service-tls
+  rules:
+  - host: business-intelligence.gogidix.com
+    http:
+      paths:
+      - path: /api/bi(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: business-intelligence-service
+            port:
+              number: 8902

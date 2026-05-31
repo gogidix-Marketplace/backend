@@ -1,0 +1,81 @@
+# =============================================================================
+# Executive Analytics Service - Test Configuration
+# =============================================================================
+
+server:
+  port: 8081  # Different port to avoid conflicts
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: executive-analytics-service
+
+  # Embedded MongoDB for testing
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test_management_executive
+      auto-index-creation: true
+
+  # Redis disabled for unit tests (can use embedded for integration tests)
+  redis:
+    host: localhost
+    port: 6379
+    database: 15  # Use separate DB for tests
+    timeout: 2000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Kafka disabled for unit tests
+  kafka:
+    bootstrap-servers: localhost:9094  # Different port for tests
+    consumer:
+      group-id: executive-analytics-service-test
+
+  # Cache disabled for unit tests
+  cache:
+    type: none
+
+# Mongock disabled in tests
+mongock:
+  enabled: false
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: WARN
+    org.springframework.boot.test: DEBUG
+
+# Test-specific settings
+app:
+  analytics:
+    recalculation-interval: 1  # 1 hour for tests
+    metric-retention-days: 30
+    max-batch-size: 100
+
+# Resilience4j disabled for tests
+resilience4j:
+  circuitbreaker:
+    enabled: false
+  retry:
+    enabled: false
+  timelimiter:
+    enabled: false

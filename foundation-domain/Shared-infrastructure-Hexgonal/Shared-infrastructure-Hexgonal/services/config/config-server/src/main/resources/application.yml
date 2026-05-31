@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${CONFIG_REPO_URI:file://${user.home}/config-repo}
+          default-label: main
+          search-paths: configurations
+          clone-on-start: true
+
+server:
+  port: 8888
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,env,configprops
+
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG
+    com.gogidix: DEBUG

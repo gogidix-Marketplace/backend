@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: audit-service
+  data:
+    mongodb:
+      database: audit-service_db

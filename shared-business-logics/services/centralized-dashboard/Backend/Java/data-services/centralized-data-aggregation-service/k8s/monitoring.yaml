@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: centralized-data-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-data-aggregation-service
+    team: team-f-centralized-dashboard
+spec:
+  selector:
+    matchLabels:
+      app: centralized-data-aggregation-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http

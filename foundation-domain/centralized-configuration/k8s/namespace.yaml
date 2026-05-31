@@ -1,0 +1,101 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: centralized-config
+  labels:
+    name: centralized-config
+    domain: foundation-domain
+    environment: production
+spec:
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: centralized-config-network-policy
+  namespace: centralized-config
+spec:
+  podSelector:
+    matchLabels:
+      namespace: centralized-config
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: centralized-config
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: infrastructure
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              namespace: ai-platform
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              namespace: centralized-config
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              namespace: infrastructure
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              domain: kube-system
+          ports:
+            - protocol: TCP
+              port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/cluster: ""
+        ports:
+            - protocol: TCP
+              port: 443
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: centralized-config-resource-quota
+  namespace: centralized-config
+spec:
+  hard:
+    requests.cpu: "5"
+    requests.memory: "10Gi"
+    limits.cpu: "10"
+    limits.memory: "20Gi"
+    persistentvolumeclaims: "50Gi"
+    pods: "25"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: centralized-config-container-limits
+  namespace: centralized-config
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: "250m"
+        memory: "512Mi"
+      defaultLimit:
+        cpu: "1000m"
+        memory: "1Gi"
+      maxLimit:
+        cpu: "2000m"
+        memory: "2Gi"
+---
+apiVersion: v1
+kind: PriorityClass
+metadata:
+  name: cc-priority-class
+  namespace: centralized-config
+spec:
+  value: 500
+  globalDefault: true
+  description: "Standard priority for centralized-config services"

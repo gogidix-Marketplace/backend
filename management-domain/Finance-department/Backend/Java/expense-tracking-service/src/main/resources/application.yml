@@ -1,0 +1,145 @@
+# =============================================================================
+# Expense Tracking Service Configuration - Finance Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8083}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: expense-tracking-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:expense-tracking-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      expense-events: expense-tracking-service.events
+      domain-events: finance.domain-events
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.finance.expense.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.finance.expense: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/expense-tracking-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+expense-tracking-service:
+  expense:
+    categories:
+      - TRAVEL
+      - MEALS
+      - ACCOMMODATION
+      - TRANSPORTATION
+      - OFFICE_SUPPLIES
+      - SOFTWARE_LICENSES
+      - MARKETING
+      - ENTERTAINMENT
+      - TRAINING
+      - PROFESSIONAL_SERVICES
+      - UTILITIES
+      - COMMUNICATION
+      - INSURANCE
+      - MAINTENANCE
+      - OTHER
+    submission-methods:
+      - MANUAL
+      - RECEIPT_UPLOAD
+      - CORPORATE_CARD
+      - PER_DIEM
+      - MILEAGE
+    approval-workflow:
+      auto-approve-below: 100
+      manager-approve-below: 500
+      finance-approve-above: 500
+    receipt:
+      required-above: 25
+      storage-location: ${RECEIPT_STORAGE:s3}
+    limits:
+      daily-max: 5000
+      monthly-max: 15000
+    reconciliation:
+      auto-match: true
+      match-tolerance: 0.01

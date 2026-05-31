@@ -1,0 +1,17 @@
+apiVersion: v2
+name: event-driven-architecture
+description: A Helm chart for Gogidix Event Driven Architecture Services - Team C
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - event-driven
+  - message-orchestration
+  - event-aggregation
+  - async-processing
+  - event-routing
+  - message-consumer
+  - event-publisher
+maintainers:
+  - name: Gogidix Team Lead
+    email: team-lead@gogidix.com

@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: centralized-performance-metrics
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-performance-metrics
+    team: team-f-centralized-dashboard
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: centralized-performance-metrics
+  template:
+    metadata:
+      labels:
+        app: centralized-performance-metrics
+        team: team-f-centralized-dashboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: centralized-performance-metrics
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: centralized-performance-metrics
+        image: gogidix/centralized-performance-metrics:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SERVER_PORT
+          value: "8082"
+        - name: MONGODB_HOST
+          value: "mongodb-centralized.internal"
+        - name: MONGODB_PORT
+          value: "27017"
+        - name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: centralized-performance-metrics-config
+              key: mongodb-database
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-metrics-secrets
+              key: mongodb-username
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-metrics-secrets
+              key: mongodb-password
+        - name: REDIS_HOST
+          value: "redis.internal"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: EUREKA_CLIENT_SERVICE_URL
+          value: "http://eureka-server:8761/eureka"
+        - name: OAUTH2_ISSUER_URI
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-metrics-secrets
+              key: oauth2-issuer-uri
+        - name: OAUTH2_JWK_SET_URI
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-metrics-secrets
+              key: oauth2-jwk-set-uri
+        - name: INFLUXDB_ENABLED
+          value: "true"
+        - name: INFLUXDB_URL
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-metrics-secrets
+              key: influxdb-url
+        - name: INFLUXDB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: centralized-performance-metrics-secrets
+              key: influxdb-token
+        - name: INFLUXDB_ORG
+          value: "gogidix"
+        - name: INFLUXDB_BUCKET
+          value: "performance_metrics"
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: "health,info,metrics,prometheus,performance"
+        - name: PERFORMANCE_METRICS_COLLECTION_ENABLED
+          value: "true"
+        - name: PERFORMANCE_METRICS_COLLECTION_INTERVAL
+          value: "15s"
+        - name: PERFORMANCE_METRICS_RETENTION_DEFAULT
+          value: "30d"
+        - name: PERFORMANCE_METRICS_ALERTING_ENABLED
+          value: "true"
+        - name: PERFORMANCE_METRICS_ANOMALY_DETECTION_ENABLED
+          value: "true"
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx1536m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "300m"
+          limits:
+            memory: "2Gi"
+            cpu: "1200m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8082
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health/startup
+            port: 8082
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - centralized-performance-metrics
+              topologyKey: kubernetes.io/hostname

@@ -1,0 +1,19 @@
+{
+  "serviceName": "quality-management-service",
+  "analysisDate": "2026-03-06T06:08:34Z",
+  "summary": {
+    "totalFiles": 29,
+    "filesWithGaps": 1,
+    "totalGaps": 15,
+    "gapsByType": {
+      "TODO": 15,
+      "FIXME": 0,
+      "XXX": 0,
+      "HACK": 0,
+      "STUB": 0,
+      "PLACEHOLDER": 0,
+      "MOCK_IN_PRODUCTION": 0
+    }
+  },
+  "gaps": []
+}

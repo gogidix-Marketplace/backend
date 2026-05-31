@@ -1,0 +1,21 @@
+apiVersion: v2
+name: api-gateway
+description: A Helm chart for API Gateway in Gogidix Ecosystem
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - gateway
+  - api-gateway
+  - spring-cloud-gateway
+  - microservices
+home: https://github.com/gogidix/api-gateway
+maintainers:
+  - name: Gogidix Infrastructure Team
+    email: infrastructure@gogidix.com
+sources:
+  - https://github.com/gogidix/api-gateway
+annotations:
+  - category: infrastructure
+  - critical: "true"
+  - tier: "critical-path"

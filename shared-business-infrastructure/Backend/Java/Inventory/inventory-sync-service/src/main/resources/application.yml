@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: inventory-sync-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_inventorysync
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        inventorysyncEvents-out-0:
+          destination: inventorysync-events
+          content-type: application/json
+server:
+  port: 8077
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.inventorysync: DEBUG

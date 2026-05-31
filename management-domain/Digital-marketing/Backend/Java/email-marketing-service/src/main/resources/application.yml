@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: email-marketing-service
+  data:
+    mongodb:
+      database: email-marketing-service_db

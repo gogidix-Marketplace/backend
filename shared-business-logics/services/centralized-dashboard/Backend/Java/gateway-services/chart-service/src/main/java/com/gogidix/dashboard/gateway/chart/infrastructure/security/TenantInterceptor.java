@@ -1,0 +1,35 @@
+package com.gogidix.dashboard.gateway.chart.infrastructure.security;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+/**
+ * Interceptor to extract and validate tenant information from requests.
+ */
+@Slf4j
+@Component
+public class TenantInterceptor implements HandlerInterceptor {
+
+    private static final String TENANT_HEADER = "X-Tenant-ID";
+    private static final String DEFAULT_TENANT = "default";
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        String tenantId = request.getHeader(TENANT_HEADER);
+        if (tenantId == null || tenantId.isEmpty()) {
+            tenantId = DEFAULT_TENANT;
+        }
+        TenantContext.setTenantId(tenantId);
+        log.debug("Set tenant context: {}", tenantId);
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
+                                Object handler, Exception ex) {
+        TenantContext.clear();
+    }
+}

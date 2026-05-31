@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: report-builder-service
+  data:
+    mongodb:
+      database: report-builder-service_db

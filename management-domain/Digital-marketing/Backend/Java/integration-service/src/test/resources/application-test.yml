@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: integration-service
+
+  data:
+    mongodb:
+      database: test_integration
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

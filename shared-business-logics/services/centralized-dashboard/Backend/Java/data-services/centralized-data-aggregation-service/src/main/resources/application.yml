@@ -1,0 +1,117 @@
+# =============================================================================
+# Centralized Data Aggregation Service Configuration
+# =============================================================================
+
+spring:
+  application:
+    name: centralized-data-aggregation-service
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/data_aggregation}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+        max-wait: -1ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      properties:
+        delivery.timeout.ms: 30000
+    consumer:
+      group-id: data-aggregation-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+
+  # Actuator Configuration
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,metrics,prometheus
+      base-path: /actuator
+    endpoint:
+      health:
+        show-details: always
+        show-components: always
+    metrics:
+      export:
+        prometheus:
+          enabled: true
+      tags:
+        application: ${spring.application.name}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8921}
+  servlet:
+    context-path: /
+  shutdown: graceful
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.data: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.redis: ${REDIS_LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:INFO}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg [tenantId=%X{tenantId}][userId=%X{userId}][traceId=%X{traceId},spanId=%X{spanId}]%n"
+    file:
+      name: logs/data-aggregation-service.log
+      max-size: 100MB
+      max-history: 30
+
+# Data Aggregation Service Specific Configuration
+aggregation:
+  batch:
+    size: ${AGGREGATION_BATCH_SIZE:1000}
+    timeout-minutes: ${AGGREGATION_TIMEOUT:30}
+  cache:
+    ttl-seconds: ${CACHE_TTL:3600}
+  scheduling:
+    cron: ${AGGREGATION_CRON:0 0 * * * ?}

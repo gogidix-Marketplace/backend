@@ -1,0 +1,34 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: PaymentGateway-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_paymentgateway
+  cloud:
+    stream:
+      function:
+        definition: paymentgatewayEvents
+      bindings:
+        paymentgatewayEvents-out-0:
+          destination: paymentgatewayEvents
+          contentType: application/json
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true

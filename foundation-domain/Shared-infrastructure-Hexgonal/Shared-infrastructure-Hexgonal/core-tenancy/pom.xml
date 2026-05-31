@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.gogidix.cargo.shared.infrastructure</groupId>
+        <artifactId>shared-infrastructure-hexgonal</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>core-tenancy</artifactId>
+    <packaging>jar</packaging>
+
+    <name>core-tenancy</name>
+    <description>Core Multi-tenant Framework - Tenant context management and isolation</description>
+
+    <dependencies>
+        <!-- Spring Boot Web for servlet API -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Configuration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Shared Libraries -->
+        <dependency>
+            <groupId>com.gogidix.shared</groupId>
+            <artifactId>shared-exceptions</artifactId>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.2.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- Financial-Grade Testing: CI Profiles -->
+    <profiles>
+        <!-- CI Profile: Coverage-focused -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+        <!-- Local Development Profile -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+        <!-- Certification Profile: Full testing including mutation -->
+        <profile>
+            <id>certification</id>
+            <properties>
+                <pitest.skip>false</pitest.skip>
+            </properties>
+        </profile>
+    </profiles>
+
+</project>

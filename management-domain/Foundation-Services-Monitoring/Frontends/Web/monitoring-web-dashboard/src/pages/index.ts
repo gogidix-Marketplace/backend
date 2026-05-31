@@ -1,0 +1,8 @@
+export { default as LoginPage } from './login'
+export { default as OverviewPage } from './overview'
+export { default as ServicesPage } from './services'
+export { default as ServiceDetailPage } from './service-detail'
+export { default as AlertsPage } from './alerts'
+export { default as PerformancePage } from './performance'
+export { default as DependenciesPage } from './dependencies'
+export { default as SettingsPage } from './settings'

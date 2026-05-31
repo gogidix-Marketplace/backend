@@ -1,0 +1,182 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infrastructure-config-service-config
+  namespace: infra-config
+  labels:
+    app: infrastructure-config-service
+    version: v1
+data:
+  application.yml: |
+    server:
+      port: 8420
+    spring:
+      application:
+        name: infrastructure-config-service
+      cloud:
+        discovery:
+          enabled: true
+          service-url:
+            defaultZone: http://discovery-service.infrastructure.svc.cluster.local:8761/eureka/
+        config:
+          enabled: true
+          uri: http://config-server.centralized-config.svc.cluster.local:8210
+          fail-fast: true
+      datasource:
+        url: jdbc:postgresql://postgresql.infrastructure.svc.cluster.local:5432/infra-config-db
+        username: infra-config-user
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: update
+        show-sql: false
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+      redis:
+        host: redis-sentinel-cluster.infrastructure.svc.cluster.local
+        port: 26379
+        sentinel:
+          master: mymaster
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: infrastructure-config-service-secrets
+  namespace: infra-config
+  labels:
+    app: infrastructure-config-service
+type: Opaque
+stringData:
+  postgresql-password: "ChangeThisInProduction123!"
+  redis-password: "ChangeThisInProduction123!"
+  jwt-secret: "ChangeThisJwtSecretInProduction"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infrastructure-config-service
+  namespace: infra-config
+  labels:
+    app: infrastructure-config-service
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infrastructure-config-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: infrastructure-config-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8420"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: infrastructure-config-service
+      containers:
+        - name: infrastructure-config-service
+          image: gogidix/infrastructure-config-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8420
+              protocol: TCP
+            - name: management
+              containerPort: 8420
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: infrastructure-config-service-secrets
+                  key: postgresql-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: infrastructure-config-service-secrets
+                  key: redis-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: infrastructure-config-service-secrets
+                  key: jwt-secret
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: "http://discovery-service.infrastructure.svc.cluster.local:8761/eureka/"
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: "http://config-server.centralized-config.svc.cluster.local:8210"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "health,info,metrics,prometheus"
+          envFrom:
+            - configMapRef:
+                name: infrastructure-config-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8420
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8420
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infrastructure-config-service
+  namespace: infra-config
+  labels:
+    app: infrastructure-config-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8420
+      targetPort: 8420
+      protocol: TCP
+  selector:
+    app: infrastructure-config-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: infrastructure-config-service
+  namespace: infra-config
+  labels:
+    app: infrastructure-config-service

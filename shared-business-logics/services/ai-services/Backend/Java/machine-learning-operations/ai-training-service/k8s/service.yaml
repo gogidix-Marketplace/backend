@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-training-service
+  namespace: ai-services
+  labels:
+    app: ai-training-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-training-service
+  ports:
+  - name: http
+    port: 8255
+    targetPort: 8255
+    protocol: TCP

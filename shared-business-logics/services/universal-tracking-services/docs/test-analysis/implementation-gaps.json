@@ -1,0 +1,229 @@
+{
+  "domain": "universal-tracking",
+  "analysisDate": "2026-03-01",
+  "location": "x-gogidix-domain/Foundation-domain/universal-tracking-services",
+  "summary": {
+    "totalFiles": 47,
+    "filesWithGaps": 3,
+    "criticalGaps": 1,
+    "mediumGaps": 2,
+    "lowGaps": 0,
+    "gapPercentage": 6.4
+  },
+  "gaps": [
+    {
+      "category": "Audit Implementation",
+      "severity": "MEDIUM",
+      "file": "src/main/java/com/gogidix/shared/audit/service/AuditService.java",
+      "className": "AuditService",
+      "lineNumber": 15,
+      "gapType": "PLACEHOLDER",
+      "description": "Audit logging uses console output instead of persistent storage",
+      "codeSnippet": "// In a real implementation, this would persist to an audit log\n// For now, just log to console\nSystem.out.println(String.format(\"[AUDIT] action=%s, entityType=%s, entityId=%s, description=%s\",\n    action, entityType, entityId, description));",
+      "impact": "Audit trails are not persisted and will be lost on service restart. Cannot meet compliance requirements for audit logging.",
+      "recommendation": "Implement persistent audit log storage using either:\n1. Database audit table with AuditLog entity\n2. Async audit event publishing to Kafka\n3. Dedicated audit service integration\n4. Consider using Spring Boot Actuator audit events",
+      "effort": "MEDIUM",
+      "priority": "P2",
+      "dependencies": [
+        "AuditLog entity (if using database)",
+        "AuditLogRepository (if using database)",
+        "Kafka audit topic configuration (if using messaging)"
+      ]
+    },
+    {
+      "category": "Metadata Handling",
+      "severity": "LOW",
+      "file": "src/main/java/com/gogidix/universal/tracking/application/service/TrackingCommandService.java",
+      "className": "TrackingCommandService",
+      "lineNumber": 80,
+      "gapType": "INCOMPLETE_IMPLEMENTATION",
+      "description": "Session metadata field is set to null with a TODO-like comment",
+      "codeSnippet": ".metadata(trackingMapper instanceof TrackingMapper ? null : null) // Will be set by mapper if needed",
+      "impact": "Session metadata from CreateSessionRequestDto is not being persisted. Loss of potentially important tracking context.",
+      "recommendation": "Implement proper metadata serialization:\n1. Use JsonMapper to convert metadata Map to JSON string\n2. Create a method in TrackingMapper: String mapToJson(Map<String, Object> metadata)\n3. Set the serialized JSON in the session entity",
+      "effort": "LOW",
+      "priority": "P3",
+      "dependencies": [
+        "JsonMapper already exists in the codebase",
+        "TrackingMapper needs metadata handling method"
+      ]
+    },
+    {
+      "category": "Event Properties Handling",
+      "severity": "LOW",
+      "file": "src/main/java/com/gogidix/universal/tracking/application/service/TrackingCommandService.java",
+      "className": "TrackingCommandService",
+      "lineNumber": 122,
+      "gapType": "INCOMPLETE_IMPLEMENTATION",
+      "description": "Event properties and metadata are set to null instead of being serialized",
+      "codeSnippet": ".properties(null) // Will be set by mapper\n.metadata(null) // Will be set by mapper",
+      "impact": "Event properties and metadata from CreateEventRequestDto are not persisted. Loss of event context and custom attributes.",
+      "recommendation": "Implement properties and metadata serialization:\n1. Use JsonMapper to convert properties Map to JSON string\n2. Create mapper methods for both properties and metadata\n3. Set the serialized JSON in the event entity",
+      "effort": "LOW",
+      "priority": "P3",
+      "dependencies": [
+        "JsonMapper already exists in the codebase",
+        "TrackingMapper needs properties/metadata handling methods"
+      ]
+    }
+  ],
+  "byCategory": {
+    "PLACEHOLDER": {
+      "count": 1,
+      "items": [
+        "AuditService.console logging"
+      ]
+    },
+    "INCOMPLETE_IMPLEMENTATION": {
+      "count": 2,
+      "items": [
+        "TrackingCommandService.session metadata null",
+        "TrackingCommandService.event properties null"
+      ]
+    },
+    "TODO": {
+      "count": 0,
+      "items": []
+    },
+    "FIXME": {
+      "count": 0,
+      "items": []
+    },
+    "EMPTY_METHOD": {
+      "count": 0,
+      "items": []
+    }
+  },
+  "bySeverity": {
+    "CRITICAL": {
+      "count": 0,
+      "items": []
+    },
+    "HIGH": {
+      "count": 0,
+      "items": []
+    },
+    "MEDIUM": {
+      "count": 1,
+      "items": [
+        "AuditService console logging"
+      ]
+    },
+    "LOW": {
+      "count": 2,
+      "items": [
+        "Session metadata not serialized",
+        "Event properties not serialized"
+      ]
+    }
+  },
+  "byLayer": {
+    "shared": {
+      "count": 1,
+      "gaps": [
+        "AuditService.placeholder implementation"
+      ]
+    },
+    "application": {
+      "count": 2,
+      "gaps": [
+        "TrackingCommandService.metadata null",
+        "TrackingCommandService.properties null"
+      ]
+    },
+    "domain": {
+      "count": 0,
+      "gaps": []
+    },
+    "infrastructure": {
+      "count": 0,
+      "gaps": []
+    },
+    "interfaces": {
+      "count": 0,
+      "gaps": []
+    }
+  },
+  "recommendations": {
+    "immediate": [
+      {
+        "item": "Fix session metadata serialization in TrackingCommandService.createSession()",
+        "effort": "1 hour",
+        "impact": "Prevents data loss for session metadata"
+      },
+      {
+        "item": "Fix event properties/metadata serialization in TrackingCommandService.createEvent()",
+        "effort": "1 hour",
+        "impact": "Prevents data loss for event context"
+      }
+    ],
+    "shortTerm": [
+      {
+        "item": "Implement persistent audit logging for AuditService",
+        "effort": "4 hours",
+        "impact": "Enables compliance and audit trail capabilities"
+      }
+    ],
+    "longTerm": [
+      {
+        "item": "Add audit log retention and archival policies",
+        "effort": "8 hours",
+        "impact": "Long-term audit storage and compliance"
+      },
+      {
+        "item": "Add audit event replay capabilities",
+        "effort": "16 hours",
+        "impact": "Debugging and event reconstruction"
+      }
+    ]
+  },
+  "testCoverageGaps": {
+    "untestedClasses": [
+      "AuditService",
+      "BaseEntity",
+      "RequestContext",
+      "EventPublisher",
+      "CreateEventRequestDto",
+      "CreateSessionRequestDto",
+      "UpdateSessionRequestDto",
+      "PagedResponseDto",
+      "TrackingEventResponseDto",
+      "TrackingMetricResponseDto",
+      "TrackingSessionResponseDto",
+      "JsonMapper",
+      "TrackingMapper",
+      "CreateEventCommand",
+      "CreateSessionCommand",
+      "GetEventsQuery",
+      "GetMetricsQuery",
+      "GetSessionQuery",
+      "UpdateSessionCommand",
+      "TrackingEventRepositoryPort",
+      "TrackingMetricRepositoryPort",
+      "TrackingSessionRepositoryPort",
+      "ApplicationConfig",
+      "PostgreSQLConfig",
+      "RedisConfig",
+      "KafkaConsumerConfig",
+      "KafkaProducerConfig",
+      "TrackingEventRepository",
+      "TrackingMetricRepository",
+      "TrackingSessionRepository",
+      "TenantInterceptor",
+      "WebConfig",
+      "HealthController",
+      "UniversalTrackingServiceApplication"
+    ],
+    "untestedMethods": {
+      "TrackingCacheService": 0,
+      "TrackingEventPublisher": 0,
+      "TrackingController": 0,
+      "TrackingQueryService": 0,
+      "TrackingCommandService": 0,
+      "TrackingMetric": 0,
+      "TrackingSession": 0,
+      "TrackingEvent": 0,
+      "ExceptionsTest": 0
+    }
+  }
+}

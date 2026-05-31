@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: country-ingestion-service
+  data:
+    mongodb:
+      database: country-ingestion-service_test_db
+      host: localhost
+      port: 27017
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: country-ingestion-test
+
+# Logging configuration for tests
+logging:
+  level:
+    com.gogidix.globalbusiness: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.kafka: DEBUG
+
+# Test-specific configurations
+ingestion:
+  max-file-size: 100MB
+  chunk-size: 100
+  max-retry-attempts: 3
+  validation:
+    enabled: true
+    strict-mode: false
+
+# Scheduling configuration (disabled for tests)
+scheduling:
+  enabled: false

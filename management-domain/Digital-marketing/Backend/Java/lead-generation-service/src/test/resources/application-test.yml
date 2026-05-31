@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: lead-generation-service
+
+  data:
+    mongodb:
+      database: test_lead_generation
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

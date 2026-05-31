@@ -1,0 +1,195 @@
+# Docker Compose for AI Services
+# Production-ready orchestration of all AI microservices
+
+version: '3.8'
+
+services:
+  # Infrastructure
+  mongodb:
+    image: mongo:7
+    container_name: ai-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    networks:
+      - ai-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: ai-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - ai-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: ai-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - ai-network
+
+  # ML Services
+  ml-training-service:
+    build:
+      context: ./Backend/Nodes/ml-model-training-service
+      dockerfile: Dockerfile
+    container_name: ml-training-service
+    ports:
+      - "8001:8001"
+    environment:
+      MONGODB_URL: mongodb://admin:password@mongodb:27017
+      REDIS_URL: redis://redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    volumes:
+      - ml_models:/app/models
+      - ml_data:/app/data
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  nlp-service:
+    build:
+      context: ./Backend/Nodes/nlp-service
+      dockerfile: Dockerfile
+    container_name: nlp-service
+    ports:
+      - "8002:8002"
+    environment:
+      MONGODB_URL: mongodb://admin:password@mongodb:27017
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  predictive-analytics-service:
+    build:
+      context: ./Backend/Nodes/predictive-analytics-service
+      dockerfile: Dockerfile
+    container_name: predictive-analytics-service
+    ports:
+      - "8003:8003"
+    environment:
+      MONGODB_URL: mongodb://admin:password@mongodb:27017
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  computer-vision-service:
+    build:
+      context: ./Backend/Nodes/computer-vision-service
+      dockerfile: Dockerfile
+    container_name: computer-vision-service
+    ports:
+      - "8004:8004"
+    environment:
+      MONGODB_URL: mongodb://admin:password@mongodb:27017
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  anomaly-detection-service:
+    build:
+      context: ./Backend/Nodes/anomaly-detection-service
+      dockerfile: Dockerfile
+    container_name: anomaly-detection-service
+    ports:
+      - "8005:8005"
+    environment:
+      MONGODB_URL: mongodb://admin:password@mongodb:27017
+      REDIS_URL: redis://redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  recommendation-service:
+    build:
+      context: ./Backend/Nodes/recommendation-service
+      dockerfile: Dockerfile
+    container_name: recommendation-service
+    ports:
+      - "8006:8006"
+    environment:
+      MONGODB_URL: mongodb://admin:password@mongodb:27017
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  # AI Gateway (Java Spring Boot)
+  ai-gateway-service:
+    image: ai-gateway-service:latest
+    container_name: ai-gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://admin:password@mongodb:27017
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+      - ml-training-service
+      - nlp-service
+      - predictive-analytics-service
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+  redis_data:
+  ml_models:
+  ml_data:
+
+networks:
+  ai-network:
+    driver: bridge

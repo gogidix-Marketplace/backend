@@ -1,0 +1,217 @@
+name: Security Scan - Shared Infrastructure Hexagonal
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  dependency-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        category:
+          - api-management
+          - communication
+          - config
+          - gateway
+          - infrastructure
+          - observability
+          - security
+          - storage
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Cache NVD Data
+        uses: actions/cache@13aacd865c20de90d75de3dcf1572b4a4f02ed94
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-data-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            nvd-data-${{ runner.os }}-
+
+      - name: Run OWASP Dependency Check
+        run: |
+          echo "Running OWASP dependency check for ${{ matrix.category }}..."
+
+          if [ -d "services/${{ matrix.category }}" ]; then
+            cd services/${{ matrix.category }}
+
+            # Find all pom.xml files and run dependency check
+            find . -name "pom.xml" -type f | while read pom; do
+              dir=$(dirname "$pom")
+              echo "Checking $dir"
+              cd "$dir"
+              mvn org.owasp:dependency-check-maven:check \
+                -B \
+                -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+                -Ddependency-check.failBuildOnCVSS=7 || \
+              echo "Dependency check completed with warnings"
+              cd -
+            done
+          fi
+
+      - name: Upload Dependency Check Report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: dependency-check-report-${{ matrix.category }}
+          path: '**/dependency-check-report.*'
+          retention-days: 30
+
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@435327b1c2fef2aa9df534fdf274590a098c19f4
+        with:
+          sarif_file: '**/dependency-check-report.sarif'
+          category: 'dependency-check-${{ matrix.category }}'
+
+  sast-scan:
+    name: SAST Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@f0f3afee8094fcb0250c4f5a0a2655ffb9b4c8ef
+        with:
+          languages: java
+          queries: security-extended,security-and-quality
+
+      - name: Run Semgrep SAST scan
+        uses: returntocorp/semgrep-action@1f8330b95eb4e366c9e3a36b5ac3fe3f3b4ffa7e
+        with:
+          config: auto
+
+  secrets-scan:
+    name: Secrets Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scanning
+        uses: trufflesecurity/trufflehog@a46de8f9e1c421b15cmaf618ca931f3f7225b4fa1f
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v8.2.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  license-scan:
+    name: License Compliance Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up JDK
+        uses: actions/setup-java@1d018f9b8b9b505bb578a83b230fabcce01af93b
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Generate dependency tree
+        run: mvn dependency:tree -DoutputFile=dependency-tree.txt
+
+      - name: Upload dependency tree
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: dependency-tree
+          path: '**/dependency-tree.txt'
+          retention-days: 30
+
+  container-vulnerability-scan:
+    name: Container Vulnerability Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    strategy:
+      matrix:
+        service:
+          - api-rate-limit-service
+          - email-sender-service
+          - event-bus-bridge-service
+          - message-broker
+          - message-queue-management-service
+          - notification-service
+          - sms-sender-service
+          - social-media-integration-service
+          - status-broadcast-service
+          - webhook-management-service
+          - config-server
+          - api-gateway-service
+          - discovery-service
+          - caching-service
+          - infrastructure-config-server
+          - message-broker-service
+          - audit-service
+          - rate-limiting-service
+          - dlp-service
+          - mfa-service
+          - secrets-management-service
+          - security-analytics-service
+          - security-management-service
+          - security-orchestration-service
+          - threat-intelligence-service
+          - file-storage-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@2b512430cf1c7c4fe9b7815b4c7d761f6e893f6b
+
+      - name: Build Docker image for scanning
+        run: |
+          find services -type f -name "Dockerfile" -path "*/${{ matrix.service }}/*" -execdir docker build -t ${{ matrix.service }}:scan . \; || \
+          find services -type d -name "${{ matrix.service }}" -execdir docker build -t ${{ matrix.service }}:scan . \; || \
+          echo "No Dockerfile found for ${{ matrix.service }}"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6896a38fa877f2db34aa4fff10fa544dbbf9357c
+        with:
+          image-ref: '${{ matrix.service }}:scan'
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@435327b1c2fef2aa9df534fdf274590a098c19f4
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+          category: 'trivy-container-${{ matrix.service }}'
+        continue-on-error: true

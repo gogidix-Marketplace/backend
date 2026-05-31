@@ -1,0 +1,151 @@
+# Docker Compose for Shared Testing Library
+# Local development environment with dependencies
+# Spring Boot 3.1.5 with Java 17
+
+version: '3.8'
+
+networks:
+  testing-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+
+services:
+  # =====================================
+  # DATABASE SERVICES
+  # =====================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: shared-testing-postgres
+    environment:
+      POSTGRES_DB: gogidix_testing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      testing-network:
+        ipv4_address: 172.22.0.10
+
+  # =====================================
+  # CACHE SERVICES
+  # =====================================
+  redis:
+    image: redis:7-alpine
+    container_name: shared-testing-redis
+    command: redis-server --appendonly yes --requirepass redis123
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      testing-network:
+        ipv4_address: 172.22.0.11
+
+  # =====================================
+  # APPLICATION SERVICE
+  # =====================================
+  shared-testing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: shared-testing-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Spring profiles
+      SPRING_PROFILES_ACTIVE: docker
+      
+      # Database configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      
+      # Redis configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      
+      # JVM configuration
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:+UseStringDeduplication"
+      JVM_MEMORY: "-Xmx512m -Xms256m"
+      
+      # Application configuration
+      SERVER_PORT: 8707
+      MANAGEMENT_PORT: 8707
+      
+      # Testing-specific configuration
+      TESTCONTAINERS_HOST_OVERRIDE: localhost
+      
+    ports:
+      - "8707:8707"
+    volumes:
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8707/api/testing/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      testing-network:
+        ipv4_address: 172.22.0.20
+
+  # =====================================
+  # DEVELOPMENT TOOLS
+  # =====================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: shared-testing-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gogidix.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5052:80"
+    depends_on:
+      - postgres
+    networks:
+      testing-network:
+        ipv4_address: 172.22.0.21
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: shared-testing-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379:3:redis123
+    ports:
+      - "8083:8081"
+    depends_on:
+      - redis
+    networks:
+      testing-network:
+        ipv4_address: 172.22.0.22

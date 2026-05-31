@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: centralized-performance-metrics-ingress
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-performance-metrics
+    team: team-f-centralized-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - performance-metrics.gogidix.com
+    secretName: centralized-performance-metrics-tls
+  rules:
+  - host: performance-metrics.gogidix.com
+    http:
+      paths:
+      - path: /api/performance-metrics(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: centralized-performance-metrics
+            port:
+              number: 8082
+      - path: /actuator(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: centralized-performance-metrics
+            port:
+              number: 8082

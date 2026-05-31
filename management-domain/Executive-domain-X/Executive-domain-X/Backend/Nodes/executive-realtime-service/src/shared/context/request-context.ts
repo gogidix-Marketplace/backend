@@ -1,0 +1,2 @@
+export class RequestContextData { constructor(public tenantId: string, public userId: string, public organizationId: string, public correlationId?: string) {} }
+export class RequestContextHolder { private static context: RequestContextData | null = null; static setContext(ctx: RequestContextData) { RequestContextHolder.context = ctx; } static getContext() { return RequestContextHolder.context; } static clearContext() { RequestContextHolder.context = null; } static getTenantId() { return RequestContextHolder.context?.tenantId || 'default'; } }

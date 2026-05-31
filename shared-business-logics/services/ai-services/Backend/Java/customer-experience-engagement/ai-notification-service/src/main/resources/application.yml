@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: ai-notification-service
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.gogidix.aiservices.ainotificationservice: INFO

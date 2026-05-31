@@ -1,0 +1,17 @@
+{
+  "serviceName": "lead-generation-ai-service",
+  "analysisDate": "2026-03-01T00:00:00Z",
+  "summary": {
+    "totalFiles": 40,
+    "filesWithGaps": 0,
+    "totalGaps": 0,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "EMPTY_METHOD": 0,
+      "MOCK": 0,
+      "PLACEHOLDER": 0
+    }
+  },
+  "gaps": []
+}

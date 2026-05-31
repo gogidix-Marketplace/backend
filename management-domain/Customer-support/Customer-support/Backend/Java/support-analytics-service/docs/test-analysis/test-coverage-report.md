@@ -1,0 +1,26 @@
+- AnalyticsReportRequestDto.java
+- AnalyticsReportResponseDto.java
+- ChannelPerformanceResponseDto.java
+- TicketTrendResponseDto.java
+- AnalyticsReportMapper.java
+- ChannelPerformanceMapper.java
+- TicketTrendMapper.java
+- SupportAnalyticsService.java
+- AnalyticsReport.java
+- BaseEntity.java
+- ChannelPerformance.java
+- TicketTrend.java
+- AnalyticsReportRepository.java
+- ChannelPerformanceRepository.java
+- SupportAnalyticsEntityRepository.java
+- TicketTrendRepository.java
+- MongoConfig.java
+- OpenApiConfig.java
+- WebConfig.java
+- SecurityConfig.java
+- SupportAnalyticsController.java
+- RequestContext.java
+- RequestContextHolder.java
+- SupportAnalyticsServiceApplication.java
+
+## Test Files

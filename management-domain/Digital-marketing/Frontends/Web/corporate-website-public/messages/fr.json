@@ -1,0 +1,151 @@
+{
+  "common": {
+    "appName": "Gogidix",
+    "tagline": "Transformez vos opérations commerciales",
+    "description": "Solutions de niveau entreprise pour la logistique, le commerce électronique, les achats et les opérations commerciales.",
+    "loading": "Chargement...",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher produits, solutions, documentation...",
+    "language": "Langue",
+    "region": "Région",
+    "cookies": {
+      "title": "Nous utilisons des cookies",
+      "description": "Nous utilisons des cookies pour améliorer votre expérience et analyser notre trafic.",
+      "accept": "Tout accepter",
+      "decline": "Refuser",
+      "settings": "Paramètres des cookies",
+      "necessary": "Cookies nécessaires",
+      "necessaryDesc": "Nécessaires au fonctionnement du site",
+      "preferences": "Cookies de préférence",
+      "preferencesDesc": "Mémoriser vos paramètres",
+      "analytics": "Cookies d'analyse",
+      "analyticsDesc": "Aidez-nous à améliorer notre site web"
+    },
+    "newsletter": {
+      "title": "Abonnez-vous à notre newsletter",
+      "description": "Recevez les dernières mises à jour, articles et ressources directement dans votre boîte de réception.",
+      "placeholder": "Entrez votre email",
+      "subscribe": "S'abonner",
+      "success": "Merci de vous être abonné!",
+      "error": "Une erreur s'est produite. Veuillez réessayer."
+    },
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "page": "Page",
+      "of": "sur"
+    },
+    "errors": {
+      "generic": "Une erreur s'est produite. Veuillez réessayer.",
+      "notFound": "Page non trouvée",
+      "unauthorized": "Vous n'êtes pas autorisé à accéder à cette ressource",
+      "serverError": "Erreur du serveur. Veuillez réessayer plus tard."
+    }
+  },
+  "nav": {
+    "home": "Accueil",
+    "products": "Produits",
+    "solutions": "Solutions",
+    "developers": "Développeurs",
+    "partners": "Partenaires",
+    "company": "Entreprise",
+    "resources": "Ressources",
+    "pricing": "Tarifs",
+    "login": "Connexion",
+    "signup": "S'inscrire",
+    "contact": "Contact",
+    "support": "Support",
+    "docs": "Documentation"
+  },
+  "home": {
+    "hero": {
+      "title": "Transformez vos opérations commerciales avec une automatisation intelligente",
+      "subtitle": "Rationalisez la logistique, le commerce électronique, les achats et les opérations avec notre plateforme entreprise unifiée.",
+      "cta": {
+        "primary": "Commencer l'essai gratuit",
+        "secondary": "Voir la démo"
+      },
+      "trust": "Approuvé par plus de 10 000 entreprises dans le monde"
+    },
+    "products": {
+      "title": "Nos Produits",
+      "subtitle": "Solutions complètes pour chaque aspect de votre entreprise",
+      "logistics": {
+        "title": "Gestion Logistique",
+        "description": "Optimisation de la chaîne d'approvisionnement de bout en bout avec suivi en temps réel et planification d'itinéraire alimentée par l'IA."
+      },
+      "ecommerce": {
+        "title": "Plateforme E-commerce",
+        "description": "Créez et développez votre boutique en ligne avec des outils de commerce puissants et des intégrations."
+      },
+      "procurement": {
+        "title": "Suite Achats",
+        "description": "Rationalisez les achats, la gestion des fournisseurs et l'analyse des dépenses sur une seule plateforme."
+      },
+      "operations": {
+        "title": "Opérations Commerciales",
+        "description": "Automatisez les flux de travail, gérez les projets et optimisez l'allocation des ressources."
+      },
+      "enterprise": {
+        "title": "Solutions Entreprise",
+        "description": "Plateforme évolutive pour les grandes organisations avec sécurité avancée et conformité."
+      },
+      "infrastructure": {
+        "title": "Infrastructure",
+        "description": "Architecture cloud native avec une disponibilité de 99,99% et CDN mondial."
+      }
+    },
+    "features": {
+      "title": "Pourquoi choisir Gogidix?",
+      "subtitle": "Conçu pour l'évolutivité, la sécurité et la simplicité",
+      "feature1": {
+        "title": "Plateforme Unifiée",
+        "description": "Une seule plateforme pour toutes vos opérations commerciales. Plus de silos."
+      },
+      "feature2": {
+        "title": "Alimenté par l'IA",
+        "description": "Automatisation intelligente et analyses prédictives propulsées par le machine learning."
+      },
+      "feature3": {
+        "title": "Sécurité Entreprise",
+        "description": "Certifié SOC 2 Type II avec chiffrement de bout en bout et SSO."
+      },
+      "feature4": {
+        "title": "99,99% de Disponibilité",
+        "description": "Disponibilité garantie avec surveillance 24h/24 et reprise après sinistre."
+      },
+      "feature5": {
+        "title": "Échelle Mondiale",
+        "description": "Déploiement multi-régional avec conformité localisée et résidence des données."
+      },
+      "feature6": {
+        "title": "D'abord les Développeurs",
+        "description": "API complètes, SDK et webhooks pour des intégrations personnalisées."
+      }
+    },
+    "cta": {
+      "title": "Prêt à transformer votre entreprise?",
+      "subtitle": "Rejoignez des milliers d'entreprises qui font confiance à Gogidix pour leurs opérations.",
+      "primary": "Commencer Gratuitement",
+      "secondary": "Contacter les Ventes"
+    },
+    "socialProof": {
+      "title": "Approuvé par les leaders de l'industrie"
+    }
+  },
+  "footer": {
+    "products": "Produits",
+    "solutions": "Solutions",
+    "developers": "Développeurs",
+    "partners": "Partenaires",
+    "company": "Entreprise",
+    "resources": "Ressources",
+    "legal": "Légal",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation",
+    "security": "Sécurité",
+    "cookie": "Politique de Cookies",
+    "status": "État du Système",
+    "copyright": "© 2024 Gogidix. Tous droits réservés."
+  }
+}

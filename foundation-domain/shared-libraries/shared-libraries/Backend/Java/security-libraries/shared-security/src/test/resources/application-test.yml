@@ -1,0 +1,40 @@
+spring:
+  profiles:
+    active: test
+  data:
+    redis:
+      host: localhost
+      port: 6370
+  session:
+    store-type: none
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/auth/realms/test
+
+gogidix:
+  security:
+    jwt:
+      secret: test-jwt-secret-key-for-testing-only-at-least-256-bits-long
+      expiration: 3600000
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "*"
+    rate-limiting:
+      enabled: false
+    audit:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.gogidix.security: DEBUG
+    org.springframework: WARN
+    org.springframework.security: INFO
+    io.jsonwebtoken: WARN

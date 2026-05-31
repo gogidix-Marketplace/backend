@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-customer-segmentation-service-pdb
+  namespace: ai-services
+  labels:
+    app: ai-customer-segmentation-service
+    team: team-f-ai-services
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-customer-segmentation-service

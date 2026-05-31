@@ -1,0 +1,7 @@
+export enum KpiCategory {
+  FINANCIAL = 'FINANCIAL',
+  OPERATIONAL = 'OPERATIONAL',
+  CUSTOMER = 'CUSTOMER',
+  EMPLOYEE = 'EMPLOYEE',
+  ALL = 'ALL',
+}

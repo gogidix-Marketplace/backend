@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: ai-translation-service
+
+server:
+  port: 8085
+
+logging:
+  level:
+    com.gogidix.aiservices.aitranslationservice: INFO

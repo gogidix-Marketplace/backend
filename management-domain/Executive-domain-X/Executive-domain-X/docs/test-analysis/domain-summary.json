@@ -1,0 +1,143 @@
+{
+  "analysisDate": "2026-03-03",
+  "domain": "Management-domain",
+  "summary": {
+    "totalBusinessDomains": 8,
+    "totalServices": 110,
+    "totalSourceFiles": 3688,
+    "totalTestFiles": 365,
+    "overallTestCoverage": 9.9,
+    "implementationGaps": 0,
+    "criticalGaps": 0
+  },
+  "domains": [
+    {
+      "name": "Executive-domain",
+      "services": 10,
+      "sourceFiles": 690,
+      "testFiles": 57,
+      "testCoverage": 8.3,
+      "implementationGaps": 0,
+      "serviceList": [
+        {"name": "ceo-analytics-service", "sourceFiles": 25, "testFiles": 5},
+        {"name": "ceo-approval-service", "sourceFiles": 29, "testFiles": 6},
+        {"name": "ceo-strategy-service", "sourceFiles": 26, "testFiles": 2},
+        {"name": "cfo-financial-consolidation-service", "sourceFiles": 179, "testFiles": 6},
+        {"name": "coo-operations-service", "sourceFiles": 79, "testFiles": 6},
+        {"name": "cto-technology-oversight-service", "sourceFiles": 84, "testFiles": 7},
+        {"name": "executive-alert-service", "sourceFiles": 32, "testFiles": 6},
+        {"name": "executive-approval-workflow-service", "sourceFiles": 40, "testFiles": 5},
+        {"name": "executive-audit-service", "sourceFiles": 108, "testFiles": 4},
+        {"name": "executive-dashboard-service", "sourceFiles": 55, "testFiles": 3}
+      ]
+    },
+    {
+      "name": "Digital-marketing",
+      "services": 15,
+      "sourceFiles": 414,
+      "testFiles": 43,
+      "testCoverage": 10.4,
+      "implementationGaps": 0,
+      "serviceList": [
+        {"name": "analytics-service"},
+        {"name": "brand-management-service"},
+        {"name": "budget-management-service"},
+        {"name": "campaign-management-service"},
+        {"name": "content-management-service"},
+        {"name": "corporate-cms-service"},
+        {"name": "corporate-website-service"},
+        {"name": "country-marketing-dashboard-service"},
+        {"name": "email-marketing-service"},
+        {"name": "global-marketing-dashboard-service"},
+        {"name": "integration-service"},
+        {"name": "lead-generation-service"},
+        {"name": "marketing-automation-service"},
+        {"name": "seo-service"},
+        {"name": "social-media-service"}
+      ]
+    },
+    {
+      "name": "Finance-department",
+      "services": 12,
+      "sourceFiles": 788,
+      "testFiles": 112,
+      "testCoverage": 14.2,
+      "implementationGaps": 0
+    },
+    {
+      "name": "Human-resource",
+      "services": 14,
+      "sourceFiles": 529,
+      "testFiles": 29,
+      "testCoverage": 5.5,
+      "implementationGaps": 0
+    },
+    {
+      "name": "Sales-department",
+      "services": 18,
+      "sourceFiles": 509,
+      "testFiles": 6,
+      "testCoverage": 1.2,
+      "implementationGaps": 0
+    },
+    {
+      "name": "Customer-support",
+      "services": 14,
+      "sourceFiles": 240,
+      "testFiles": 42,
+      "testCoverage": 17.5,
+      "implementationGaps": 0
+    },
+    {
+      "name": "Global-business-management",
+      "services": 12,
+      "sourceFiles": 50,
+      "testFiles": 4,
+      "testCoverage": 8.0,
+      "implementationGaps": 0
+    },
+    {
+      "name": "System-Administrator",
+      "services": 15,
+      "sourceFiles": 25,
+      "testFiles": 14,
+      "testCoverage": 56.0,
+      "implementationGaps": 0
+    }
+  ],
+  "gapAnalysis": {
+    "todoCount": 0,
+    "fixmeCount": 0,
+    "xxxCount": 0,
+    "hackCount": 0,
+    "stubCount": 0,
+    "placeholderCount": 0,
+    "notImplementedExceptionCount": 0
+  },
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "domain": "Sales-department",
+      "issue": "Low test coverage (1.2%)",
+      "action": "Add unit tests for 18 services"
+    },
+    {
+      "priority": "HIGH",
+      "domain": "Human-resource",
+      "issue": "Low test coverage (5.5%)",
+      "action": "Increase test coverage for HR functions"
+    },
+    {
+      "priority": "MEDIUM",
+      "domain": "Global-business-management",
+      "issue": "Moderate test coverage (8%)",
+      "action": "Expand test coverage for business logic"
+    },
+    {
+      "priority": "MEDIUM",
+      "domain": "Executive-domain",
+      "issue": "Moderate test coverage (8.3%)",
+      "action": "Add tests for critical decision-making services"
+    }
+  ]
+}

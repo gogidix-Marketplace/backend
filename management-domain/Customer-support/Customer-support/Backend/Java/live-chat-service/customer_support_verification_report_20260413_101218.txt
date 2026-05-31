@@ -1,0 +1,8 @@
+Running: mvn clean install -DskipTests=false...
+Build Status: NO
+Tests Run: 0
+Tests Failed: 0
+Tests Errors: 0
+Tests Skipped: 0
+JAR Created: YES (1 JARs)
+Overall Status: FAIL

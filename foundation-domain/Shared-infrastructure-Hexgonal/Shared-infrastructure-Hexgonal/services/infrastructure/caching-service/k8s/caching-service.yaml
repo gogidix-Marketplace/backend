@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caching-service-config
+  namespace: infrastructure
+data:
+  application.yml: |
+    spring:
+      application:
+        name: caching-service
+      data:
+        redis:
+          host: redis.infrastructure.svc.cluster.local
+          port: 6379
+    server:
+      port: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caching-service
+  namespace: infrastructure
+  labels:
+    app: caching-service
+    component: infrastructure
+    domain: foundation
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: caching-service
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caching-service
+  namespace: infrastructure
+  labels:
+    app: caching-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: caching-service
+  template:
+    metadata:
+      labels:
+        app: caching-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: caching-service
+        image: caching-service:1.0.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10

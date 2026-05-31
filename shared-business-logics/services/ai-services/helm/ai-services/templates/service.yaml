@@ -1,0 +1,42 @@
+{{/*
+Generate services for all enabled AI services
+*/}}
+{{- range $category, $services := .Values }}
+{{- if and (ne $category "global") (ne $category "namespace") (ne $category "resourceQuota") (ne $category "limitRange") (ne $category "serviceAccount") (ne $category "monitoring") (ne $category "ingress") (ne $category "networkPolicy") (ne $category "persistence") (ne $category "secrets") (ne $category "mongodb") (ne $category "redis") (ne $category "kafka") }}
+{{- range $serviceName, $serviceConfig := $services }}
+{{- if and (ne $serviceName "enabled") (kindIs "map" $serviceConfig) }}
+{{- if or (not (hasKey $serviceConfig "enabled")) ($serviceConfig.enabled) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $serviceConfig.nameOverride | default $serviceName }}
+  namespace: {{ $.Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" $ | nindent 4 }}
+    {{- include "ai-services.serviceLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 4 }}
+  annotations:
+    {{- if $serviceConfig.service.annotations }}
+    {{- toYaml $serviceConfig.service.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ $serviceConfig.service.type | default "ClusterIP" }}
+  sessionAffinity: {{ $serviceConfig.service.sessionAffinity | default "None" }}
+  {{- if and $serviceConfig.service.sessionAffinity $serviceConfig.service.sessionAffinityConfig }}
+  sessionAffinityConfig:
+    {{- toYaml $serviceConfig.service.sessionAffinityConfig | nindent 4 }}
+  {{- end }}
+  ports:
+  - name: http
+    port: {{ $serviceConfig.service.port | default 8080 }}
+    targetPort: {{ $serviceConfig.service.targetPort | default $serviceConfig.service.port | default 8080 }}
+    protocol: TCP
+    {{- if and (eq ($serviceConfig.service.type | default "ClusterIP") "NodePort") $serviceConfig.service.nodePort }}
+    nodePort: {{ $serviceConfig.service.nodePort }}
+    {{- end }}
+  selector:
+    {{- include "ai-services.serviceSelectorLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

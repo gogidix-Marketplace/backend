@@ -1,0 +1,147 @@
+{{- /*
+Copyright 2026 Gogidix
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/ -}}
+
+{{- range $name, $service := dict "transactionCoordinator" .Values.transactionCoordinator "transactionManager" .Values.transactionManager "sagaOrchestration" .Values.sagaOrchestration "distributedTransaction" .Values.distributedTransaction "transactionOutbox" .Values.transactionOutbox "transactionRecovery" .Values.transactionRecovery }}
+{{- if $service.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "transaction-orchestration.serviceName" (dict "root" $ "serviceName" $service.serviceName) }}
+  namespace: {{ include "transaction-orchestration.namespace" $ }}
+  labels:
+    {{- include "transaction-orchestration.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $service.serviceName }}
+spec:
+  {{- if not (eq (include "transaction-orchestration.hpaEnabled" (dict "Values" $service "global" $.Values)) "true") }}
+  replicas: {{ $service.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "transaction-orchestration.serviceSelectorLabels" (dict "root" $ "component" $service.serviceName) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "transaction-orchestration.serviceSelectorLabels" (dict "root" $ "component" $service.serviceName) | nindent 8 }}
+        app.kubernetes.io/component: {{ $service.serviceName }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $service.managementPort | quote }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "transaction-orchestration.serviceAccountName" $ }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ $service.serviceName }}
+        image: {{ printf "%s/%s:%s" $.Values.global.imageRegistry $service.serviceName ($.Values.global.imageTag | default $.Chart.AppVersion) }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: {{ $service.servicePort }}
+          protocol: TCP
+        - name: management
+          containerPort: {{ $service.managementPort }}
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SERVER_PORT
+          value: {{ $service.servicePort | quote }}
+        - name: MANAGEMENT_SERVER_PORT
+          value: {{ $service.managementPort | quote }}
+        - name: DB_HOST
+          value: {{ $.Values.global.database.host }}
+        - name: DB_PORT
+          value: {{ $.Values.global.database.port | quote }}
+        - name: DB_NAME
+          value: {{ $service.database.name }}
+        {{- if $.Values.database.existingSecret }}
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.database.secretName }}
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.database.secretName }}
+              key: password
+        {{- else }}
+        - name: DB_USERNAME
+          value: {{ $.Values.database.username }}
+        - name: DB_PASSWORD
+          value: {{ $.Values.database.password }}
+        {{- end }}
+        - name: REDIS_HOST
+          value: {{ $.Values.global.redis.host }}
+        - name: REDIS_PORT
+          value: {{ $.Values.global.redis.port | quote }}
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: {{ $.Values.global.kafka.bootstrapServers }}
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- if $.Values.global.mongoDb }}
+        - name: MONGODB_HOST
+          value: {{ $.Values.global.mongoDb.host }}
+        - name: MONGODB_PORT
+          value: {{ $.Values.global.mongoDb.port | quote }}
+        {{- end }}
+        {{- with $.Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with $service.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        resources:
+          {{- toYaml $service.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml $.Values.securityContext | nindent 10 }}
+        {{- with $.Values.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with $.Values.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with $.Values.startupProbe }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

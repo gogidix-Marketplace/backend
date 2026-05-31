@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: content-management-service
+
+  data:
+    mongodb:
+      database: test_content_management
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

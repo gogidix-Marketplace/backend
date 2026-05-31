@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: transaction-orchestration
+  labels:
+    name: transaction-orchestration
+    team: team-b-transaction

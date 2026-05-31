@@ -1,0 +1,64 @@
+server:
+  port: 8200
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+spring:
+  application:
+    name: global-business-dashboard-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: global_business_dashboard_db
+      auto-index-creation: true
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=10m
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix.globalbusinessmanagement: DEBUG
+    org.springframework.data.mongodb: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+application:
+  cache:
+    metrics-ttl: 300
+  aggregation:
+    batch-size: 1000
+  dashboard:
+    refresh-interval: 60000

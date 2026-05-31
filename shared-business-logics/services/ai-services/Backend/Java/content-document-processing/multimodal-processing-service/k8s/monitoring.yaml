@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: multimodal-processing-service
+  namespace: ai-services
+  labels:
+    app: multimodal-processing-service
+    version: v1
+    team: team-ai-content-processing
+    domain: ai-services
+    component: content-document-processing
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: multimodal-processing-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      action: replace
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+      action: replace
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: '(jvm_.*|process_.*|system_.*|http_.*|spring_.*)'
+      action: keep
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: multimodal-processing-service
+  namespace: ai-services
+  labels:
+    app: multimodal-processing-service
+    version: v1
+    team: team-ai-content-processing
+    domain: ai-services
+    component: content-document-processing
+    release: prometheus
+spec:
+  groups:
+  - name: multimodal-processing-service-health
+    interval: 30s
+    rules:
+    - alert: MultimodalProcessingServiceDown
+      expr: up{job="multimodal-processing-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service is down"
+        description: "Multimodal Processing Service has been down for more than 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/multimodal-processing-service-down"
+
+    - alert: MultimodalProcessingServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{job="multimodal-processing-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service high error rate"
+        description: "Multimodal Processing Service error rate is above 5% for 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/multimodal-processing-service-high-errors"
+
+    - alert: MultimodalProcessingServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="multimodal-processing-service"}[5m])) > 30
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service high latency"
+        description: "Multimodal Processing Service P95 latency is above 30 seconds"
+
+    - alert: MultimodalProcessingServiceHighMemoryUsage
+      expr: jvm_memory_used_bytes{job="multimodal-processing-service",area="heap"} / jvm_memory_max_bytes{job="multimodal-processing-service",area="heap"} > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service high memory usage"
+        description: "Multimodal Processing Service heap memory usage is above 90%"
+
+  - name: multimodal-processing-service-business
+    interval: 60s
+    rules:
+    - alert: MultimodalProcessingServiceProcessingFailureRate
+      expr: rate(multimodal_processing_failures_total{job="multimodal-processing-service"}[10m]) > 0.15
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service high processing failure rate"
+        description: "Multimodal processing failure rate is above 15%"
+
+    - alert: MultimodalProcessingServiceQueueBacklog
+      expr: multimodal_processing_queue_size{job="multimodal-processing-service"} > 100
+      for: 15m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service queue backlog"
+        description: "Multimodal processing queue size is above 100 items"
+
+    - alert: MultimodalProcessingServiceImageProcessingFailureRate
+      expr: rate(image_processing_failures_total{job="multimodal-processing-service"}[10m]) > 0.2
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service image processing failure rate"
+        description: "Image processing failure rate is above 20%"
+
+    - alert: MultimodalProcessingServiceAudioProcessingFailureRate
+      expr: rate(audio_processing_failures_total{job="multimodal-processing-service"}[10m]) > 0.2
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service audio processing failure rate"
+        description: "Audio processing failure rate is above 20%"
+
+    - alert: MultimodalProcessingServiceVideoProcessingFailureRate
+      expr: rate(video_processing_failures_total{job="multimodal-processing-service"}[10m]) > 0.25
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "Multimodal Processing Service video processing failure rate"
+        description: "Video processing failure rate is above 25%"

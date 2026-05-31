@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: dropship-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_dropship
+
+server:
+  port: 8401
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.vendor.dropship: DEBUG

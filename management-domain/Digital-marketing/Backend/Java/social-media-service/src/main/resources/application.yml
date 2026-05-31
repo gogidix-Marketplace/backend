@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: social-media-service
+  data:
+    mongodb:
+      database: social-media-service_db

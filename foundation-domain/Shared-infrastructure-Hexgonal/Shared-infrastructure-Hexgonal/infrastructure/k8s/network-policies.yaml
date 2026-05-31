@@ -1,0 +1,77 @@
+---
+# Network Policy: Allow traffic within infrastructure namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-namespace-traffic
+  namespace: infrastructure
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: infrastructure
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: infrastructure
+    - namespaceSelector:
+        matchLabels:
+          name: shared-business-logics
+    - namespaceSelector:
+        matchLabels:
+          name: management-domain
+    - namespaceSelector:
+        matchLabels:
+          name: business-domain
+
+---
+# Network Policy: Allow egress to external services (DNS, etc.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: infrastructure
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# Network Policy: Allow ingress from API Gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: infrastructure
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: gateway
+    ports:
+    - protocol: TCP
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 9092  # Kafka
+    - protocol: TCP
+      port: 27017 # MongoDB
+    - protocol: TCP
+      port: 5432  # PostgreSQL

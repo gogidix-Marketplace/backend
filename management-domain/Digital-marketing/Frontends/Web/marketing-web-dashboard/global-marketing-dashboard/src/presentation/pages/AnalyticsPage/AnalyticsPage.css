@@ -1,0 +1,43 @@
+/* AnalyticsPage Styles */
+
+.analytics-page {
+  min-height: 100vh;
+}
+
+.page__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.chart-card {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.chart-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.attribution-panel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 1024px) {
+  .analytics-grid,
+  .attribution-panel {
+    grid-template-columns: 1fr;
+  }
+}

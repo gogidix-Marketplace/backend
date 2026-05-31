@@ -1,0 +1,238 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: centralized-performance-metrics
+
+  profiles:
+    active: dev
+
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DATABASE:performance_metrics}
+      username: ${MONGODB_USERNAME:}
+      password: ${MONGODB_PASSWORD:}
+      uri: ${MONGODB_URI:mongodb://localhost:27017/performance_metrics}
+      auto-index-creation: true
+
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: 2
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-wait: -1ms
+          max-idle: 10
+          min-idle: 0
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300s
+      cache-null-values: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8080/auth/realms/gogidix}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8080/auth/realms/gogidix/protocol/openid-connect/certs}
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 15
+    lease-expiration-duration-in-seconds: 45
+    metadata-map:
+      zone: primary
+      version: ${spring.application.version:1.0.0}
+      metrics-path: /actuator/prometheus
+
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL:http://localhost:8761/eureka}
+    registry-fetch-interval-seconds: 15
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,performance
+      base-path: /actuator
+
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+    performance:
+      enabled: true
+
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+      influx:
+        enabled: ${INFLUXDB_ENABLED:false}
+        uri: ${INFLUXDB_URL:http://localhost:8086}
+        db: ${INFLUXDB_DATABASE:performance_metrics}
+        username: ${INFLUXDB_USERNAME:}
+        password: ${INFLUXDB_PASSWORD:}
+        step: 10s
+        batch-size: 10000
+        compressed: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+
+  health:
+    influxdb:
+      enabled: ${INFLUXDB_ENABLED:false}
+
+# InfluxDB Configuration
+influxdb:
+  url: ${INFLUXDB_URL:http://localhost:8086}
+  token: ${INFLUXDB_TOKEN:}
+  org: ${INFLUXDB_ORG:gogidix}
+  bucket: ${INFLUXDB_BUCKET:performance_metrics}
+  retention:
+    policy: 30d
+  batch:
+    size: 5000
+    flush-interval: 1000ms
+
+# Performance Metrics Configuration
+performance:
+  metrics:
+    collection:
+      enabled: true
+      interval: 15s
+      batch-size: 1000
+
+    retention:
+      default: 30d
+      high-frequency: 7d
+      aggregated: 365d
+
+    alerting:
+      enabled: true
+      evaluation-interval: 30s
+      notification:
+        webhook: ${ALERT_WEBHOOK_URL:}
+        email: ${ALERT_EMAIL_ENABLED:false}
+
+    thresholds:
+      cpu-usage:
+        warning: 70.0
+        critical: 90.0
+      memory-usage:
+        warning: 80.0
+        critical: 95.0
+      response-time:
+        warning: 1000
+        critical: 5000
+      error-rate:
+        warning: 5.0
+        critical: 10.0
+
+    aggregation:
+      enabled: true
+      windows:
+        - 1m
+        - 5m
+        - 15m
+        - 1h
+        - 1d
+      functions:
+        - AVERAGE
+        - MAX
+        - MIN
+        - COUNT
+        - PERCENTILE_95
+
+    anomaly-detection:
+      enabled: true
+      algorithm: statistical
+      sensitivity: medium
+      lookback-period: 1h
+      min-data-points: 60
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 20
+        permittedNumberOfCallsInHalfOpenState: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        minimumNumberOfCalls: 10
+    instances:
+      influxdb:
+        baseConfig: default
+        failureRateThreshold: 60
+      database:
+        baseConfig: default
+        slidingWindowSize: 10
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+        cancelRunningFuture: true
+    instances:
+      influxdb:
+        timeoutDuration: 5s
+      database:
+        timeoutDuration: 3s
+
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: none
+
+  compression:
+    request:
+      enabled: true
+    response:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.gogidix: INFO
+    org.springframework.cloud: WARN
+    org.springframework.security: WARN
+    io.micrometer: WARN
+
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+
+# Scheduler Configuration
+scheduler:
+  metric-cleanup:
+    enabled: true
+    cron: "0 0 2 * * ?"
+    batch-size: 10000
+
+  aggregation:
+    enabled: true
+    cron: "0 */5 * * * ?"
+
+  anomaly-detection:
+    enabled: true
+    cron: "0 */1 * * * ?"

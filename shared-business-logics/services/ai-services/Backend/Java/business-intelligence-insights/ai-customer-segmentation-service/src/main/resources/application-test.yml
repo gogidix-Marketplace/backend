@@ -1,0 +1,34 @@
+# =============================================================================
+# Test Profile Configuration
+# =============================================================================
+
+spring:
+  # MongoDB Test Configuration (Testcontainers)
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: ai_customer_segmentation_test
+
+  # Redis Test Configuration (Testcontainers)
+  redis:
+    host: localhost
+    port: 6379
+    database: 1
+
+  # Kafka Test Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: earliest
+
+logging:
+  level:
+    root: WARN
+    com.gogidix.aiservices: DEBUG
+    org.springframework.test: INFO
+    org.testcontainers: INFO
+
+segment:
+  cache:
+    enabled: false

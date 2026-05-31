@@ -1,0 +1,126 @@
+{{/*
+Generate deployments for all enabled AI services
+*/}}
+{{- range $category, $services := .Values }}
+{{- if and (ne $category "global") (ne $category "namespace") (ne $category "resourceQuota") (ne $category "limitRange") (ne $category "serviceAccount") (ne $category "monitoring") (ne $category "ingress") (ne $category "networkPolicy") (ne $category "persistence") (ne $category "secrets") (ne $category "mongodb") (ne $category "redis") (ne $category "kafka") }}
+{{- range $serviceName, $serviceConfig := $services }}
+{{- if and (ne $serviceName "enabled") (kindIs "map" $serviceConfig) }}
+{{- if or (not (hasKey $serviceConfig "enabled")) ($serviceConfig.enabled) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $serviceConfig.nameOverride | default $serviceName }}
+  namespace: {{ $.Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" $ | nindent 4 }}
+    {{- include "ai-services.serviceLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 4 }}
+spec:
+  {{- if $serviceConfig.replicas }}
+  replicas: {{ $serviceConfig.replicas }}
+  {{- else }}
+  replicas: {{ $.Values.global.replicas | default 2 }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ $serviceConfig.strategy.maxSurge | default 1 }}
+      maxUnavailable: {{ $serviceConfig.strategy.maxUnavailable | default 0 }}
+  selector:
+    matchLabels:
+      {{- include "ai-services.serviceSelectorLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-services.serviceLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 8 }}
+      annotations:
+        {{- include "ai-services.prometheusAnnotations" (dict "monitoring" $serviceConfig.monitoring "port" ($serviceConfig.service.targetPort | default $serviceConfig.service.port | default 8080)) | nindent 8 }}
+        {{- with $serviceConfig.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if $.Values.serviceAccount.create }}
+      serviceAccountName: {{ $serviceConfig.nameOverride | default $serviceName }}
+      {{- end }}
+      {{- if $serviceConfig.priorityClassName }}
+      priorityClassName: {{ $serviceConfig.priorityClassName }}
+      {{- end }}
+      securityContext:
+        {{- include "ai-services.podSecurityContext" (dict "securityContext" $serviceConfig.securityContext "global" $.Values.global) | nindent 8 }}
+      containers:
+      - name: {{ $serviceConfig.nameOverride | default $serviceName }}
+        image: {{ $serviceConfig.image.repository }}:{{ $serviceConfig.image.tag | default "1.0.0" }}
+        imagePullPolicy: {{ $serviceConfig.image.pullPolicy | default $.Values.global.imagePullPolicy | default "Always" }}
+        ports:
+        - name: http
+          containerPort: {{ $serviceConfig.service.targetPort | default $serviceConfig.service.port | default 8080 }}
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ $.Values.global.env.SPRING_PROFILES_ACTIVE | default "prod" | quote }}
+        - name: SERVER_PORT
+          value: {{ $serviceConfig.service.targetPort | default $serviceConfig.service.port | default 8080 | quote }}
+        - name: JAVA_OPTS
+          value: {{ include "ai-services.javaOpts" (dict "javaOpts" $serviceConfig.javaOpts "global" $.Values.global) | quote }}
+        {{- range $key, $value := $.Values.global.env }}
+        {{- if ne $key "SPRING_PROFILES_ACTIVE" }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+        {{- range $key, $value := $serviceConfig.env }}
+        - name: {{ $key }}
+          {{- if contains "{{$" (toString $value) }}
+          value: {{ $value | quote }}
+          {{- else }}
+          value: {{ $value | quote }}
+          {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            {{- include "ai-services.resourceRequests" (dict "resources" $serviceConfig.resources "global" $.Values.global) | nindent 12 }}
+          limits:
+            {{- include "ai-services.resourceLimits" (dict "resources" $serviceConfig.resources "global" $.Values.global) | nindent 12 }}
+        {{- if $serviceConfig.probes }}
+        livenessProbe:
+          {{- include "ai-services.livenessProbe" (dict "probes" $serviceConfig.probes "port" ($serviceConfig.service.targetPort | default $serviceConfig.service.port | default 8080)) | nindent 10 }}
+        readinessProbe:
+          {{- include "ai-services.readinessProbe" (dict "probes" $serviceConfig.probes "port" ($serviceConfig.service.targetPort | default $serviceConfig.service.port | default 8080)) | nindent 10 }}
+        startupProbe:
+          {{- include "ai-services.startupProbe" (dict "probes" $serviceConfig.probes "port" ($serviceConfig.service.targetPort | default $serviceConfig.service.port | default 8080)) | nindent 10 }}
+        {{- end }}
+        {{- if $serviceConfig.volumeMounts }}
+        volumeMounts:
+          {{- toYaml $serviceConfig.volumeMounts | nindent 10 }}
+        {{- else }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        {{- end }}
+        securityContext:
+          {{- include "ai-services.containerSecurityContext" (dict "containerSecurityContext" $serviceConfig.containerSecurityContext "global" $.Values.global) | nindent 12 }}
+      {{- if $serviceConfig.volumes }}
+      volumes:
+        {{- toYaml $serviceConfig.volumes | nindent 8 }}
+      {{- else }}
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: {{ $serviceConfig.emptyDirSizeLimit | default "1Gi" }}
+      {{- end }}
+      {{- if $serviceConfig.nodeSelector }}
+      nodeSelector:
+        {{- include "ai-services.nodeSelector" $serviceConfig | nindent 8 }}
+      {{- end }}
+      {{- if $serviceConfig.tolerations }}
+      tolerations:
+        {{- include "ai-services.tolerations" $serviceConfig | nindent 8 }}
+      {{- end }}
+      {{- if or $serviceConfig.affinity (not $serviceConfig.affinity) }}
+      affinity:
+        {{- include "ai-services.affinity" (dict "affinity" $serviceConfig.affinity "global" $.Values.global "name" ($serviceConfig.nameOverride | default $serviceName)) | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

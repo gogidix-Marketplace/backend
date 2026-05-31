@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-search-service
+  namespace: ai-services
+  labels:
+    app: ai-search-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-search-service
+  ports:
+  - name: http
+    port: 8235
+    targetPort: 8235
+    protocol: TCP

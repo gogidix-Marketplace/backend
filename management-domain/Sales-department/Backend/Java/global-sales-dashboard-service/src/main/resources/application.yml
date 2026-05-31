@@ -1,0 +1,143 @@
+# =============================================================================
+# Global Sales Dashboard Service Configuration - Sales Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8085}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: global-sales-dashboard-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:global-sales-dashboard-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      dashboard-events: global-sales-dashboard-service.events
+      domain-events: sales.domain-events
+      metrics-updated: sales.metrics-updated
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.sales.dashboard.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.dashboard: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/global-sales-dashboard-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+global-sales-dashboard-service:
+  dashboard:
+    regions:
+      - NORTH_AMERICA
+      - EUROPE
+      - ASIA_PACIFIC
+      - LATIN_AMERICA
+      - MIDDLE_EAST
+      - AFRICA
+    currencies:
+      - USD
+      - EUR
+      - GBP
+      - JPY
+      - CNY
+      - AUD
+      - CAD
+      - INR
+    base-currency: USD
+    refresh-interval: 300000  # 5 minutes in milliseconds
+    cache-ttl: 600  # 10 minutes in seconds
+  leaderboard:
+    max-entries: 100
+    categories:
+      - REVENUE
+      - DEALS_COUNT
+      - GROWTH_RATE
+      - TARGET_ACHIEVEMENT
+  currency:
+    exchange-rate-api: ${EXCHANGE_RATE_API:https://api.exchangerate.host/latest}
+    cache-duration: 3600  # 1 hour in seconds
+  aggregation:
+    batch-size: 1000
+    parallel-processing: true

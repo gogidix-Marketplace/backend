@@ -1,0 +1,42 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1
+      password: ${REDIS_PASSWORD:}
+  
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/auth/realms/gogidix-dev
+          jwk-set-uri: http://localhost:8080/auth/realms/gogidix-dev/protocol/openid_connect/certs
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+gateway:
+  custom:
+    security:
+      jwt:
+        verify-signature: false
+        verify-expiration: false
+    
+    rate-limiting:
+      default-replenish-rate: 1000
+      default-burst-capacity: 2000
+    
+    circuit-breaker:
+      default-failure-threshold: 80
+
+logging:
+  level:
+    com.gogidix: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.reactive: DEBUG
+    reactor.netty.http.client: DEBUG
+    reactor.netty.http.server: DEBUG

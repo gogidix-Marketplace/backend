@@ -1,0 +1,233 @@
+/* Metric Card Styles */
+
+.metric-card {
+  background-color: var(--color-white, white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  transition: all var(--transition-fast);
+}
+
+[data-theme='dark'] .metric-card {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.metric-card-clickable {
+  cursor: pointer;
+}
+
+.metric-card-clickable:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Loading State */
+.metric-card-loading {
+  min-height: 120px;
+}
+
+.metric-card-skeleton {
+  display: flex;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.skeleton-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-gray-200) 25%, var(--color-gray-100) 50%, var(--color-gray-200) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+}
+
+.skeleton-title {
+  height: 14px;
+  width: 80px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-2);
+  background: linear-gradient(90deg, var(--color-gray-200) 25%, var(--color-gray-100) 50%, var(--color-gray-200) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-value {
+  height: 24px;
+  width: 120px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-gray-200) 25%, var(--color-gray-100) 50%, var(--color-gray-200) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Header */
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.metric-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+}
+
+.metric-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.metric-card-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+[data-theme='dark'] .metric-card-title {
+  color: var(--color-gray-400);
+}
+
+/* Value Section */
+.metric-card-value-section {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+
+.metric-card-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-gray-900);
+  line-height: 1;
+}
+
+[data-theme='dark'] .metric-card-value {
+  color: var(--color-gray-100);
+}
+
+.metric-card-unit {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-gray-500);
+  margin-left: var(--spacing-1);
+}
+
+/* Change Indicator */
+.metric-card-change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-full);
+}
+
+.metric-card-change-increase {
+  color: var(--color-success);
+  background-color: var(--color-success-light);
+}
+
+.metric-card-change-decrease {
+  color: var(--color-error);
+  background-color: var(--color-error-light);
+}
+
+.metric-card-change-neutral {
+  color: var(--color-gray-500);
+  background-color: var(--color-gray-200);
+}
+
+.metric-trend-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.metric-trend-up {
+  transform: rotate(0deg);
+}
+
+.metric-trend-down {
+  transform: rotate(180deg);
+}
+
+/* Progress */
+.metric-card-progress {
+  margin-top: var(--spacing-3);
+}
+
+.metric-card-attainment {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.metric-card-attainment-bar {
+  flex: 1;
+  height: 6px;
+  background-color: var(--color-gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.metric-card-attainment-fill {
+  height: 100%;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+.metric-card-attainment-text {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-gray-600);
+  min-width: 36px;
+  text-align: right;
+}
+
+[data-theme='dark'] .metric-card-attainment-text {
+  color: var(--color-gray-400);
+}
+
+.metric-card-target {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+[data-theme='dark'] .metric-card-target {
+  color: var(--color-gray-400);
+}
+
+/* Trend */
+.metric-card-trend {
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+[data-theme='dark'] .metric-card-trend {
+  border-top-color: var(--color-gray-700);
+}

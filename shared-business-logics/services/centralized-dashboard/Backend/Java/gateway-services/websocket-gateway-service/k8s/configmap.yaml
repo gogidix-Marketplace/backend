@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: websocket-gateway-service-config
+  namespace: centralized-dashboard
+  labels:
+    app: websocket-gateway-service
+    team: team-f-centralized-dashboard
+data:
+  database-url: "jdbc:postgresql://postgres:5432/websocket_gateway"
+  redis-host: "redis"
+  redis-port: "6379"
+  kafka-bootstrap-servers: "kafka:9092"

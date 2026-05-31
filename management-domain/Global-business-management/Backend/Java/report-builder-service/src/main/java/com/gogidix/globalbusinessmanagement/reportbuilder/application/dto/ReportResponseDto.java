@@ -1,0 +1,25 @@
+package com.gogidix.globalbusinessmanagement.reportbuilder.application.dto;
+
+import lombok.Data;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+import java.time.Instant;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReportResponseDto {
+    private String id;
+    private String tenantId;
+    private String name;
+    private String reportType;
+    private String dataSource;
+    private String format;
+    private String status;
+    private String schedule;
+    private Instant createdAt;
+    private Instant updatedAt;
+}

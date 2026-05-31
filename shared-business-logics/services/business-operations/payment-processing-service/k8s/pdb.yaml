@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payment-processing-service-pdb
+  namespace: business-operations
+  labels:
+    app: payment-processing-service
+    team: team-d-business-operations
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: payment-processing-service

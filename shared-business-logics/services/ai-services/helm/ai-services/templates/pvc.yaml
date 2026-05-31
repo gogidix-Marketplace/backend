@@ -1,0 +1,50 @@
+{{/*
+Generate PersistentVolumeClaims for AI services
+*/}}
+{{- if .Values.persistence.enabled }}
+{{- if .Values.persistence.aiModelsPvc.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.persistence.aiModelsPvc.name }}
+  namespace: {{ .Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+  {{- range .Values.persistence.aiModelsPvc.accessModes }}
+  - {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.aiModelsPvc.size }}
+  {{- if .Values.persistence.aiModelsPvc.storageClass }}
+  storageClassName: {{ .Values.persistence.aiModelsPvc.storageClass }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.persistence.analyticsDataPvc.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.persistence.analyticsDataPvc.name }}
+  namespace: {{ .Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+  {{- range .Values.persistence.analyticsDataPvc.accessModes }}
+  - {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.analyticsDataPvc.size }}
+  {{- if .Values.persistence.analyticsDataPvc.storageClass }}
+  storageClassName: {{ .Values.persistence.analyticsDataPvc.storageClass }}
+  {{- end }}
+{{- end }}
+{{- end }}

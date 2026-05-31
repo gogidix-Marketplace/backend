@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: scheduled-report-service
+  data:
+    mongodb:
+      database: scheduled-report-service_db

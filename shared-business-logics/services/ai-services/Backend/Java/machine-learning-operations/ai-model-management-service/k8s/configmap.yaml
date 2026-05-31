@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-model-management-service-config
+  namespace: ai-services
+  labels:
+    app: ai-model-management-service
+    team: team-f-ai-services
+data:
+  mongodb-host: "mongodb"
+  mongodb-port: "27017"
+  mongodb-db: "ai-model-management-service"
+  redis-host: "redis"
+  redis-port: "6379"
+  kafka-bootstrap-servers: "kafka:9092"

@@ -1,0 +1,216 @@
+# =============================================================================
+# Lead Management Service Configuration - Sales Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8091}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: lead-management-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:lead-management-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      lead-events: lead-management-service.events
+      domain-events: sales.domain-events
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.sales.leadmanagement.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.leadmanagement: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/lead-management-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+lead-management-service:
+  scoring:
+    enabled: true
+    default-threshold: 50
+    weights:
+      email-match: 10
+      phone-match: 10
+      company-match: 15
+      title-seniority: 20
+      industry-fit: 15
+      source-quality: 10
+      engagement-score: 20
+    rules:
+      hot:
+        min-score: 80
+        action: immediate-follow-up
+      warm:
+        min-score: 50
+        action: nurture-campaign
+      cold:
+        min-score: 0
+        action: periodic-review
+  assignment:
+    enabled: true
+    default-strategy: ROUND_ROBIN
+    strategies:
+      ROUND_ROBIN:
+        description: Distribute leads equally among sales reps
+      MANUAL:
+        description: Manual assignment by manager
+      TERRITORY_BASED:
+        description: Assign based on geographic territory
+      WORKLOAD_BASED:
+        description: Assign to rep with least active leads
+  duplicate-detection:
+    enabled: true
+    match-threshold: 85
+    fields:
+      - email
+      - phone
+      - firstName
+      - lastName
+      - company
+  enrichment:
+    enabled: true
+    auto-enrich-on-create: true
+    services:
+      clearbit:
+        enabled: ${CLEARBIT_ENABLED:false}
+        api-key: ${CLEARBIT_API_KEY:}
+      linkedin:
+        enabled: ${LINKEDIN_ENABLED:false}
+        api-key: ${LINKEDIN_API_KEY:}
+  stages:
+    NEW:
+      order: 1
+      probability: 10
+      auto-convert-threshold: 0
+    CONTACTED:
+      order: 2
+      probability: 25
+      auto-convert-threshold: 2
+    QUALIFIED:
+      order: 3
+      probability: 50
+      auto-convert-threshold: 5
+    PROPOSAL:
+      order: 4
+      probability: 75
+      auto-convert-threshold: 8
+    CONVERTED:
+      order: 5
+      probability: 100
+      auto-convert-threshold: 10
+    LOST:
+      order: 6
+      probability: 0
+      auto-convert-threshold: -1
+  sources:
+    WEB:
+      quality-score: 70
+      auto-assignment: true
+    EMAIL:
+      quality-score: 85
+      auto-assignment: true
+    SOCIAL:
+      quality-score: 60
+      auto-assignment: false
+    EVENT:
+      quality-score: 90
+      auto-assignment: true
+    REFERRAL:
+      quality-score: 95
+      auto-assignment: true
+    OUTBOUND:
+      quality-score: 50
+      auto-assignment: false
+    PARTNER:
+      quality-score: 80
+      auto-assignment: true
+  activity:
+    tracking:
+      enabled: true
+      auto-log-emails: true
+      auto-log-calls: true
+      auto-log-web-visits: true
+    types:
+      EMAIL:
+        points: 5
+      CALL:
+        points: 10
+      MEETING:
+        points: 20
+      WEB_VISIT:
+        points: 2
+      FORM_SUBMIT:
+        points: 15
+      DEMO_REQUEST:
+        points: 25
+      PRICING_VIEW:
+        points: 10

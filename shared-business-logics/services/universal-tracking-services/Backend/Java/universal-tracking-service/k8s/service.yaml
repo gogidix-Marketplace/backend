@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: universal-tracking-service
+  namespace: universal-tracking-services
+  labels:
+    app: universal-tracking-service
+    team: team-c-universal-tracking
+spec:
+  type: ClusterIP
+  selector:
+    app: universal-tracking-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  sessionAffinity: None

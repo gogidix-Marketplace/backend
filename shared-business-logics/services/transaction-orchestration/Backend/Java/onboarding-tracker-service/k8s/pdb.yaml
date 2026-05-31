@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: onboarding-tracker-service-pdb
+  namespace: transaction-orchestration
+  labels:
+    app: onboarding-tracker-service
+    team: team-b-transaction
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: onboarding-tracker-service

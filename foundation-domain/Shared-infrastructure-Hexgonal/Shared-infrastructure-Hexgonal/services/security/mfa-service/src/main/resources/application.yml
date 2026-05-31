@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: mfa-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_mfa
+    redis:
+      host: localhost
+      port: 6379
+      database: 8
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: mfa-service
+      auto-offset-reset: earliest
+
+server:
+  port: 8098
+
+mfa:
+  totp:
+    issuer: Gogidix
+    code-validity-seconds: 30
+    backup-codes-count: 10
+  rate-limit:
+    max-attempts: 5
+    lockout-minutes: 30
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    app-name: mfa-service
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: INFO

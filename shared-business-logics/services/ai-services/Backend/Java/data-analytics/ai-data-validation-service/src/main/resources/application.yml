@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: ai-data-validation-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: ai_data_validation
+      auto-index-creation: true
+
+server:
+  port: 8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.gogidix.aiservices.aidatavalidation: DEBUG
+    org.springframework.data.mongodb: DEBUG

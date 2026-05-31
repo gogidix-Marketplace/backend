@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: order-tracking-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_order_tracking
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        trackingEvents-out-0:
+          destination: tracking-events
+          content-type: application/json
+        trackingEvents-in-0:
+          destination: carrier-updates
+          content-type: application/json
+
+server:
+  port: 8330
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.tracking: DEBUG

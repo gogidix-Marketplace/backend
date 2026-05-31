@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: ai-gateway-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/aigateway
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix: INFO
+    org.springframework.web: INFO

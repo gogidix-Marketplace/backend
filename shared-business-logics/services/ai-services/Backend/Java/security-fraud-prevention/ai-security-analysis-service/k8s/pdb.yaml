@@ -1,0 +1,36 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-security-analysis-service
+  namespace: ai-services
+  labels:
+    app: ai-security-analysis-service
+    app.kubernetes.io/name: ai-security-analysis-service
+    app.kubernetes.io/instance: ai-security-analysis-service
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: ai-services
+    team: team-ai-security
+    domain: security-fraud-prevention
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-security-analysis-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-security-analysis-service-budget
+  namespace: ai-services
+  labels:
+    app: ai-security-analysis-service
+    app.kubernetes.io/component: pdb-budget
+    team: team-ai-security
+  annotations:
+    description: "Ensures minimum availability during voluntary disruptions"
+spec:
+  maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: ai-security-analysis-service
+      app.kubernetes.io/name: ai-security-analysis-service

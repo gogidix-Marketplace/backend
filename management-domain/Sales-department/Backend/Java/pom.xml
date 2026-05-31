@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.gogidix.cargo.management.sales</groupId>
+    <artifactId>sales-services</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>Sales Department Services</name>
+    <description>Parent POM for Sales Department microservices</description>
+    <modules>
+        <module>communication-service</module>
+        <module>country-sales-dashboard-service</module>
+        <module>crm-service</module>
+        <module>customer-onboarding-service</module>
+        <module>deal-management-service</module>
+        <module>forecast-management-service</module>
+        <module>global-sales-dashboard-service</module>
+        <module>lead-management-service</module>
+        <module>notification-service</module>
+        <module>revenue-tracking-service</module>
+        <module>sales-analytics-service</module>
+        <module>territory-management-service</module>
+    </modules>
+</project>

@@ -1,0 +1,50 @@
+package com.gogidix.infrastructure.centralizeddashboard.apigateway.application.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Update Route Request Data Transfer Object
+ * Used for updating existing route configurations
+ */
+@Schema(description = "Request to update an existing route configuration")
+public record UpdateRouteRequestDTO(
+    @Schema(description = "Target service URI", example = "lb://centralized-core")
+    @JsonProperty("uri")
+    String uri,
+
+    @Schema(description = "Route predicates")
+    @JsonProperty("predicates")
+    List<String> predicates,
+
+    @Schema(description = "Route filters")
+    @JsonProperty("filters")
+    List<FilterRuleDTO> filters,
+
+    @Schema(description = "Route status", example = "ACTIVE")
+    @JsonProperty("status")
+    String status,
+
+    @Schema(description = "Route order for precedence", example = "1")
+    @JsonProperty("order")
+    Integer order,
+
+    @Schema(description = "Allowed HTTP methods")
+    @JsonProperty("allowedMethods")
+    Set<String> allowedMethods,
+
+    @Schema(description = "Rate limiting configuration")
+    @JsonProperty("rateLimitConfig")
+    RateLimitConfigDTO rateLimitConfig,
+
+    @Schema(description = "Circuit breaker configuration")
+    @JsonProperty("circuitBreakerConfig")
+    CircuitBreakerConfigDTO circuitBreakerConfig,
+
+    @Schema(description = "Authentication configuration")
+    @JsonProperty("authConfig")
+    AuthenticationConfigDTO authConfig
+) {}

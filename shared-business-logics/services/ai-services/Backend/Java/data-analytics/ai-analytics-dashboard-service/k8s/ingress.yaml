@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-analytics-dashboard-service-ingress
+  namespace: ai-services
+  labels:
+    app: ai-analytics-dashboard-service
+    team: team-ai-data-analytics
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ai-analytics-dashboard.gogidix.com
+    secretName: ai-analytics-dashboard-service-tls
+  rules:
+  - host: ai-analytics-dashboard.gogidix.com
+    http:
+      paths:
+      - path: /api/analytics-dashboard(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-analytics-dashboard-service
+            port:
+              number: 8081

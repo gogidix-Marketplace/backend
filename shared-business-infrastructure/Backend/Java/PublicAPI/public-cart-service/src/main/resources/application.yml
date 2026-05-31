@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: public-cart-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_public_cart
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        cartEvents-out-0:
+          destination: cart-events
+          content-type: application/json
+        inventoryEvents-in-0:
+          destination: inventory-events
+          content-type: application/json
+
+server:
+  port: 8305
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.ecommerce.cart: DEBUG

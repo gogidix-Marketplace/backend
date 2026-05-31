@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: centralized-performance-monitoring
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-performance-monitoring
+    team: team-f-centralized-dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: centralized-performance-monitoring
+  ports:
+  - name: http
+    port: 8910
+    targetPort: 8910
+    protocol: TCP
+  sessionAffinity: None

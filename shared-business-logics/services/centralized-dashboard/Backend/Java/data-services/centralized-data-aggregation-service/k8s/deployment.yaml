@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: centralized-data-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-data-aggregation-service
+    team: team-f-centralized-dashboard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: centralized-data-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-data-aggregation-service
+    team: team-f-centralized-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: centralized-data-aggregation-service
+  template:
+    metadata:
+      labels:
+        app: centralized-data-aggregation-service
+        team: team-f-centralized-dashboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8905"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: centralized-data-aggregation-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: centralized-data-aggregation-service
+        image: ghcr.io/gogidix/centralized-data-aggregation-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8905
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          value: "jdbc:postgresql://postgres:5432/centralized_data_aggregation"
+        - name: DATABASE_USERNAME
+          value: "centralized_data_aggregation_user"
+        - name: DATABASE_PASSWORD
+          value: "CHANGE_ME_PROD_PASSWORD"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka:9092"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8905
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8905
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3

@@ -1,0 +1,48 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [config-server, feature-flag-service, environment-service, notification-service, config-audit-service]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6896a38fa877f2db34aa4fff10fa544dbbf9357c
+        with:
+          scan-type: 'fs'
+          scan-ref: '${{ matrix.service }}'
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@435327b1c2fef2aa9df534fdf274590a098c19f4
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+          category: 'trivy-${{ matrix.service }}'
+
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@e325ac157b4bddfa7e19f9f0f79b51292c6d0c2e
+        with:
+          project: '${{ matrix.service }}'
+          path: '${{ matrix.service }}'
+          format: 'HTML'
+          out: 'dependency-check-report'
+
+      - name: Upload Dependency Check report
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: dependency-check-report-${{ matrix.service }}
+          path: dependency-check-report
+          retention-days: 7

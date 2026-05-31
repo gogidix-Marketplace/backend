@@ -1,0 +1,97 @@
+{
+  "serviceName": "Digital-marketing",
+  "analysisDate": "2026-03-02T00:00:00Z",
+  "basePath": "C:/Users/TEMP.LAPTOP-1QDBFFCA/Desktop/Gogidix-ecosystem/x-gogidix-domain/Management-domain/Digital-marketing",
+  "summary": {
+    "totalFiles": 320,
+    "filesWithGaps": 3,
+    "totalGaps": 6,
+    "gapsByType": {
+      "TODO": 6,
+      "FIXME": 0,
+      "EMPTY_METHOD": 0,
+      "MOCK": 0,
+      "PLACEHOLDER": 0,
+      "XXX": 0,
+      "HACK": 0,
+      "STUB": 0,
+      "NotImplementedError": 0,
+      "UnsupportedOperationException": 0
+    }
+  },
+  "gaps": [
+    {
+      "service": "analytics-service",
+      "filePath": "Backend/Java/analytics-service/src/main/java/com/gogidix/digitalmarketing/shared/infrastructure/security/TenantContextFilter.java",
+      "line": 154,
+      "type": "TODO",
+      "description": "Implement proper JWT validation",
+      "severity": "HIGH",
+      "category": "SECURITY",
+      "actionRequired": "Implement JWT validation logic with signature verification, expiration checks, and claims validation"
+    },
+    {
+      "service": "analytics-service",
+      "filePath": "Backend/Java/analytics-service/src/main/java/com/gogidix/digitalmarketing/shared/infrastructure/security/TenantContextFilter.java",
+      "line": 203,
+      "type": "TODO",
+      "description": "Implement proper JWT parsing",
+      "severity": "HIGH",
+      "category": "SECURITY",
+      "actionRequired": "Implement JWT parsing with proper library (e.g., jjwt)"
+    },
+    {
+      "service": "campaign-management-service",
+      "filePath": "Backend/Java/campaign-management-service/src/main/java/com/gogidix/marketing/campaign/shared/infrastructure/security/TenantContextFilter.java",
+      "line": 154,
+      "type": "TODO",
+      "description": "Implement proper JWT validation",
+      "severity": "HIGH",
+      "category": "SECURITY",
+      "actionRequired": "Implement JWT validation logic with signature verification, expiration checks, and claims validation"
+    },
+    {
+      "service": "campaign-management-service",
+      "filePath": "Backend/Java/campaign-management-service/src/main/java/com/gogidix/marketing/campaign/shared/infrastructure/security/TenantContextFilter.java",
+      "line": 203,
+      "type": "TODO",
+      "description": "Implement proper JWT parsing",
+      "severity": "HIGH",
+      "category": "SECURITY",
+      "actionRequired": "Implement JWT parsing with proper library (e.g., jjwt)"
+    },
+    {
+      "service": "lead-generation-service",
+      "filePath": "Backend/Java/lead-generation-service/src/main/java/com/gogidix/digitalmarketing/shared/infrastructure/security/TenantContextFilter.java",
+      "line": 154,
+      "type": "TODO",
+      "description": "Implement proper JWT validation",
+      "severity": "HIGH",
+      "category": "SECURITY",
+      "actionRequired": "Implement JWT validation logic with signature verification, expiration checks, and claims validation"
+    },
+    {
+      "service": "lead-generation-service",
+      "filePath": "Backend/Java/lead-generation-service/src/main/java/com/gogidix/digitalmarketing/shared/infrastructure/security/TenantContextFilter.java",
+      "line": 203,
+      "type": "TODO",
+      "description": "Implement proper JWT parsing",
+      "severity": "HIGH",
+      "category": "SECURITY",
+      "actionRequired": "Implement JWT parsing with proper library (e.g., jjwt)"
+    }
+  ],
+  "testCoverage": {
+    "totalServices": 15,
+    "totalClasses": 320,
+    "classesWithTests": 44,
+    "coveragePercentage": 13.75,
+    "servicesWithNoTests": [
+      "global-marketing-dashboard-service",
+      "integration-service",
+      "marketing-automation-service"
+    ],
+    "bestCoveredService": "analytics-service",
+    "bestCoveragePercentage": 33.33
+  }
+}

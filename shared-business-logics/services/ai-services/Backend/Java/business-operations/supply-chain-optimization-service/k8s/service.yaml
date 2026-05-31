@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: supply-chain-optimization-service
+  namespace: ai-services
+  labels:
+    app: supply-chain-optimization-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: supply-chain-optimization-service
+  ports:
+  - name: http
+    port: 8212
+    targetPort: 8212
+    protocol: TCP

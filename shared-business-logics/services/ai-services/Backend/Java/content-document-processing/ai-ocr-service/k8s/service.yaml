@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-ocr-service
+  namespace: ai-services
+  labels:
+    app: ai-ocr-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-ocr-service
+  ports:
+  - name: http
+    port: 8223
+    targetPort: 8223
+    protocol: TCP

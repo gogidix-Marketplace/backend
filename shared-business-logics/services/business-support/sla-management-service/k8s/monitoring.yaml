@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sla-management-service
+  namespace: business-support
+  labels:
+    app: sla-management-service
+    team: team-e-business-support
+spec:
+  selector:
+    matchLabels:
+      app: sla-management-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http

@@ -1,0 +1,16 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-ocr-service
+  namespace: ai-services
+  labels:
+    app: ai-ocr-service
+    version: v1
+    team: team-ai-content-processing
+    component: content-document-processing
+    environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-ocr-service

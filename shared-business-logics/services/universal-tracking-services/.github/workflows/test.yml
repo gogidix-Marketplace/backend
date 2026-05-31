@@ -1,0 +1,70 @@
+name: Test Universal Tracking Services
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_VERSION: '3.9.12'
+  DOMAIN_NAME: universal-tracking-services
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ env.MAVEN_VERSION }}
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run tests for universal-tracking-service
+      run: mvn clean test
+      working-directory: Backend/Java
+      continue-on-error: false
+
+    - name: Generate test report
+      if: always()
+      uses: dorny/test-reporter@v1
+      with:
+        name: Test Results
+        path: '**/target/surefire-reports/*.xml'
+        reporter: java-junit
+        fail-on-error: true
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: universal-tracking-service-test-results
+        path: |
+          Backend/Java/universal-tracking-service/target/surefire-reports/
+        retention-days: 7
+
+    - name: Upload code coverage
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: universal-tracking-service-coverage
+        path: |
+          Backend/Java/universal-tracking-service/target/site/jacoco/
+        retention-days: 7

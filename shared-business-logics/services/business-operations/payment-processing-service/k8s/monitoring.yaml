@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: payment-processing-service
+  namespace: business-operations
+  labels:
+    app: payment-processing-service
+    team: team-d-business-operations
+spec:
+  selector:
+    matchLabels:
+      app: payment-processing-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http

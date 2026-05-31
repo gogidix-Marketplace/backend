@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: export-service
+  data:
+    mongodb:
+      database: export-service_test_db
+      host: localhost
+      port: 27017
+
+logging:
+  level:
+    com.gogidix.globalbusiness: DEBUG
+
+export:
+  max-rows: 100000
+  temp-dir: /tmp/exports
+  supported-formats: CSV,EXCEL,PDF,JSON

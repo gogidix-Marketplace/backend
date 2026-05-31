@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: data-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: data-aggregation-service
+    team: team-f-centralized-dashboard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: data-aggregation-service
+    team: team-f-centralized-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: data-aggregation-service
+  template:
+    metadata:
+      labels:
+        app: data-aggregation-service
+        team: team-f-centralized-dashboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8905"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: data-aggregation-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: data-aggregation-service
+        image: ghcr.io/gogidix/data-aggregation-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8905
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: database-url
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: data-aggregation-service-secrets
+              key: database-username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-aggregation-service-secrets
+              key: database-password
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: redis-host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: redis-port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-aggregation-service-secrets
+              key: redis-password
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: kafka-bootstrap-servers
+        - name: COURIER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: courier-service-url
+        - name: WAREHOUSE_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: warehouse-service-url
+        - name: SOCIAL_COMMERCE_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: social-commerce-service-url
+        - name: DASHBOARD_CORE_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: data-aggregation-service-config
+              key: dashboard-core-service-url
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8905
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8905
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8905
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      restartPolicy: Always

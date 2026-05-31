@@ -1,0 +1,111 @@
+{{/*
+Generate ServiceMonitors for Prometheus if monitoring is enabled
+*/}}
+{{- if .Values.global.monitoring.enabled }}
+{{- if .Values.global.monitoring.serviceMonitor.enabled }}
+{{- range $category, $services := .Values }}
+{{- if and (ne $category "global") (ne $category "namespace") (ne $category "resourceQuota") (ne $category "limitRange") (ne $category "serviceAccount") (ne $category "monitoring") (ne $category "ingress") (ne $category "networkPolicy") (ne $category "persistence") (ne $category "secrets") (ne $category "mongodb") (ne $category "redis") (ne $category "kafka") }}
+{{- range $serviceName, $serviceConfig := $services }}
+{{- if and (ne $serviceName "enabled") (kindIs "map" $serviceConfig) }}
+{{- if or (not (hasKey $serviceConfig "enabled")) ($serviceConfig.enabled) }}
+{{- if and $serviceConfig.monitoring $serviceConfig.monitoring.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $serviceConfig.nameOverride | default $serviceName }}
+  namespace: {{ $.Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" $ | nindent 4 }}
+    {{- include "ai-services.serviceLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 4 }}
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-services.serviceSelectorLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 6 }}
+  endpoints:
+  - port: http
+    path: {{ $serviceConfig.monitoring.prometheus.path | default $.Values.global.monitoring.prometheus.path | default "/actuator/prometheus" }}
+    interval: {{ $serviceConfig.monitoring.serviceMonitor.interval | default $.Values.global.monitoring.serviceMonitor.interval | default "30s" }}
+    scrapeTimeout: {{ $serviceConfig.monitoring.serviceMonitor.scrapeTimeout | default $.Values.global.monitoring.serviceMonitor.scrapeTimeout | default "10s" }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Generate PrometheusRules for alerting if enabled
+*/}}
+{{- if .Values.global.monitoring.prometheusRules.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "ai-services.fullname" . }}-rules
+  namespace: {{ .Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" . | nindent 4 }}
+    release: prometheus
+spec:
+  groups:
+  - name: ai-services
+    interval: 30s
+    rules:
+    - alert: AIServiceHighErrorRate
+      expr: |
+        rate(http_server_requests_seconds_count{namespace="{{ .Values.namespace.name | default "ai-services" }}",status=~"5.."}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        team: ai-platform
+      annotations:
+        summary: "High error rate detected in AI service {{`{{ $labels.app }}`}}"
+        description: "Error rate is {{`{{ $value }}`}} errors/sec for the last 5 minutes"
+
+    - alert: AIServiceHighLatency
+      expr: |
+        histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{namespace="{{ .Values.namespace.name | default "ai-services" }}"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: ai-platform
+      annotations:
+        summary: "High latency detected in AI service {{`{{ $labels.app }}`}}"
+        description: "P95 latency is {{`{{ $value }}`}}s for the last 10 minutes"
+
+    - alert: AIServicePodNotReady
+      expr: |
+        kube_pod_status_ready{namespace="{{ .Values.namespace.name | default "ai-services" }}",condition="true"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: ai-platform
+      annotations:
+        summary: "Pod not ready in AI service {{`{{ $labels.pod }}`}}"
+        description: "Pod has been not ready for more than 5 minutes"
+
+    - alert: AIServiceHighMemoryUsage
+      expr: |
+        container_memory_usage_bytes{namespace="{{ .Values.namespace.name | default "ai-services" }}"} / container_spec_memory_limit_bytes{namespace="{{ .Values.namespace.name | default "ai-services" }}"} > 0.9
+      for: 10m
+      labels:
+        severity: warning
+        team: ai-platform
+      annotations:
+        summary: "High memory usage in AI service {{`{{ $labels.container }}`}}"
+        description: "Memory usage is above 90% for more than 10 minutes"
+
+    - alert: AIServiceHighCPUUsage
+      expr: |
+        rate(container_cpu_usage_seconds_total{namespace="{{ .Values.namespace.name | default "ai-services" }}"}[5m]) > 0.8
+      for: 10m
+      labels:
+        severity: warning
+        team: ai-platform
+      annotations:
+        summary: "High CPU usage in AI service {{`{{ $labels.container }}`}}"
+        description: "CPU usage is above 80% for more than 10 minutes"
+{{- end }}

@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: progress-step-service
+  namespace: transaction-orchestration
+  labels:
+    app: progress-step-service
+    team: team-b-transaction
+spec:
+  selector:
+    matchLabels:
+      app: progress-step-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http

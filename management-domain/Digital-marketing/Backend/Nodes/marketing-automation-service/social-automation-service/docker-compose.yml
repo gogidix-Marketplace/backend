@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  social-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: social-automation-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongodb:27017/social_automation
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TWITTER_API_KEY=${TWITTER_API_KEY}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET}
+      - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
+      - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
+      - FACEBOOK_APP_ID=${FACEBOOK_APP_ID}
+      - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+    networks:
+      - gogidix-network
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+
+  mongodb:
+    image: mongo:7
+    container_name: social-automation-mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - social-mongodb-data:/data/db
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: social-automation-redis
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - social-redis-data:/data
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+volumes:
+  social-mongodb-data:
+  social-redis-data:
+
+networks:
+  gogidix-network:
+    driver: bridge

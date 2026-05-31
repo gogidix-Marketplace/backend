@@ -1,0 +1,176 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nlp-service-config
+  namespace: ai-platform
+  labels:
+    app: nlp-service
+    version: v1
+data:
+  application.yml: |
+    uvicorn:
+      host: 0.0.0.0
+      port: 8008
+      workers: 4
+      log-level: info
+    mongodb:
+      uri: mongodb://nlp-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/nlp-service?authSource=admin
+    transformers:
+      model: sentence-transformers
+      cache-dir: /app/models/cache
+    nlp:
+      max-text-length: 10000
+      enable-sentiment: true
+      enable-entity-extraction: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nlp-service-secrets
+  namespace: ai-platform
+  labels:
+    app: nlp-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nlp-service
+  namespace: ai-platform
+  labels:
+    app: nlp-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nlp-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: nlp-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8008"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: nlp-service
+      containers:
+        - name: nlp-service
+          image: gogidix/nlp-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8008
+              protocol: TCP
+          env:
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nlp-service-secrets
+                  key: mongodb-password
+          envFrom:
+            - configMapRef:
+                  name: nlp-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8008
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8008
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config-volume
+          configMap:
+            name: nlp-service-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nlp-service
+  namespace: ai-platform
+  labels:
+    app: nlp-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8008
+      targetPort: 8008
+      protocol: TCP
+  selector:
+    app: nlp-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nlp-service
+  namespace: ai-platform
+  labels:
+    app: nlp-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nlp-service-hpa
+  namespace: ai-platform
+  labels:
+    app: nlp-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nlp-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nlp-service-pdb
+  namespace: ai-platform
+  labels:
+    app: nlp-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: nlp-service

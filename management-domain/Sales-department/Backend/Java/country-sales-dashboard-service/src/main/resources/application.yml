@@ -1,0 +1,260 @@
+# =============================================================================
+# Country Sales Dashboard Service Configuration - Sales Department
+# Multi-Tenant SaaS Hexagonal Architecture
+# =============================================================================
+
+server:
+  port: ${SERVICE_PORT:8086}
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+
+spring:
+  application:
+    name: country-sales-dashboard-service
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:country-sales-dashboard-service_db}
+      username: ${MONGODB_USER:}
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin
+      auto-index-creation: true
+
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializers.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      dashboard-events: country-sales-dashboard-service.events
+      domain-events: sales.country.domain-events
+      metrics-updated: sales.country.metrics-updated
+      quota-updated: sales.country.quota-updated
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.gogidix.sales.countrydashboard.interfaces.rest
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.sales.countrydashboard: ${LOG_LEVEL:DEBUG}
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][countryCode=%X{countryCode:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg [tenantId=%X{tenantId:UNKNOWN}][countryCode=%X{countryCode:UNKNOWN}][traceId=%X{traceId:},spanId=%X{spanId:}]%n"
+  file:
+    name: logs/country-sales-dashboard-service.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Specific Configuration
+country-sales-dashboard-service:
+  dashboard:
+    supported-countries:
+      - US
+      - UK
+      - DE
+      - FR
+      - ES
+      - IT
+      - NL
+      - BE
+      - AT
+      - CH
+      - SE
+      - NO
+      - DK
+      - FI
+      - PL
+      - CZ
+      - HU
+      - RO
+      - BG
+      - GR
+      - PT
+      - IE
+      - LU
+      - CA
+      - AU
+      - IN
+      - JP
+      - SG
+      - MY
+      - TH
+      - VN
+      - ID
+      - PH
+      - NZ
+      - ZA
+      - AE
+      - SA
+      - IL
+      - TR
+      - BR
+      - AR
+      - MX
+      - CL
+      - CO
+      - PE
+    base-currencies:
+      US: USD
+      UK: GBP
+      DE: EUR
+      FR: EUR
+      ES: EUR
+      IT: EUR
+      NL: EUR
+      BE: EUR
+      AT: EUR
+      CH: CHF
+      SE: SEK
+      NO: NOK
+      DK: DKK
+      FI: EUR
+      PL: PLN
+      CZ: CZK
+      HU: HUF
+      RO: RON
+      BG: BGN
+      GR: EUR
+      PT: EUR
+      IE: EUR
+      LU: EUR
+      CA: CAD
+      AU: AUD
+      IN: INR
+      JP: JPY
+      SG: SGD
+      MY: MYR
+      TH: THB
+      VN: VND
+      ID: IDR
+      PH: PHP
+      NZ: NZD
+      ZA: ZAR
+      AE: AED
+      SA: SAR
+      IL: ILS
+      TR: TRY
+      BR: BRL
+      AR: ARS
+      MX: MXN
+      CL: CLP
+      CO: COP
+      PE: PEN
+    default-currency: USD
+    refresh-interval: 300000  # 5 minutes in milliseconds
+    cache-ttl: 600  # 10 minutes in seconds
+  currency:
+    exchange-rate-api: ${EXCHANGE_RATE_API:https://api.exchangerate.host/latest}
+    cache-duration: 3600  # 1 hour in seconds
+    fallback-rates:
+      EUR: 1.0
+      USD: 1.08
+      GBP: 0.86
+      CHF: 0.94
+      SEK: 11.2
+      NOK: 11.5
+      DKK: 7.45
+      PLN: 4.35
+      CZK: 25.5
+      HUF: 385
+      RON: 4.95
+      BGN: 1.95
+      CAD: 1.48
+      AUD: 1.65
+      INR: 89.5
+      JPY: 162
+      SGD: 1.46
+      MYR: 5.1
+      THB: 37.5
+      VND: 27000
+      IDR: 16500
+      PHP: 60.5
+      NZD: 1.75
+      ZAR: 19.5
+      AED: 4.0
+      SAR: 4.1
+      ILS: 4.0
+      TRY: 34.5
+      BRL: 5.4
+      ARS: 850
+      MXN: 17.1
+      CLP: 980
+      COP: 4100
+      PEN: 4.1
+  territory:
+    max-territories-per-country: 50
+    default-quota-allocation-strategy: REVENUE_BASED
+  aggregation:
+    batch-size: 1000
+    parallel-processing: true
+  comparison:
+    year-over-year-months: 12
+    quarter-over-quarter-months: 3
+    month-over-month-months: 1
+  kpi:
+    weight-revenue: 0.4
+    weight-deals: 0.2
+    weight-growth: 0.2
+    weight-achievement: 0.2

@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: data-validation-service
+  data:
+    mongodb:
+      database: data-validation-service_test_db
+      host: localhost
+      port: 27017
+  cache:
+    type: simple
+
+# Logging configuration for tests
+logging:
+  level:
+    com.gogidix.globalbusiness: DEBUG
+    org.springframework.data.mongodb: DEBUG
+
+# Test-specific configurations
+validation:
+  enabled: true
+  strict-mode: false
+  parallel-processing: true
+  max-rules-per-entity: 100
+
+# Scheduling configuration (disabled for tests)
+scheduling:
+  enabled: false
+
+# Cache configuration
+cache:
+  ttl:
+    rules: 3600
+    results: 1800

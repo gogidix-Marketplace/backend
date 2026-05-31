@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: onboarding-tracker-service-config
+  namespace: transaction-orchestration
+  labels:
+    app: onboarding-tracker-service
+    team: team-b-transaction
+data:
+  mongodb-host: "mongodb"
+  mongodb-port: "27017"
+  mongodb-database: "onboarding_tracker_db"
+  application.yaml: |
+    server:
+      port: 8082
+      shutdown: graceful
+
+    spring:
+      application:
+        name: onboarding-tracker-service
+
+      data:
+        mongodb:
+          host: ${MONGODB_HOST}
+          port: ${MONGODB_PORT}
+          database: ${MONGODB_DATABASE}
+          username: ${MONGODB_USERNAME}
+          password: ${MONGODB_PASSWORD}
+          uri: ${MONGODB_URI}
+          auto-index-creation: true
+
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+          show-components: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+
+    logging:
+      level:
+        root: INFO
+        com.gogidix.transaction.onboarding: INFO
+      pattern:
+        console: '%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n'
+        file: '%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n'
+      file:
+        name: /logs/onboarding-tracker-service.log
+        max-size: 100MB
+        max-history: 30
+
+    onboarding:
+      stale-threshold-hours: 24
+      max-retries: 3

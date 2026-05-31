@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-inference-service
+  namespace: ai-services
+  labels:
+    app: ai-inference-service
+    team: team-ai-mlops
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-inference-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: ai-inference-service-alerts
+  namespace: ai-services
+  labels:
+    app: ai-inference-service
+    team: team-ai-mlops
+    release: prometheus
+spec:
+  groups:
+  - name: ai-inference-service
+    interval: 30s
+    rules:
+    - alert: AiInferenceServiceDown
+      expr: up{job="ai-inference-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Inference Service is down"
+        description: "AI Inference Service has been down for more than 5 minutes"
+    - alert: AiInferenceServiceHighErrorRate
+      expr: rate(http_requests_total{job="ai-inference-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Inference Service high error rate"
+        description: "AI Inference Service error rate is {{ $value }} errors/sec"
+    - alert: AiInferenceServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="ai-inference-service"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Inference Service high latency"
+        description: "95th percentile latency is {{ $value }}s"
+    - alert: AiInferenceServiceHighMemoryUsage
+      expr: (container_memory_working_set_bytes{pod=~"ai-inference-service-.*"} / container_spec_memory_limit_bytes{pod=~"ai-inference-service-.*"}) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Inference Service high memory usage"
+        description: "Memory usage is above 90% for pod {{ $labels.pod }}"
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: ai-inference-service-metrics
+  namespace: ai-services
+  labels:
+    app: ai-inference-service
+    team: team-ai-mlops
+spec:
+  from:
+  - group: monitoring.coreos.com
+    kind: Prometheus
+    namespace: monitoring
+  to:
+  - group: ""
+    kind: Service

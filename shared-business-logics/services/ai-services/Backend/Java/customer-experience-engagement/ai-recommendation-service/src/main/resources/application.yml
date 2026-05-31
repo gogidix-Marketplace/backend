@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: ai-recommendation-service
+
+server:
+  port: 8083
+
+logging:
+  level:
+    com.gogidix.aiservices.airecommendationservice: INFO

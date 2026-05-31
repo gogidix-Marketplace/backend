@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: transaction-monitoring-service-pdb
+  namespace: transaction-orchestration
+  labels:
+    app: transaction-monitoring-service
+    team: team-b-transaction
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: transaction-monitoring-service

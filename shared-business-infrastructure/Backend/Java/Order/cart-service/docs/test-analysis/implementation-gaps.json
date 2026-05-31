@@ -1,0 +1,14 @@
+{
+  "serviceName": "cart-service",
+  "analysisDate": "2026-03-06T13:18:03Z",
+  "summary": {
+    "totalFiles": 6,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

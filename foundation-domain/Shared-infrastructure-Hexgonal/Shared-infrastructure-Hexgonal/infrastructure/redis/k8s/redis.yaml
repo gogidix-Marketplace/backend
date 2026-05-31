@@ -1,0 +1,469 @@
+---
+# Redis ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: infrastructure
+data:
+  redis.conf: |
+    # Network
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+    tcp-backlog 511
+    timeout 300
+    tcp-keepalive 300
+
+    # General
+    daemonize no
+    supervised no
+    pidfile /var/run/redis/redis-server.pid
+    loglevel notice
+    logfile /var/log/redis/redis.log
+    databases 16
+
+    # Snapshotting
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # Replication
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync no
+    repl-diskless-sync-delay 5
+    repl-disable-tcp-nodelay no
+    replica-priority 100
+
+    # Security
+    requirepass ${REDIS_PASSWORD}
+
+    # Limits
+    maxmemory 2gb
+    maxmemory-policy allkeys-lru
+    maxmemory-samples 5
+
+    # Append Only File
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+
+    # Lua scripting
+    lua-time-limit 5000
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+    # Latency monitor
+    latency-monitor-threshold 100
+
+    # Event notification
+    notify-keyspace-events ""
+
+    # Advanced config
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    hll-sparse-max-bytes 3000
+    stream-node-max-bytes 4096
+    stream-node-max-entries 100
+    activerehashing yes
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    hz 10
+    dynamic-hz yes
+    aof-rewrite-incremental-fsync yes
+    rdb-save-incremental-fsync yes
+
+  redis-sentinel.conf: |
+    port 26379
+    dir /tmp
+    sentinel monitor mymaster redis-0.redis.infrastructure.svc.cluster.local 6379 2
+    sentinel auth-pass mymaster ${REDIS_PASSWORD}
+    sentinel down-after-milliseconds mymaster 5000
+    sentinel parallel-syncs mymaster 1
+    sentinel failover-timeout mymaster 10000
+    sentinel deny-scripts-reconfig yes
+    sentinel announce-ip ${SENTINEL_ANNOUNCE_IP}
+    sentinel announce-port ${SENTINEL_ANNOUNCE_PORT}
+
+---
+# Redis Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-credentials
+  namespace: infrastructure
+type: Opaque
+stringData:
+  password: "change_this_redis_password_in_production"
+  sentinel-password: "change_this_sentinel_password_in_production"
+
+---
+# Redis StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: infrastructure
+  labels:
+    app: redis
+    component: caching
+    domain: infrastructure
+spec:
+  serviceName: redis
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        component: caching
+        domain: infrastructure
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command:
+        - sh
+        - -c
+        - |
+          REDIS_PASSWORD=$(cat /etc/redis-secrets/password)
+          sed -i "s/\${REDIS_PASSWORD}/$REDIS_PASSWORD/g" /etc/redis/redis.conf
+          redis-server /etc/redis/redis.conf
+        ports:
+        - name: redis
+          containerPort: 6379
+        env:
+        - name: REDIS_REPLICATION_MODE
+          value: "master"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /etc/redis
+        - name: redis-secrets
+          mountPath: /etc/redis-secrets
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - |
+              REDIS_PASSWORD=$(cat /etc/redis-secrets/password)
+              redis-cli -a "$REDIS_PASSWORD" ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - |
+              REDIS_PASSWORD=$(cat /etc/redis-secrets/password)
+              redis-cli -a "$REDIS_PASSWORD" ping
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      - name: redis-exporter
+        image: oliver006/redis_exporter:latest
+        ports:
+        - name: metrics
+          containerPort: 9121
+        env:
+        - name: REDIS_ADDR
+          value: "redis://localhost:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+          items:
+          - key: redis.conf
+            path: redis.conf
+      - name: redis-secrets
+        secret:
+          secretName: redis-credentials
+          items:
+          - key: password
+            path: password
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 5Gi
+
+---
+# Redis Service (Headless for StatefulSet)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: infrastructure
+  labels:
+    app: redis
+    component: caching
+spec:
+  clusterIP: None
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  - name: metrics
+    port: 9121
+    targetPort: 9121
+  selector:
+    app: redis
+
+---
+# Redis Sentinel StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-sentinel
+  namespace: infrastructure
+  labels:
+    app: redis-sentinel
+    component: caching
+    domain: infrastructure
+spec:
+  serviceName: redis-sentinel
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-sentinel
+  template:
+    metadata:
+      labels:
+        app: redis-sentinel
+        component: caching
+        domain: infrastructure
+    spec:
+      containers:
+      - name: sentinel
+        image: redis:7-alpine
+        command:
+        - sh
+        - -c
+        - |
+          REDIS_PASSWORD=$(cat /etc/redis-secrets/password)
+          SENTINEL_ANNOUNCE_IP=$(hostname -i)
+          SENTINEL_ANNOUNCE_PORT=26379
+          sed -i "s/\${REDIS_PASSWORD}/$REDIS_PASSWORD/g" /etc/redis/redis-sentinel.conf
+          sed -i "s/\${SENTINEL_ANNOUNCE_IP}/$SENTINEL_ANNOUNCE_IP/g" /etc/redis/redis-sentinel.conf
+          sed -i "s/\${SENTINEL_ANNOUNCE_PORT}/$SENTINEL_ANNOUNCE_PORT/g" /etc/redis/redis-sentinel.conf
+          redis-sentinel /etc/redis/redis-sentinel.conf
+        ports:
+        - name: sentinel
+          containerPort: 26379
+        env:
+        - name: SENTINEL_QUORUM
+          value: "2"
+        volumeMounts:
+        - name: sentinel-config
+          mountPath: /etc/redis
+        - name: sentinel-data
+          mountPath: /tmp
+        - name: redis-secrets
+          mountPath: /etc/redis-secrets
+          readOnly: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -p
+            - "26379"
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -p
+            - "26379"
+            - ping
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: sentinel-config
+        configMap:
+          name: redis-config
+          items:
+          - key: redis-sentinel.conf
+            path: redis-sentinel.conf
+      - name: redis-secrets
+        secret:
+          secretName: redis-credentials
+          items:
+          - key: password
+            path: password
+  volumeClaimTemplates:
+  - metadata:
+      name: sentinel-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 1Gi
+
+---
+# Redis Sentinel Service (Headless)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel
+  namespace: infrastructure
+  labels:
+    app: redis-sentinel
+    component: caching
+spec:
+  clusterIP: None
+  ports:
+  - name: sentinel
+    port: 26379
+    targetPort: 26379
+  selector:
+    app: redis-sentinel
+
+---
+# Redis Service (Client access - Sentinel for HA)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  namespace: infrastructure
+  labels:
+    app: redis
+    component: caching
+    role: cluster
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+
+---
+# Redis Sentinel Service (Client access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel-cluster
+  namespace: infrastructure
+  labels:
+    app: redis-sentinel
+    component: caching
+    role: sentinel
+spec:
+  type: ClusterIP
+  ports:
+  - name: sentinel
+    port: 26379
+    targetPort: 26379
+  selector:
+    app: redis-sentinel
+
+---
+# Redis PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: infrastructure
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: redis
+
+---
+# Redis Sentinel PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-sentinel-pdb
+  namespace: infrastructure
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: redis-sentinel
+
+---
+# Redis ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: infrastructure
+  labels:
+    app: redis
+    component: caching
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics

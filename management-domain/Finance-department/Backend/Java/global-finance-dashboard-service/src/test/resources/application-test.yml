@@ -1,0 +1,33 @@
+# Test Configuration for Global Finance Dashboard Service
+spring:
+  application:
+    name: global-finance-dashboard-service-test
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: global-finance-dashboard-test-db
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: global-finance-dashboard-test-group
+      auto-offset-reset: earliest
+spring.redis:
+  host: localhost
+  port: 6379
+  database: 17
+server:
+  port: 0
+logging:
+  level:
+    com.gogidix.finance.globalfinancedashboard: DEBUG
+    org.springframework.kafka: WARN
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+test:
+  tenant:
+    id: tenant-test-001

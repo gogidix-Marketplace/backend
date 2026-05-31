@@ -1,0 +1,115 @@
+rules:
+  - id: cargo-hardcoded-credentials
+    languages: [java]
+    message: "Hardcoded credentials detected. Use environment variables or Vault."
+    severity: ERROR
+    patterns:
+      - pattern: |
+          "...password..." = "..."
+      - pattern: |
+          "...secret..." = "..."
+      - pattern: |
+          "...api-key..." = "..."
+    metadata:
+      category: security
+      technology: spring-boot
+      reference: CargoNexus security policy
+
+  - id: cargo-sql-injection
+    languages: [java]
+    message: "Potential SQL injection. Use parameterized queries."
+    severity: ERROR
+    patterns:
+      - pattern: |
+          $STM.executeQuery($VAR + "...")
+      - pattern: |
+          $STM.executeQuery(String.format("...", ...))
+    metadata:
+      category: security
+      technology: jdbc
+      reference: OWASP A03:2021
+
+  - id: cargo-unsafe-deserialization
+    languages: [java]
+    message: "Unsafe deserialization detected. Use allow-list approach."
+    severity: WARNING
+    patterns:
+      - pattern: |
+          new ObjectInputStream(...)
+    metadata:
+      category: security
+      reference: OWASP A08:2021
+
+  - id: cargo-missing-tenant-context
+    languages: [java]
+    message: "Repository call without tenant context. Ensure multi-tenancy is enforced."
+    severity: WARNING
+    patterns:
+      - pattern-not: |
+          $REPO.findByTenantId(...)
+      - pattern: |
+          $REPO.findAll()
+    metadata:
+      category: business-logic
+      reference: CargoNexus multi-tenancy policy
+
+  - id: cargo-kafka-without-tenant
+    languages: [java]
+    message: "Kafka event without tenantId header. All events must include tenant context."
+    severity: WARNING
+    patterns:
+      - pattern-not: |
+          $MSG.setHeader("X-Tenant-Id", ...)
+      - pattern: |
+          kafkaTemplate.send(...)
+    metadata:
+      category: business-logic
+      reference: CargoNexus event-driven policy
+
+  - id: cargo-logging-sensitive-data
+    languages: [java]
+    message: "Potential sensitive data in log statement. Mask PII/financial data."
+    severity: WARNING
+    patterns:
+      - pattern: |
+          log.$LEVEL("...password...")
+      - pattern: |
+          log.$LEVEL("...token...")
+      - pattern: |
+          log.$LEVEL("...card-number...")
+    metadata:
+      category: security
+      reference: CargoNexus data protection policy
+
+  - id: cargo-rest-without-auth
+    languages: [java]
+    message: "REST endpoint without @PreAuthorize. All endpoints must have authorization."
+    severity: WARNING
+    patterns:
+      - pattern: |
+          @RequestMapping(...)
+          ...
+          @GetMapping(...)
+          public $RET $METHOD(...) { ... }
+      - pattern-not: |
+          @PreAuthorize(...)
+          ...
+          @GetMapping(...)
+          public $RET $METHOD(...) { ... }
+    metadata:
+      category: security
+      technology: spring-boot
+      reference: CargoNexus security policy
+
+  - id: cargo-nip-iban-validation
+    languages: [java]
+    message: "NIP/IBAN processing without validation. Always validate Nigerian bank codes."
+    severity: WARNING
+    patterns:
+      - pattern: |
+          $VAR.startsWith("NGN")
+      - pattern: |
+          $VAR.length() == 10
+    metadata:
+      category: business-logic
+      reference: NIBSS NIP specification

@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: status-broadcast-service
+  namespace: transaction-orchestration
+  labels:
+    app: status-broadcast-service
+    team: team-b-transaction
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-broadcast-service
+  namespace: transaction-orchestration
+  labels:
+    app: status-broadcast-service
+    team: team-b-transaction
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: status-broadcast-service
+  template:
+    metadata:
+      labels:
+        app: status-broadcast-service
+        team: team-b-transaction
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8084"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: status-broadcast-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: status-broadcast-service
+        image: ghcr.io/gogidix/status-broadcast-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8084
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: status-broadcast-service-config
+              key: database-url
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: status-broadcast-service-secrets
+              key: database-username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: status-broadcast-service-secrets
+              key: database-password
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: status-broadcast-service-config
+              key: kafka-bootstrap-servers
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: DDL_AUTO
+          value: "validate"
+        - name: SHOW_SQL
+          value: "false"
+        - name: CORS_ORIGINS
+          value: "https://gogidix.com,https://api.gogidix.com"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health/startup
+            port: 8084
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      restartPolicy: Always

@@ -1,0 +1,45 @@
+package com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.model;
+
+import java.util.Objects;
+import java.util.UUID;
+
+public class RouteId {
+    private final String value;
+
+    private RouteId(String value) {
+        this.value = Objects.requireNonNull(value, "Route ID value cannot be null");
+    }
+
+    public static RouteId generate() {
+        return new RouteId(UUID.randomUUID().toString());
+    }
+
+    public static RouteId fromString(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("Route ID cannot be null or empty");
+        }
+        return new RouteId(value.trim());
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RouteId routeId = (RouteId) o;
+        return Objects.equals(value, routeId.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
+}

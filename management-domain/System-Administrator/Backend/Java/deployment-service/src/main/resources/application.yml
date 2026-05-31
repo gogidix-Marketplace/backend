@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: deployment-service
+  data:
+    mongodb:
+      database: deployment-service_db

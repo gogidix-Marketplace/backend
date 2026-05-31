@@ -1,0 +1,55 @@
+# =============================================================================
+# Integration Test Configuration
+# =============================================================================
+
+spring:
+  application:
+    name: ai-product-recommendationation-service
+
+  # MongoDB Test Configuration - overridden by Testcontainers
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: integration_test_db
+      auto-index-creation: true
+
+  # Redis Test Configuration - overridden by Testcontainers
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializers.JsonSerializer
+    consumer:
+      group-id: test-group
+      auto-offset-reset: earliest
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.gogidix.aiservices: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.testcontainers: INFO
+
+# Service Configuration
+segment:
+  max:
+    segments-per-tenant: 100
+    customers-per-segment: 1000000
+  analysis:
+    batch-size: 1000
+    timeout-seconds: 300
+  cache:
+    ttl-seconds: 60

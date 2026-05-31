@@ -1,0 +1,12 @@
+{
+  "summary": {
+    "service": "metrics-aggregation-service",
+    "location": "Backend/Java/analytics-services/metrics-aggregation-service",
+    "totalGaps": 0,
+    "criticalGaps": 0,
+    "highGaps": 0,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": []
+}

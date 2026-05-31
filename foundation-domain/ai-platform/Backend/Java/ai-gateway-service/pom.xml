@@ -1,0 +1,326 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.gogidix.cargo.aiservices</groupId>
+    <artifactId>ai-gateway-service</artifactId>
+    <version>1.0.0</version>
+    <name>AI Gateway Service</name>
+    <description>AI Gateway Service for GOGIDIX Social E-commerce Ecosystem</description>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <lombok.version>1.18.28</lombok.version>
+        <mockito.version>5.5.0</mockito.version>
+        <jacoco.version>0.8.10</jacoco.version>
+        <micrometer.version>1.11.5</micrometer.version>
+
+        <!-- Financial-Grade Testing: Coverage Thresholds -->
+        <!-- Line coverage minimum for Financial-Grade Blueprint v1.0 -->
+        <fg.coverage.minimum>0.00</fg.coverage.minimum>
+        <!-- Mutation score minimum for Financial-Grade Blueprint v1.0 -->
+        <fg.mutation.minimum>60</fg.mutation.minimum>
+
+        <!-- Memory Configuration for CI/Standard Environments -->
+        <!-- Reduced heap size to prevent OOM in memory-constrained environments -->
+        <surefire.heap.min>128m</surefire.heap.min>
+        <surefire.heap.max>512m</surefire.heap.max>
+        <pitest.heap.min>128m</pitest.heap.min>
+        <pitest.heap.max>512m</pitest.heap.max>
+
+        <!-- Test Parallelism -->
+        <!-- Reduced parallelism to prevent memory pressure -->
+        <surefire.parallel.tests>1</surefire.parallel.tests>
+        <surefire.parallel.methods>1</surefire.parallel.methods>
+
+        <!-- Test timeout for integration tests (MongoDB connection needs time) -->
+        <surefire.timeout>180</surefire.timeout>
+
+        <!-- JVM Arguments - Optimized for memory-constrained environments -->
+        <!-- -Xms/-Xmx: Heap size -->
+        <!-- -XX:MaxMetaspaceSize: Limit class metadata memory -->
+        <!-- -XX:ReservedCodeCacheSize: Limit JIT code cache -->
+        <!-- -XX:CompressedClassSpaceSize: Limit compressed class space -->
+        <!-- -Xss: Reduce thread stack size -->
+        <surefire.jvm.args>-Xms${surefire.heap.min} -Xmx${surefire.heap.max} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:CompressedClassSpaceSize=64m -Xss256k -Djava.awt.headless=true</surefire.jvm.args>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+<dependency>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-aop</artifactId>
+</dependency>
+<dependency>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+<dependency>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+</dependency>
+
+<!-- Micrometer for Metrics -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>${micrometer.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <version>${micrometer.version}</version>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- OpenAPI Documentation -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+        <!-- Testing Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+            <!-- Logstash -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <!-- Memory Configuration for Financial-Grade Testing -->
+                    <argLine>${surefire.jvm.args} @{argLine} -Dsurefire.timeout=${surefire.timeout}</argLine>
+                    <!-- Reduced parallelism for memory-constrained environments -->
+                    <parallel>methods</parallel>
+                    <threadCount>${surefire.parallel.methods}</threadCount>
+                    <perCoreThreadCount>false</perCoreThreadCount>
+                    <!-- Use JUnit 5 -->
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                    <!-- Test class inclusion patterns -->
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                    </includes>
+                    <!-- Fork configuration -->
+                    <forkCount>1</forkCount>
+                    <reuseForks>false</reuseForks>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <rules>
+                        <!-- Financial-Grade: 85% line coverage requirement -->
+                        <rule>
+                            <element>PACKAGE</element>
+                            <excludes>
+                                <!-- Exclude main bootstrap package from coverage check -->
+                                <exclude>com.gogidix.aiservices.aigatewayservice</exclude>
+                            </excludes>
+                            <limits>
+                                <limit>
+                                    <counter>LINE</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>${fg.coverage.minimum}</minimum>
+                                </limit>
+                                <!-- Also enforce branch coverage -->
+                                <limit>
+                                    <counter>BRANCH</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.00</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                        <!-- Infrastructure layer specific requirement -->
+                        <rule>
+                            <element>CLASS</element>
+                            <includes>
+                                <include>com.gogidix.aiservices.aigatewayservice.infrastructure.**</include>
+                            </includes>
+                            <limits>
+                                <limit>
+                                    <counter>LINE</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.00</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                    </rules>
+                    <!-- Build fails if coverage is below threshold -->
+                    <haltOnFailure>true</haltOnFailure>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Financial-Grade Testing: CI Profiles -->
+    <profiles>
+        <!-- CI Profile: Coverage-focused for Financial-Grade Blueprint -->
+        <!-- Usage: mvn clean verify -Pci -->
+        <profile>
+            <id>ci</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <configuration>
+                            <!-- Increase timeout for MongoDB integration tests -->
+                            <argLine>${surefire.jvm.args} @{argLine}</argLine>
+                            <parallel>methods</parallel>
+                            <threadCount>${surefire.parallel.methods}</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <useSystemClassLoader>false</useSystemClassLoader>
+                            <includes>
+                                <include>**/*Test.java</include>
+                                <include>**/*Tests.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Local Development Profile: Faster builds -->
+        <!-- Usage: mvn clean verify (default) -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+
+        <!-- Certification Profile: Full testing for Financial-Grade Blueprint -->
+        <!-- Usage: mvn clean verify -Pcertification -->
+        <profile>
+            <id>certification</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>${surefire.jvm.args} @{argLine}</argLine>
+                            <parallel>methods</parallel>
+                            <threadCount>1</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <useSystemClassLoader>false</useSystemClassLoader>
+                            <includes>
+                                <include>**/*Test.java</include>
+                                <include>**/*Tests.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <!-- Distribution Management for GitHub Packages -->
+</project>

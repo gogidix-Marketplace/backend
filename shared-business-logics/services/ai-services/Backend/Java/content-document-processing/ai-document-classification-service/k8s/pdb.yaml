@@ -1,0 +1,16 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-document-classification-service
+  namespace: ai-services
+  labels:
+    app: ai-document-classification-service
+    version: v1
+    team: team-ai-content-processing
+    component: content-document-processing
+    environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-document-classification-service

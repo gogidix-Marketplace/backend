@@ -1,0 +1,22 @@
+{
+  "serviceName": "ai-customer-segmentation-service",
+  "analysisDate": "2026-03-01T00:00:00Z",
+  "summary": {
+    "totalFiles": 85,
+    "filesWithGaps": 0,
+    "totalGaps": 0,
+    "gapsByType": {
+      "TODO": 0,
+      "FIXME": 0,
+      "EMPTY_METHOD": 0,
+      "MOCK": 0,
+      "PLACEHOLDER": 0
+    }
+  },
+  "gaps": [],
+  "notes": [
+    "UnsupportedOperationException found in utility classes (CorrelationIdGenerator, TenantIdGenerator, RequestContextHolder) - these are intentional for preventing instantiation",
+    "No TODO/FIXME/HACK/STUB/PLACEHOLDER comments found in production code",
+    "All UnsupportedOperationException instances are valid utility class patterns"
+  ]
+}

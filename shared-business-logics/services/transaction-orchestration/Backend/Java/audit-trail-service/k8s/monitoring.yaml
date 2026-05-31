@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: audit-trail-service
+  namespace: transaction-orchestration
+  labels:
+    app: audit-trail-service
+    team: team-b-transaction
+spec:
+  selector:
+    matchLabels:
+      app: audit-trail-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http

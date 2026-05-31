@@ -1,0 +1,48 @@
+server:
+  port: 8110
+  shutdown: graceful
+spring:
+  application:
+    name: quality-management-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: quality_management_db
+      auto-index-creation: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# Management endpoints for health checks and monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.gogidix.customersupport: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Application specific configuration
+app:
+  quality-management:
+    cache:
+      ttl: 300 # 5 minutes cache TTL
+    scoring:
+      minimum-pass-score: 70
+      calibration-threshold: 5
+    timezone: UTC

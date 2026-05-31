@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: research-intelligence-service
+  namespace: ai-services
+  labels:
+    app: research-intelligence-service
+    team: team-ai-business-intelligence
+    version: v1
+spec:
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: research-intelligence-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: research-intelligence-service
+        team: team-ai-business-intelligence
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: research-intelligence-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: research-intelligence-service
+        image: gogidix/research-intelligence-service:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: management
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: SERVER_PORT
+          value: "8080"
+        - name: SERVICE_NAME
+          value: "research-intelligence-service"
+        - name: SERVICE_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: research-intelligence-service-secrets
+              key: database-name
+        - name: SPRING_DATA_MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: research-intelligence-service-secrets
+              key: mongodb-uri
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: research-intelligence-service-config
+              key: kafka-bootstrap-servers
+        - name: EUREKA_URL
+          valueFrom:
+            configMapKeyRef:
+              name: research-intelligence-service-config
+              key: eureka-url
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: research-intelligence-service-config
+              key: log-level
+        - name: MONGO_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: research-intelligence-service-config
+              key: mongo-log-level
+        - name: JAVA_OPTS
+          value: "-Xmx1536m -Xms768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "250m"
+          limits:
+            memory: "1536Mi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: management
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: management
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: management
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

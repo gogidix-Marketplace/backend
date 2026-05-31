@@ -1,0 +1,128 @@
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: prod
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${CONFIG_GIT_URI:file:///tmp/config-repo}
+          default-label: ${CONFIG_GIT_LABEL:main}
+          search-paths: ${CONFIG_SEARCH_PATHS:applications,*}
+          clone-on-start: true
+          timeout: 10
+          refresh-rate: 30
+        prefix: /config
+        bootstrap: true
+        encrypt:
+          enabled: true
+        health:
+          enabled: true
+          indicators:
+            git:
+              enabled: true
+        monitor:
+          enabled: true
+    bus:
+      enabled: true
+      refresh:
+        enabled: true
+      env:
+        enabled: true
+      kafka:
+        enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka.infrastructure.svc.cluster.local:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  security:
+    user:
+      name: ${CONFIG_SERVER_USER:config-admin}
+      password: ${CONFIG_SERVER_PASSWORD:config-secret}
+  jpa:
+    open-in-view: false
+
+server:
+  port: 8888
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 10000
+    max-connections: 8192
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://discovery-service.infrastructure.svc.cluster.local:8761/eureka/}
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+    healthcheck:
+      enabled: true
+    registry-fetch-interval-seconds: 30
+  instance:
+    prefer-ip-address: false
+    hostname: config-server.infrastructure.svc.cluster.local
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    metadata-map:
+      cluster: infrastructure
+      version: 1.0.0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,configprops,env,refresh,beans,threaddump,heapdump
+      base-path: /actuator
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      show-components: always
+    refresh:
+      enabled: true
+    env:
+      show-values: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+    enable:
+      jvm: true
+      process: true
+      system: true
+      logback: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: INFO
+    org.springframework.cloud.config: DEBUG
+    org.springframework.cloud.bus: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg{n}%throwable'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg{n}%throwable'
+
+# Encrypt configuration
+encrypt:
+  key: ${ENCRYPT_KEY:config-server-secret-key-for-encryption}
+
+# Cache configuration
+spring.cache:
+  type: caffeine
+  caffeine:
+    spec: maximumSize=1000,expireAfterWrite=5m

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: centralized-api-gateway
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-api-gateway
+    team: team-f-centralized-dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: centralized-api-gateway
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  sessionAffinity: None

@@ -1,0 +1,57 @@
+{{- /*
+Copyright 2026 Gogidix
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/ -}}
+
+{{- range $name, $service := dict "transactionCoordinator" .Values.transactionCoordinator "transactionManager" .Values.transactionManager "sagaOrchestration" .Values.sagaOrchestration "distributedTransaction" .Values.distributedTransaction "transactionOutbox" .Values.transactionOutbox "transactionRecovery" .Values.transactionRecovery }}
+{{- if and $service.enabled $service.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "transaction-orchestration.serviceName" (dict "root" $ "serviceName" $service.serviceName) }}
+  namespace: {{ include "transaction-orchestration.namespace" $ }}
+  labels:
+    {{- include "transaction-orchestration.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $service.serviceName }}
+  annotations:
+    {{- with $.Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with $service.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ $.Values.ingress.className }}
+  {{- if $.Values.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ $service.ingress.host }}
+    {{- with $service.ingress.tls }}
+    secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+  - host: {{ $service.ingress.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "transaction-orchestration.serviceName" (dict "root" $ "serviceName" $service.serviceName) }}
+            port:
+              number: {{ $service.servicePort }}
+{{- end }}
+{{- end }}

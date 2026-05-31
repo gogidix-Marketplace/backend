@@ -1,0 +1,322 @@
+/* Countries Page Styles */
+
+.countries-page {
+  width: 100%;
+}
+
+.countries-overview,
+.country-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-header h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-1) 0;
+  color: var(--color-gray-900);
+}
+
+[data-theme='dark'] .page-header h1 {
+  color: var(--color-gray-100);
+}
+
+.page-subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+.page-actions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+/* Breadcrumb */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+}
+
+.breadcrumb a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* Filters */
+
+.countries-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  align-items: flex-end;
+}
+
+.metric-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.metric-selector label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-gray-700);
+}
+
+[data-theme='dark'] .metric-selector label {
+  color: var(--color-gray-300);
+}
+
+.metric-select {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+/* Sections */
+
+.metrics-section,
+.comparison-section,
+.table-section,
+.trend-section,
+.detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-4);
+}
+
+/* Country Cell */
+
+.country-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.country-flag {
+  font-size: var(--font-size-xl);
+}
+
+/* Status Badge */
+
+.status-badge {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.status-on_track {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status-badge.status-at_risk {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.status-badge.status-off_track {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+}
+
+/* Detail Grid */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-4);
+}
+
+/* Performers List */
+
+.performers-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.performer-item {
+  display: grid;
+  grid-template-columns: 32px 40px 1fr auto;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-lg);
+}
+
+[data-theme='dark'] .performer-item {
+  background-color: var(--color-gray-700);
+}
+
+.performer-rank {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.performer-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+}
+
+.performer-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.performer-name {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .performer-name {
+  color: var(--color-gray-200);
+}
+
+.performer-dept {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.performer-revenue {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .performer-revenue {
+  color: var(--color-gray-200);
+}
+
+/* Deals List */
+
+.deals-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.deal-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-lg);
+}
+
+[data-theme='dark'] .deal-item {
+  background-color: var(--color-gray-700);
+}
+
+.deal-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.deal-name {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .deal-name {
+  color: var(--color-gray-200);
+}
+
+.deal-company {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.deal-stage {
+  padding: var(--spacing-1) var(--spacing-2);
+  background-color: var(--color-primary-light);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.deal-value {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+[data-theme='dark'] .deal-value {
+  color: var(--color-gray-200);
+}
+
+.text-muted {
+  color: var(--color-gray-500);
+  text-align: center;
+  padding: var(--spacing-4);
+}
+
+/* Responsive */
+
+@media (max-width: 1024px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .countries-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .performer-item {
+    grid-template-columns: 24px 32px 1fr;
+    gap: var(--spacing-2);
+  }
+
+  .performer-revenue {
+    grid-column: 2 / -1;
+    text-align: right;
+  }
+}

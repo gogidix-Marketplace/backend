@@ -1,0 +1,49 @@
+{{/*
+Generate ingress rules for all enabled AI services with ingress enabled
+*/}}
+{{- range $category, $services := .Values }}
+{{- if and (ne $category "global") (ne $category "namespace") (ne $category "resourceQuota") (ne $category "limitRange") (ne $category "serviceAccount") (ne $category "monitoring") (ne $category "ingress") (ne $category "networkPolicy") (ne $category "persistence") (ne $category "secrets") (ne $category "mongodb") (ne $category "redis") (ne $category "kafka") }}
+{{- range $serviceName, $serviceConfig := $services }}
+{{- if and (ne $serviceName "enabled") (kindIs "map" $serviceConfig) }}
+{{- if or (not (hasKey $serviceConfig "enabled")) ($serviceConfig.enabled) }}
+{{- if and $serviceConfig.ingress (not (hasKey $serviceConfig.ingress "enabled")) $serviceConfig.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $serviceConfig.nameOverride | default $serviceName }}
+  namespace: {{ $.Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" $ | nindent 4 }}
+    {{- include "ai-services.serviceLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 4 }}
+  annotations:
+    {{- with $.Values.global.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with $serviceConfig.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if $.Values.global.ingress.className }}
+  ingressClassName: {{ $.Values.global.ingress.className }}
+  {{- end }}
+  {{- with $.Values.global.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+  - host: {{ $serviceConfig.ingress.host | default (printf "%s.%s" ($serviceConfig.nameOverride | default $serviceName) ($.Values.global.domain | default "ai-services.gogidix.com")) }}
+    http:
+      paths:
+      - path: {{ $serviceConfig.ingress.path | default "/" }}
+        pathType: {{ $serviceConfig.ingress.pathType | default "Prefix" }}
+        backend:
+          service:
+            name: {{ $serviceConfig.nameOverride | default $serviceName }}
+            port:
+              number: {{ $serviceConfig.service.port | default 8080 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,102 @@
+# =============================================================================
+# MongoDB Configuration for Management-Domain
+# For Native MongoDB (No Docker)
+# =============================================================================
+
+spring:
+  data:
+    mongodb:
+      # MongoDB Connection Settings
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:management_executive}  # Default database
+      username: ${MONGODB_USER:}  # Empty = no authentication (default MongoDB)
+      password: ${MONGODB_PASSWORD:}
+      authentication-database: admin  # Required if authentication enabled
+
+      # MongoDB Connection Pooling
+      client-name: management-domain-app
+
+      # Auto-index creation (for development)
+      auto-index-creation: true
+
+      # UUID representation
+      uuid-representation: STANDARD
+
+      # Field Naming Strategy
+      field-naming-strategy: org.springframework.data.mapping.camelCase.CamelCaseSnakeCaseNamingStrategy
+
+# =============================================================================
+# Domain-Specific Database Configuration
+# =============================================================================
+# Each domain service will use its own database:
+# - Executive-Domain: management_executive
+# - Human-Resource: management_hr
+# - Sales-Departments: management_sales
+# - Digital-Marketing: management_marketing
+# - Customer-Support: management_support
+# - System-Administrator: management_admin
+# - Global-Business-Management: management_business
+# - Finance-Department: management_finance
+
+# Services can override the default database:
+# @Document(collection = "employees", database = "management_hr")
+# public class Employee extends BaseEntity {
+#     // ...
+# }
+
+# =============================================================================
+# MongoDB Connection String (Alternative)
+# =============================================================================
+# If you prefer using a connection string, uncomment below:
+# spring.data.mongodb.uri=mongodb://localhost:27017/management_executive
+# With authentication:
+# spring.data.mongodb.uri=mongodb://username:password@localhost:27017/management_executive?authSource=admin
+
+# =============================================================================
+# MongoDB Settings Reference
+# =============================================================================
+# Common Settings:
+# - host: MongoDB server hostname
+# - port: MongoDB server port (default: 27017)
+# - database: Default database name
+# - username: MongoDB username (optional for default setup)
+# - password: MongoDB password (optional for default setup)
+# - authentication-database: Database used for authentication (usually "admin")
+#
+# Advanced Settings:
+# - connect-timeout: Connection timeout in milliseconds
+# - socket-timeout: Socket timeout in milliseconds
+# - max-connection-per-host: Max connections per host
+# - min-connection-per-host: Min connections to maintain
+# - max-connection-idle-time: Max time a connection can be idle
+# - max-connection-life-time: Max lifetime of a connection
+
+# =============================================================================
+# Development vs Production
+# =============================================================================
+# Development (default):
+# - auto-index-creation: true
+# - No authentication required
+# - Verbose logging enabled
+
+# Production:
+# - auto-index-creation: false
+# - Authentication enabled
+# - SSL/TLS enabled
+# - Connection pooling configured
+# - Monitoring and metrics enabled
+
+# =============================================================================
+# Testing Configuration
+# =============================================================================
+# For unit tests with Embedded MongoDB:
+# @AutoConfigureEmbeddedMongo
+# public class Test {
+#     // Uses embedded MongoDB, no connection needed
+# }
+
+# For integration tests with real MongoDB:
+# spring.data.mongodb.host=localhost
+# spring.data.mongodb.port=27017
+# spring.data.mongodb.database=test_management

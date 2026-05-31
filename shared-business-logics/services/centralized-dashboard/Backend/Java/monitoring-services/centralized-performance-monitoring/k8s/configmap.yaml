@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: centralized-performance-monitoring-config
+  namespace: centralized-dashboard
+  labels:
+    app: centralized-performance-monitoring
+    team: team-f-centralized-dashboard
+data:
+  mongodb-host: "mongodb"
+  mongodb-port: "27017"
+  mongodb-db: "performance_metrics"
+  mongodb-auth-db: "admin"
+  redis-host: "redis"
+  redis-port: "6379"
+  kafka-bootstrap-servers: "kafka:9092"

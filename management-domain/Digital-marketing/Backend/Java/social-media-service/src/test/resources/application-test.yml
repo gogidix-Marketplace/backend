@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: social-media-service
+
+  data:
+    mongodb:
+      database: test_social_media
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

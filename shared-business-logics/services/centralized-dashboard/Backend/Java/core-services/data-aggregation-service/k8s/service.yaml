@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-aggregation-service
+  namespace: centralized-dashboard
+  labels:
+    app: data-aggregation-service
+    team: team-f-centralized-dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: data-aggregation-service
+  ports:
+  - name: http
+    port: 8905
+    targetPort: 8905
+    protocol: TCP
+  sessionAffinity: None

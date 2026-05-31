@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: analytics-data-service-ingress
+  namespace: centralized-dashboard
+  labels:
+    app: analytics-data-service
+    team: team-f-centralized-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    nginx.ingress.kubernetes.io/compression-backend: "on"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - analytics-data.gogidix.com
+    secretName: analytics-data-service-tls
+  rules:
+  - host: analytics-data.gogidix.com
+    http:
+      paths:
+      - path: /api/analytics(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-data-service
+            port:
+              number: 8903

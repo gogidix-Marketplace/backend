@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-summarization-service-pdb
+  namespace: ai-services
+  labels:
+    app: ai-summarization-service
+    team: team-ai-content-processing
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-summarization-service

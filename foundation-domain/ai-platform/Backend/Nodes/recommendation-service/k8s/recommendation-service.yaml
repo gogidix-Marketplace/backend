@@ -1,0 +1,183 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recommendation-service-config
+  namespace: ai-platform
+  labels:
+    app: recommendation-service
+    version: v1
+data:
+  application.yml: |
+    uvicorn:
+      host: 0.0.0.0
+      port: 8010
+      workers: 4
+      log-level: info
+    mongodb:
+      uri: mongodb://recommendation-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/recommendation-service?authSource=admin
+    redis:
+      host: redis-sentinel-cluster.infrastructure.svc.cluster.local
+      port: 26379
+      master: mymaster
+    recommendation:
+      algorithm: collaborative-filtering
+      fallback-count: 10
+      cache-ttl: 3600
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: recommendation-service-secrets
+  namespace: ai-platform
+  labels:
+    app: recommendation-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+  redis-password: "ChangeThisRedisPassword!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-service
+  namespace: ai-platform
+  labels:
+    app: recommendation-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: recommendation-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: recommendation-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8010"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: recommendation-service
+      containers:
+        - name: recommendation-service
+          image: gogidix/recommendation-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8010
+              protocol: TCP
+          env:
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: recommendation-service-secrets
+                  key: mongodb-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: recommendation-service-secrets
+                  key: redis-password
+          envFrom:
+            - configMapRef:
+                  name: recommendation-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8010
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8010
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config-volume
+          configMap:
+            name: recommendation-service-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendation-service
+  namespace: ai-platform
+  labels:
+    app: recommendation-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8010
+      targetPort: 8010
+      protocol: TCP
+  selector:
+    app: recommendation-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: recommendation-service
+  namespace: ai-platform
+  labels:
+    app: recommendation-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: recommendation-service-hpa
+  namespace: ai-platform
+  labels:
+    app: recommendation-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: recommendation-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: recommendation-service-pdb
+  namespace: ai-platform
+  labels:
+    app: recommendation-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: recommendation-service

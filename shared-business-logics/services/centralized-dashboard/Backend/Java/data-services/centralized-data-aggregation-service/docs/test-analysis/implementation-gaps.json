@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "service": "centralized-data-aggregation-service",
+    "location": "Backend/Java/data-services/centralized-data-aggregation-service",
+    "totalGaps": 1,
+    "criticalGaps": 0,
+    "highGaps": 1,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "centralized-data-aggregation-service/src/main/java",
+      "type": "Duplicate/Missing Implementation",
+      "line": 0,
+      "description": "No Java source files found. Potential duplicate of centralized-data-aggregation service in the same data-services directory.",
+      "severity": "HIGH",
+      "recommendation": "Consolidate with centralized-data-aggregation or clarify the distinction between the two services."
+    }
+  ]
+}

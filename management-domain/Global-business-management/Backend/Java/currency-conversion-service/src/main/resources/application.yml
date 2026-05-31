@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: currency-conversion-service
+  data:
+    mongodb:
+      database: currency-conversion-service_db

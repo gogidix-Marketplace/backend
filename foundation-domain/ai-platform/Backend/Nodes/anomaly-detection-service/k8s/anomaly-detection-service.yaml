@@ -1,0 +1,184 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anomaly-detection-service-config
+  namespace: ai-platform
+  labels:
+    app: anomaly-detection-service
+    version: v1
+data:
+  application.yml: |
+    uvicorn:
+      host: 0.0.0.0
+      port: 8005
+      workers: 4
+      log-level: info
+    mongodb:
+      uri: mongodb://anomaly-user:${MONGODB_PASSWORD}@mongodb.infrastructure.svc.cluster.local:27017/anomaly-detection?authSource=admin
+    kafka:
+      bootstrap-servers: kafka-bootstrap.infrastructure.svc.cluster.local:9092
+      topics:
+        - anomaly-events
+        - fraud-alerts
+    ai:
+      model-path: /app/models
+      anomaly-threshold: 0.95
+      detection-window: 300
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: anomaly-detection-service-secrets
+  namespace: ai-platform
+  labels:
+    app: anomaly-detection-service
+type: Opaque
+stringData:
+  mongodb-password: "ChangeThisInProduction123!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-detection-service
+  namespace: ai-platform
+  labels:
+    app: anomaly-detection-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: anomaly-detection-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: anomaly-detection-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8005"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: anomaly-detection-service
+      nodeSelector:
+        node.kubernetes.io/instance-type: general
+      containers:
+        - name: anomaly-detection-service
+          image: gogidix/anomaly-detection-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8005
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: anomaly-detection-service-secrets
+                  key: mongodb-password
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-bootstrap.infrastructure.svc.cluster.local:9092"
+          envFrom:
+            - configMapRef:
+                name: anomaly-detection-service-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config-volume
+          configMap:
+            name: anomaly-detection-service-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anomaly-detection-service
+  namespace: ai-platform
+  labels:
+    app: anomaly-detection-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8005
+      targetPort: 8005
+      protocol: TCP
+  selector:
+    app: anomaly-detection-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: anomaly-detection-service
+  namespace: ai-platform
+  labels:
+    app: anomaly-detection-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: anomaly-detection-service-hpa
+  namespace: ai-platform
+  labels:
+    app: anomaly-detection-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: anomaly-detection-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: anomaly-detection-service-pdb
+  namespace: ai-platform
+  labels:
+    app: anomaly-detection-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: anomaly-detection-service

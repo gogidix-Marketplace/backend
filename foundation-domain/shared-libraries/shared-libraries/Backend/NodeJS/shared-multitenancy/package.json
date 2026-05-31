@@ -1,0 +1,32 @@
+{
+  "name": "@gogidix/shared-multitenancy",
+  "version": "1.0.0",
+  "description": "MongoDB multi-tenant support library for Node.js/Express applications",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mongodb",
+    "multi-tenant",
+    "tenant",
+    "gogidix"
+  ],
+  "author": "Gogidix Infrastructure Team",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.50.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gogidix/foundation-domain.git",
+    "directory": "shared-libraries/Backend/NodeJS/shared-multitenancy"
+  }
+}

@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: infrastructure-monitoring-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: infrastructure_monitoring
+  cache:
+    type: simple
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+logging:
+  level:
+    com.gogidix.sysadmin: DEBUG
+    org.springframework.data.mongodb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

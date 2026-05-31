@@ -1,0 +1,24 @@
+# Test configuration for Country Sales Dashboard Service
+
+spring:
+  application:
+    name: country-sales-dashboard-service
+
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: country-sales-dashboard-service_test_db
+      auto-index-creation: true
+
+  redis:
+    host: localhost
+    port: 6379
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+logging:
+  level:
+    com.gogidix.sales.countrydashboard: DEBUG
+    org.springframework: INFO

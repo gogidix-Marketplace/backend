@@ -1,0 +1,48 @@
+server:
+  port: 8111
+  shutdown: graceful
+spring:
+  application:
+    name: feedback-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: feedback_db
+      auto-index-creation: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.gogidix.customersupport: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Application configuration
+app:
+  feedback:
+    survey:
+      expiry-days: 7
+    csat:
+      scale: 5
+    nps:
+      min-score: 0
+      max-score: 10

@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: access-control-service
+  data:
+    mongodb:
+      database: access-control-service_db

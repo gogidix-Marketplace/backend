@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gogidix.shared.infrastructure</groupId>
+    <artifactId>shared-infrastructure-hexgonal</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Shared-Infrastructure-Hexgonal</name>
+    <description>Shared Infrastructure Domain - Hexagonal Multi-tenant SaaS Architecture</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Spring Versions -->
+        <spring-boot.version>3.1.5</spring-boot.version>
+        <spring-cloud.version>2022.0.4</spring-cloud.version>
+        <kafka.version>3.4.1</kafka.version>
+
+        <!-- Library Versions -->
+        <lombok.version>1.18.30</lombok.version>
+        <springdoc.version>2.1.0</springdoc.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <testcontainers.version>1.19.0</testcontainers.version>
+        <embedmongo.version>3.5.3</embedmongo.version>
+        <jacoco.version>0.8.10</jacoco.version>
+    </properties>
+
+    <modules>
+        <!-- Core Modules -->
+        <module>core-tenancy</module>
+
+        <!-- Security Services -->
+        <module>services/security/auth-service</module>
+        <module>services/security/user-management-service</module>
+        <module>services/security/tenant-management-service</module>
+        <module>services/security/dlp-service</module>
+        <module>services/security/secrets-management-service</module>
+        <module>services/security/security-analytics-service</module>
+        <module>services/security/security-management-service</module>
+        <module>services/security/security-orchestration-service</module>
+        <module>services/security/threat-intelligence-service</module>
+        <module>services/security/mfa-service</module>
+
+        <!-- Gateway Services -->
+        <module>services/gateway/api-gateway-service</module>
+        <module>services/gateway/discovery-service</module>
+
+        <!-- Configuration Services -->
+        <module>services/config/config-server</module>
+
+        <!-- Communication Services -->
+        <module>services/communication/notification-service</module>
+        <module>services/communication/webhook-management-service</module>
+        <module>services/communication/message-queue-management-service</module>
+        <module>services/communication/event-bus-bridge-service</module>
+        <module>services/communication/status-broadcast-service</module>
+        <module>services/communication/message-broker</module>
+        <module>services/communication/social-media-integration-service</module>
+        <module>services/communication/email-sender-service</module>
+        <module>services/communication/sms-sender-service</module>
+
+        <!-- Storage Services -->
+        <module>services/storage/file-storage-service</module>
+
+        <!-- Observability Services -->
+        <module>services/observability/audit-service</module>
+        <module>services/observability/rate-limiting-service</module>
+
+        <!-- Infrastructure Services -->
+        <module>services/infrastructure/caching-service</module>
+
+        <!-- API Management Services -->
+        <module>services/api-management/api-rate-limit-service</module>
+
+        <!-- Business Operations Services -->
+        <module>services/business-operations/payment-processing-service</module>
+
+        <!-- Business Support Services -->
+        <module>services/business-support/sla-management-service</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Shared Libraries Dependencies -->
+            <dependency>
+                <groupId>com.gogidix.libraries</groupId>
+                <artifactId>shared-exceptions</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.libraries</groupId>
+                <artifactId>shared-model-service</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.libraries</groupId>
+                <artifactId>shared-validation-service</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.libraries</groupId>
+                <artifactId>shared-security-service</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.libraries</groupId>
+                <artifactId>shared-audit</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+
+            <!-- Core Tenancy -->
+            <dependency>
+                <groupId>com.gogidix.shared.infrastructure</groupId>
+                <artifactId>core-tenancy</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- SpringDoc OpenAPI -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- MapStruct -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- TestContainers -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.flapdoodle.embed</groupId>
+                <artifactId>de.flapdoodle.embed.mongo</artifactId>
+                <version>${embedmongo.version}</version>
+            </dependency>
+
+            <!-- Jacoco -->
+            <dependency>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Lombok for all modules -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>1.5.5.Final</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.10</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>check</id>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <rule>
+                                        <element>BUNDLE</element>
+                                        <limits>
+                                            <limit>
+                                                <counter>INSTRUCTION</counter>
+                                                <value>COVEREDRATIO</value>
+                                                <minimum>0.80</minimum>
+                                            </limit>
+                                        </limits>
+                                    </rule>
+                                </rules>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>spring-milestones</id>
+            <url>https://repo.spring.io/milestone</url>
+        </repository>
+    </repositories>
+</project>

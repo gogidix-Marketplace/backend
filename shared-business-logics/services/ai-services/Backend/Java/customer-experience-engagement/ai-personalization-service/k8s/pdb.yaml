@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-personalization-service-pdb
+  namespace: ai-services
+  labels:
+    app: ai-personalization-service
+    team: team-ai-customer-experience
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-personalization-service

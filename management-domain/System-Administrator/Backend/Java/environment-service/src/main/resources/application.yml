@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: environment-service
+  data:
+    mongodb:
+      database: environment-service_db

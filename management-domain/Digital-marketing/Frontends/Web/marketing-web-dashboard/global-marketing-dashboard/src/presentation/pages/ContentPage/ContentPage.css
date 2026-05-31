@@ -1,0 +1,38 @@
+/* ContentPage Styles */
+
+.content-page {
+  min-height: 100vh;
+}
+
+.content-controls {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.content-controls .tabs-container {
+  flex: 1;
+}
+
+.content-controls .search-bar {
+  width: 300px;
+}
+
+.content-table-container {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .content-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .content-controls .search-bar {
+    width: 100%;
+  }
+}

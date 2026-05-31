@@ -1,0 +1,105 @@
+/* ChartCard Component Styles */
+
+.chart-card {
+  background-color: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.chart-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chart-card__title-section {
+  flex: 1;
+}
+
+.chart-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.chart-card__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.chart-card__actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-left: var(--spacing-md);
+}
+
+.chart-card__content {
+  padding: var(--spacing-lg);
+  position: relative;
+  min-height: 250px;
+}
+
+.chart-card--sm .chart-card__content {
+  min-height: 200px;
+  padding: var(--spacing-md);
+}
+
+.chart-card--lg .chart-card__content {
+  min-height: 350px;
+}
+
+.chart-card--xl .chart-card__content {
+  min-height: 450px;
+}
+
+/* Loading State */
+
+.chart-card__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  height: 100%;
+  min-height: 250px;
+  color: var(--color-text-secondary);
+}
+
+.chart-card__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error State */
+
+.chart-card__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  height: 100%;
+  min-height: 250px;
+  color: var(--color-danger);
+}
+
+.chart-card__error svg {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
+}

@@ -1,0 +1,1 @@
+export class RequestContext { private static _c: RequestContext | null = null; constructor(public requestId: string, public userId?: string) {} static set(c: RequestContext) { RequestContext._c = c; } static get() { return RequestContext._c; } static clear() { RequestContext._c = null; } }

@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: status-broadcast-service-pdb
+  namespace: transaction-orchestration
+  labels:
+    app: status-broadcast-service
+    team: team-b-transaction
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: status-broadcast-service

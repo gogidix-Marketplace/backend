@@ -1,0 +1,14 @@
+{
+  "serviceName": "wholesaler-service",
+  "analysisDate": "2026-03-06T13:26:38Z",
+  "summary": {
+    "totalFiles": 0,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

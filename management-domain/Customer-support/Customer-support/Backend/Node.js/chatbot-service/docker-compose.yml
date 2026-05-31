@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  chatbot-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gogidix-chatbot-service
+    ports:
+      - "8112:8112"
+    environment:
+      - NODE_ENV=production
+      - PORT=8112
+      - MONGODB_URI=mongodb://mongodb:27017/gogidix-chatbot
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - KNOWLEDGE_BASE_SERVICE_URL=http://knowledge-base-service:8115
+      - TICKET_SERVICE_URL=http://ticket-service:8110
+      - AGENT_SERVICE_URL=http://agent-service:8116
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8112/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mongodb:
+    image: mongo:7
+    container_name: gogidix-chatbot-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=gogidix-chatbot
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: gogidix-chatbot-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - gogidix-network
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
+  redis-data:
+
+networks:
+  gogidix-network:
+    driver: bridge

@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: message-broker-service
+  profiles:
+    active: prod
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka.infrastructure.svc.cluster.local:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      group-id: message-broker-service
+      properties:
+        spring.json.trusted.packages: "*"
+    listener:
+      concurrency: 3
+      ack-mode: manual_immediate
+    properties:
+      session.timeout.ms: 30000
+      max.poll.interval.ms: 300000
+    streams:
+      application-id: message-broker-service
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka.infrastructure.svc.cluster.local:9092}
+
+server:
+  port: 8080
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://discovery-service.infrastructure.svc.cluster.local:8761/eureka/}
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: false
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,bindings,channels
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: INFO
+    org.springframework.kafka: DEBUG
+    org.apache.kafka: INFO

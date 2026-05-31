@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ai-training-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/training
+
+server:
+  port: 8085
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.gogidix: INFO

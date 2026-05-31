@@ -1,0 +1,160 @@
+name: Infrastructure DevTools CD
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '18'
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4@59396469c20a8dddf3f799c9f4698fb03741235c
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster gogidix-staging \
+            --service infrastructure-devtools \
+            --force-new-deployment
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster gogidix-staging \
+            --services infrastructure-devtools
+
+      - name: Run smoke tests
+        run: |
+          curl -f http://devtools-staging.gogidix.com/api/devtools/health || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-staging
+    if: github.ref_type == 'tag'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4@59396469c20a8dddf3f799c9f4698fb03741235c
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1@debdccc8fdfb7577f1f74538f69cf1b78f0aedc5
+        with:
+          files: |
+            Backend/Java/infrastructure-devtools-service/target/*.jar
+          generate_release_notes: true
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster gogidix-production \
+            --service infrastructure-devtools \
+            --force-new-deployment
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster gogidix-production \
+            --services infrastructure-devtools
+
+      - name: Run smoke tests
+        run: |
+          curl -f http://devtools.gogidix.com/api/devtools/health || exit 1
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1@v1.27.0@f9cb5f71bc580da9e9ac9fa6edf62bf3afabbd7e
+        with:
+          payload: |
+            {
+              "text": "Infrastructure DevTools v${{ github.ref_name }} deployed to production",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Infrastructure DevTools v${{ github.ref_name }}* deployed to production\n\n*Deployer*: ${{ github.actor }}\n*Commit*: ${{ github.sha }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    environment: production
+    if: failure() && github.ref_type == 'tag'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4@59396469c20a8dddf3f799c9f4698fb03741235c
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Rollback ECS deployment
+        run: |
+          aws ecs update-service \
+            --cluster gogidix-production \
+            --service infrastructure-devtools \
+            --force-new-deployment
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1@v1.27.0@f9cb5f71bc580da9e9ac9fa6edf62bf3afabbd7e
+        with:
+          payload: |
+            {
+              "text": "Infrastructure DevTools deployment rolled back",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production deployment rolled back*\n\n*Deployer*: ${{ github.actor }}\n*Tag*: ${{ github.ref_name }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

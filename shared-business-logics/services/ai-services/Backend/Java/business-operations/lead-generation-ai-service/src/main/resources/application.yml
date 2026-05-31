@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: lead-generation-ai-service
+  main:
+    banner-mode: off
+
+server:
+  port: 8080
+
+ai:
+  service:
+    base-url: http://localhost:9090
+    scoring-endpoint: /api/v1/score
+    enrichment-endpoint: /api/v1/enrich
+    timeout: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.gogidix.aiservices: INFO
+    org.springframework: WARN

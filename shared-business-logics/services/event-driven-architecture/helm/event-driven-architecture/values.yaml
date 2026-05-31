@@ -1,0 +1,342 @@
+# Default values for event-driven-architecture
+
+global:
+  namespace: event-driven-architecture
+  imageRegistry: ghcr.io/gogidix
+  imageTag: latest
+  imagePullPolicy: IfNotPresent
+  database:
+    host: postgres
+    port: 5432
+  redis:
+    host: redis
+    port: 6379
+  kafka:
+    bootstrapServers: kafka:9092
+  env: production
+
+# Service-specific configurations
+messageOrchestratorService:
+  enabled: true
+  name: message-orchestrator-service
+  servicePort: 8200
+  managementPort: 8201
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: message-orchestrator.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8200"
+    MANAGEMENT_SERVER_PORT: "8201"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    REDIS_HOST: "redis"
+    REDIS_PORT: "6379"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+eventAggregatorService:
+  enabled: true
+  name: event-aggregator-service
+  servicePort: 8201
+  managementPort: 8202
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: event-aggregator.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8201"
+    MANAGEMENT_SERVER_PORT: "8202"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    DATABASE_URL: "jdbc:postgresql://postgres:5432/event_aggregator"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+asyncProcessorService:
+  enabled: true
+  name: async-processor-service
+  servicePort: 8202
+  managementPort: 8203
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: async-processor.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8202"
+    MANAGEMENT_SERVER_PORT: "8203"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    REDIS_HOST: "redis"
+    REDIS_PORT: "6379"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+eventRouterService:
+  enabled: true
+  name: event-router-service
+  servicePort: 8203
+  managementPort: 8204
+  replicas: 2
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "800m"
+  ingress:
+    enabled: true
+    host: event-router.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8203"
+    MANAGEMENT_SERVER_PORT: "8204"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+messageConsumerService:
+  enabled: true
+  name: message-consumer-service
+  servicePort: 8204
+  managementPort: 8205
+  replicas: 2
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1.5Gi"
+      cpu: "1000m"
+  ingress:
+    enabled: true
+    host: message-consumer.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8204"
+    MANAGEMENT_SERVER_PORT: "8205"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    DATABASE_URL: "jdbc:postgresql://postgres:5432/message_consumer"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+eventPublisherService:
+  enabled: true
+  name: event-publisher-service
+  servicePort: 8205
+  managementPort: 8206
+  replicas: 2
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "800m"
+  ingress:
+    enabled: true
+    host: event-publisher.gogidix.com
+    path: /
+    pathType: Prefix
+    annotations: {}
+  envVars:
+    SPRING_PROFILES_ACTIVE: "prod"
+    SERVER_PORT: "8205"
+    MANAGEMENT_SERVER_PORT: "8206"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  monitoring:
+    enabled: true
+    serviceMonitorEnabled: true
+    prometheusScrape: true
+
+# Global Horizontal Pod Autoscaler defaults
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+
+# Global Pod Disruption Budget defaults
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# Global Monitoring defaults
+monitoring:
+  enabled: true
+  serviceMonitorEnabled: true
+  prometheusScrape: true
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Service Account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountToken: false
+
+# Pod Security Context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Container Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Database credentials (use --set or existing secret)
+database:
+  existingSecret: false
+  secretName: ""
+  username: "postgres"
+  password: "CHANGE_ME"
+
+# Redis credentials
+redis:
+  existingSecret: false
+  secretName: ""
+  password: ""
+  database: 0
+
+# Kafka configuration
+kafka:
+  consumerGroup: "event-driven-architecture-group"
+  autoCreateTopics: true
+  numPartitions: 3
+  replicationFactor: 2
+
+# Event-driven specific configuration
+eventDriven:
+  message:
+    batchSize: 100
+    maxRetries: 3
+    retryBackoffMs: 1000
+  event:
+    retentionHours: 168
+    aggregationWindowMs: 60000
+  async:
+    maxConcurrentTasks: 10
+    taskTimeoutMs: 30000
+    queueCapacity: 1000
+  routing:
+    strategy: "topic-based"
+    fallbackEnabled: true

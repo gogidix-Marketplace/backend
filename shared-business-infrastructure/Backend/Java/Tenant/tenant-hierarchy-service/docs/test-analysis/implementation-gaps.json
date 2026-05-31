@@ -1,0 +1,14 @@
+{
+  "serviceName": "tenant-hierarchy-service",
+  "analysisDate": "2026-03-06T13:26:20Z",
+  "summary": {
+    "totalFiles": 9,
+    "filesWithGaps": 1,
+    "totalGaps": 0,
+    "gapsByType": {
+
+    },
+  "gaps": [
+
+  ]
+}

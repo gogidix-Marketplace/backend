@@ -1,0 +1,134 @@
+import { Injectable, Logger } from '@nestjs/common';
+import axios, { AxiosInstance } from 'axios';
+import { IDataSource, TransactionData, GetTransactionsParams, BankAccount, Balance } from '../../domain/ports/output/data-source.interface';
+
+@Injectable()
+export class BankApiDataSource implements IDataSource {
+  private readonly logger = new Logger(BankApiDataSource.name);
+  private readonly client: AxiosInstance;
+
+  constructor() {
+    const baseURL = process.env.BANK_API_URL || 'http://localhost:8080';
+    const apiKey = process.env.BANK_API_KEY;
+
+    this.client = axios.create({
+      baseURL,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey && { 'X-API-Key': apiKey }),
+      },
+      timeout: 30000,
+    });
+  }
+
+  async getBankTransactions(params: GetTransactionsParams): Promise<TransactionData[]> {
+    try {
+      this.logger.debug(`Fetching bank transactions for account: ${params.accountId}`);
+
+      const response = await this.client.post('/transactions/search', {
+        accountId: params.accountId,
+        startDate: params.startDate?.toISOString(),
+        endDate: params.endDate?.toISOString(),
+        minAmount: params.minAmount,
+        maxAmount: params.maxAmount,
+        currency: params.currency,
+        reference: params.reference,
+        limit: params.limit || 1000,
+        offset: params.offset || 0,
+      });
+
+      return response.data.transactions.map((tx: any) => this.mapToTransactionData(tx, params.tenantId));
+    } catch (error) {
+      this.logger.error('Failed to fetch bank transactions', error.stack);
+      throw error;
+    }
+  }
+
+  async getInternalTransactions(params: GetTransactionsParams): Promise<TransactionData[]> {
+    throw new Error('Use InternalApiDataSource for internal transactions');
+  }
+
+  async getBankAccountById(accountId: string, tenantId: string): Promise<BankAccount | null> {
+    try {
+      const response = await this.client.get(`/accounts/${accountId}`);
+
+      return {
+        id: response.data.id,
+        tenantId,
+        accountNumber: response.data.accountNumber,
+        accountType: response.data.accountType,
+        bankName: response.data.bankName,
+        currency: response.data.currency,
+        balance: response.data.balance,
+        lastSyncAt: new Date(response.data.lastSyncAt),
+        isActive: response.data.isActive,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getInternalAccountById(accountId: string, tenantId: string): Promise<any> {
+    throw new Error('Use InternalApiDataSource for internal accounts');
+  }
+
+  async getTransactionById(transactionId: string, source: 'bank' | 'internal', tenantId: string): Promise<TransactionData | null> {
+    if (source !== 'bank') {
+      throw new Error('Use InternalApiDataSource for internal transactions');
+    }
+
+    try {
+      const response = await this.client.get(`/transactions/${transactionId}`);
+      return this.mapToTransactionData(response.data, tenantId);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async reconcileDifference(differenceId: string, resolution: any): Promise<void> {
+    this.logger.warn('Bank API does not support difference reconciliation');
+    throw new Error('Bank API does not support difference reconciliation');
+  }
+
+  async getBalance(accountId: string, source: 'bank' | 'internal', asOfDate?: Date): Promise<Balance> {
+    if (source !== 'bank') {
+      throw new Error('Use InternalApiDataSource for internal balances');
+    }
+
+    const response = await this.client.get(`/accounts/${accountId}/balance`, {
+      params: { asOfDate: asOfDate?.toISOString() },
+    });
+
+    return {
+      amount: response.data.amount,
+      currency: response.data.currency,
+      asOfDate: new Date(response.data.asOfDate),
+    };
+  }
+
+  private mapToTransactionData(data: any, tenantId: string): TransactionData {
+    return {
+      id: data.id,
+      amount: parseFloat(data.amount),
+      currency: data.currency,
+      date: new Date(data.date),
+      type: data.type || 'CREDIT',
+      reference: data.reference,
+      description: data.description,
+      counterparty: data.counterparty,
+      category: data.category,
+      status: data.status || 'COMPLETED',
+      metadata: data.metadata,
+      accountId: data.accountId,
+      tenantId,
+      createdAt: new Date(data.createdAt),
+      updatedAt: new Date(data.updatedAt),
+    };
+  }
+}

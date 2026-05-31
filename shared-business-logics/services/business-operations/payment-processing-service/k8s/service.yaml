@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-processing-service
+  namespace: business-operations
+  labels:
+    app: payment-processing-service
+    team: team-d-business-operations
+spec:
+  type: ClusterIP
+  selector:
+    app: payment-processing-service
+  ports:
+  - name: http
+    port: 8097
+    targetPort: 8097
+    protocol: TCP
+  sessionAffinity: None

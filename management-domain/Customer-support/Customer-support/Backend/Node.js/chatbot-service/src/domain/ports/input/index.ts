@@ -1,0 +1,10 @@
+export { IChatCommandPort } from './chat-command.port';
+export { IChatQueryPort } from './chat-query.port';
+export { IIntentCommandPort } from './intent-command.port';
+export { IIntentQueryPort } from './intent-query.port';
+export { IAnalyticsCommandPort } from './analytics-command.port';
+export { IAnalyticsQueryPort } from './analytics-query.port';
+export { IHandoffCommandPort } from './handoff-command.port';
+export { IHandoffQueryPort } from './handoff-query.port';
+export { ITranslationQueryPort } from './translation-query.port';
+export { IHealthQueryPort } from './health-query.port';

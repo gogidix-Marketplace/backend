@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-document-processing-service
+  namespace: ai-services
+  labels:
+    app: ai-document-processing-service
+    version: v1
+    team: team-ai-content-processing
+    domain: ai-services
+    component: content-document-processing
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-document-processing-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      action: replace
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+      action: replace
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: '(jvm_.*|process_.*|system_.*|http_.*|spring_.*)'
+      action: keep
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: ai-document-processing-service
+  namespace: ai-services
+  labels:
+    app: ai-document-processing-service
+    version: v1
+    team: team-ai-content-processing
+    domain: ai-services
+    component: content-document-processing
+    release: prometheus
+spec:
+  groups:
+  - name: ai-document-processing-service-health
+    interval: 30s
+    rules:
+    - alert: AiDocumentProcessingServiceDown
+      expr: up{job="ai-document-processing-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-content-processing
+      annotations:
+        summary: "AI Document Processing Service is down"
+        description: "AI Document Processing Service has been down for more than 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-document-processing-service-down"
+
+    - alert: AiDocumentProcessingServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{job="ai-document-processing-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "AI Document Processing Service high error rate"
+        description: "AI Document Processing Service error rate is above 5% for 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-document-processing-service-high-errors"
+
+    - alert: AiDocumentProcessingServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="ai-document-processing-service"}[5m])) > 5
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "AI Document Processing Service high latency"
+        description: "AI Document Processing Service P95 latency is above 5 seconds"
+
+    - alert: AiDocumentProcessingServiceHighMemoryUsage
+      expr: jvm_memory_used_bytes{job="ai-document-processing-service",area="heap"} / jvm_memory_max_bytes{job="ai-document-processing-service",area="heap"} > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "AI Document Processing Service high memory usage"
+        description: "AI Document Processing Service heap memory usage is above 90%"
+
+  - name: ai-document-processing-service-business
+    interval: 60s
+    rules:
+    - alert: AiDocumentProcessingServiceProcessingFailureRate
+      expr: rate(document_processing_failures_total{job="ai-document-processing-service"}[10m]) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "AI Document Processing Service high processing failure rate"
+        description: "Document processing failure rate is above 10%"
+
+    - alert: AiDocumentProcessingServiceQueueBacklog
+      expr: document_processing_queue_size{job="ai-document-processing-service"} > 500
+      for: 15m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "AI Document Processing Service queue backlog"
+        description: "Document processing queue size is above 500 documents"
+
+    - alert: AiDocumentProcessingServiceOCRFailureRate
+      expr: rate(ocr_failures_total{job="ai-document-processing-service"}[10m]) > 0.15
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-content-processing
+      annotations:
+        summary: "AI Document Processing Service OCR failure rate"
+        description: "OCR processing failure rate is above 15%"

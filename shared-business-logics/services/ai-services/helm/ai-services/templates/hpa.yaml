@@ -1,0 +1,54 @@
+{{/*
+Generate HorizontalPodAutoscaler for all enabled AI services with HPA enabled
+*/}}
+{{- range $category, $services := .Values }}
+{{- if and (ne $category "global") (ne $category "namespace") (ne $category "resourceQuota") (ne $category "limitRange") (ne $category "serviceAccount") (ne $category "monitoring") (ne $category "ingress") (ne $category "networkPolicy") (ne $category "persistence") (ne $category "secrets") (ne $category "mongodb") (ne $category "redis") (ne $category "kafka") }}
+{{- range $serviceName, $serviceConfig := $services }}
+{{- if and (ne $serviceName "enabled") (kindIs "map" $serviceConfig) }}
+{{- if or (not (hasKey $serviceConfig "enabled")) ($serviceConfig.enabled) }}
+{{- if and $serviceConfig.hpa $serviceConfig.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $serviceConfig.nameOverride | default $serviceName }}
+  namespace: {{ $.Values.namespace.name | default "ai-services" }}
+  labels:
+    {{- include "ai-services.labels" $ | nindent 4 }}
+    {{- include "ai-services.serviceLabels" (dict "name" ($serviceConfig.nameOverride | default $serviceName) "team" ($serviceConfig.team | default "team-ai-platform")) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $serviceConfig.nameOverride | default $serviceName }}
+  minReplicas: {{ $serviceConfig.hpa.minReplicas | default 2 }}
+  maxReplicas: {{ $serviceConfig.hpa.maxReplicas | default 10 }}
+  metrics:
+  {{- if $serviceConfig.hpa.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ $serviceConfig.hpa.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if $serviceConfig.hpa.targetMemoryUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ $serviceConfig.hpa.targetMemoryUtilizationPercentage }}
+  {{- end }}
+  {{- if $serviceConfig.hpa.customMetrics }}
+  {{- toYaml $serviceConfig.hpa.customMetrics | nindent 2 }}
+  {{- end }}
+  {{- if $serviceConfig.hpa.behavior }}
+  behavior:
+    {{- toYaml $serviceConfig.hpa.behavior | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

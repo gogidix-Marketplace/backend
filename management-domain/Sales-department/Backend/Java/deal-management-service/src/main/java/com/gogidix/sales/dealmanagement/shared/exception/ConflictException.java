@@ -1,0 +1,25 @@
+package com.gogidix.sales.dealmanagement.shared.exception;
+
+public class ConflictException extends RuntimeException {
+
+    private String resource;
+    private String code;
+
+    public ConflictException(String message) {
+        super(message);
+    }
+
+    public ConflictException(String message, String code) {
+        super(message);
+        this.code = code;
+    }
+
+    public ConflictException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public String getResource() { return resource; }
+    public void setResource(String resource) { this.resource = resource; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+}

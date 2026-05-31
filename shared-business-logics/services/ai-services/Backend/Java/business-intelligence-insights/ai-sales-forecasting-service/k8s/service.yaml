@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-sales-forecastation-service
+  namespace: ai-services
+  labels:
+    app: ai-sales-forecastation-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-sales-forecastation-service
+  ports:
+  - name: http
+    port: 8200
+    targetPort: 8200
+    protocol: TCP

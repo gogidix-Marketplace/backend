@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: research-intelligence-service
+  namespace: ai-services
+  labels:
+    app: research-intelligence-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: research-intelligence-service
+  ports:
+  - name: http
+    port: 8204
+    targetPort: 8204
+    protocol: TCP

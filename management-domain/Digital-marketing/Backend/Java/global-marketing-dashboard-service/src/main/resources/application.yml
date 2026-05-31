@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: global-marketing-dashboard-service
+  data:
+    mongodb:
+      database: global-marketing-dashboard-service_db

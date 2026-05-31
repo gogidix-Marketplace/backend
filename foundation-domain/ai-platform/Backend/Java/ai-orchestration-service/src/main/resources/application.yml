@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: ai-orchestration-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/aichestration
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.gogidix: INFO

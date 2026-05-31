@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-fraud-detection-service
+  namespace: ai-services
+  labels:
+    app: ai-fraud-detection-service
+    version: v1
+    team: team-ai-security
+    domain: ai-services
+    component: security-fraud-prevention
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-fraud-detection-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      action: replace
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+      action: replace
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: '(jvm_.*|process_.*|system_.*|http_.*|spring_.*)'
+      action: keep
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: ai-fraud-detection-service
+  namespace: ai-services
+  labels:
+    app: ai-fraud-detection-service
+    version: v1
+    team: team-ai-security
+    domain: ai-services
+    component: security-fraud-prevention
+    release: prometheus
+spec:
+  groups:
+  - name: ai-fraud-detection-service-health
+    interval: 30s
+    rules:
+    - alert: AiFraudDetectionServiceDown
+      expr: up{job="ai-fraud-detection-service"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service is down"
+        description: "AI Fraud Detection Service has been down for more than 2 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-fraud-detection-service-down"
+
+    - alert: AiFraudDetectionServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{job="ai-fraud-detection-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service high error rate"
+        description: "AI Fraud Detection Service error rate is above 5% for 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-fraud-detection-service-high-errors"
+
+    - alert: AiFraudDetectionServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="ai-fraud-detection-service"}[5m])) > 0.5
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service high latency"
+        description: "AI Fraud Detection Service P95 latency is above 500ms"
+        runbook_url: "https://runbooks.gogidix.com/ai-fraud-detection-service-high-latency"
+
+    - alert: AiFraudDetectionServiceHighMemoryUsage
+      expr: jvm_memory_used_bytes{job="ai-fraud-detection-service",area="heap"} / jvm_memory_max_bytes{job="ai-fraud-detection-service",area="heap"} > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service high memory usage"
+        description: "AI Fraud Detection Service heap memory usage is above 90%"
+        runbook_url: "https://runbooks.gogidix.com/ai-fraud-detection-service-high-memory"
+
+  - name: ai-fraud-detection-service-business
+    interval: 60s
+    rules:
+    - alert: AiFraudDetectionServiceHighFraudRate
+      expr: rate(fraud_detections_total{job="ai-fraud-detection-service",detected="true"}[10m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service high fraud rate detected"
+        description: "Fraud detection rate is above 10% - possible attack in progress"
+
+    - alert: AiFraudDetectionServiceModelNotLoaded
+      expr: model_loaded{job="ai-fraud-detection-service"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service model not loaded"
+        description: "ML model is not loaded in memory"
+
+    - alert: AiFraudDetectionServiceHighRiskTransactions
+      expr: rate(transactions_with_high_risk_score_total{job="ai-fraud-detection-service"}[5m]) > 100
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service high volume of high-risk transactions"
+        description: "More than 100 high-risk transactions per minute detected"
+
+    - alert: AiFraudDetectionServiceAlertFailure
+      expr: rate(alert_failures_total{job="ai-fraud-detection-service"}[10m]) > 0.05
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-security
+      annotations:
+        summary: "AI Fraud Detection Service alert delivery failures"
+        description: "Alert delivery failure rate is above 5%"

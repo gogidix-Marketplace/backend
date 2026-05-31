@@ -1,0 +1,29 @@
+server:
+  port: 8104
+  shutdown: graceful
+spring:
+  application:
+    name: live-chat-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: live_chat_db
+      auto-index-creation: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.gogidix.customersupport: DEBUG

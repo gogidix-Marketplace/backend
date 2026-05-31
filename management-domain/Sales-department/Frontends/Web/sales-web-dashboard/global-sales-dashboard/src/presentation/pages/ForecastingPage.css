@@ -1,0 +1,516 @@
+/* Forecasting Page Styles */
+
+.forecasting-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin: 0.25rem 0 0 0;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Scenario Section */
+.scenario-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scenario-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.scenario-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid #E5E7EB;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scenario-btn:hover {
+  border-color: #D1D5DB;
+  background-color: #F9FAFB;
+}
+
+.scenario-btn.active {
+  border-color: #2563EB;
+  background-color: #EFF6FF;
+}
+
+.scenario-icon {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #F3F4F6;
+}
+
+.scenario-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.scenario-label {
+  font-size: 0.875rem;
+  color: #6B7280;
+}
+
+.scenario-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Metrics Section */
+.metrics-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Scenario Comparison Section */
+.scenario-comparison-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Trend Section */
+.trend-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Countries Section */
+.countries-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.countries-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.country-filter {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.country-forecasts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.country-forecast-card {
+  padding: 1rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.5rem;
+  background-color: #F9FAFB;
+}
+
+.country-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.country-flag {
+  font-size: 1.5rem;
+}
+
+.country-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.country-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #111827;
+  margin: 0;
+}
+
+.risk-badge {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
+.risk-badge.risk-low {
+  background-color: #D1FAE5;
+  color: #10B981;
+}
+
+.risk-badge.risk-medium {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.risk-badge.risk-high {
+  background-color: #FEE2E2;
+  color: #EF4444;
+}
+
+.country-contribution {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.contribution-value {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.contribution-label {
+  font-size: 0.625rem;
+  color: #6B7280;
+}
+
+.country-scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.scenario-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: white;
+}
+
+.scenario-row.primary {
+  background-color: #DBEAFE;
+}
+
+.scenario-label {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.scenario-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.country-pipeline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.375rem;
+  background-color: white;
+}
+
+.pipeline-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.pipeline-label {
+  font-size: 0.625rem;
+  color: #6B7280;
+}
+
+.pipeline-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.pipeline-coverage {
+  font-size: 0.75rem;
+  color: #10B981;
+  font-weight: 500;
+}
+
+.country-chart {
+  height: 80px;
+}
+
+/* Accuracy Section */
+.accuracy-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.accuracy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1rem;
+}
+
+.accuracy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.accuracy-item {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #F9FAFB;
+}
+
+.accuracy-period {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.accuracy-metrics {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.accuracy-metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.625rem;
+  color: #6B7280;
+}
+
+.metric-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.metric-value.excellent {
+  color: #10B981;
+}
+
+.metric-value.good {
+  color: #2563EB;
+}
+
+.metric-value.fair {
+  color: #F59E0B;
+}
+
+.metric-value.positive {
+  color: #10B981;
+}
+
+.metric-value.negative {
+  color: #EF4444;
+}
+
+.accuracy-revenue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #E5E7EB;
+}
+
+.revenue-label,
+.revenue-actual {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.revenue-actual {
+  color: #111827;
+}
+
+/* Pipeline Section */
+.pipeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.pipeline-stage-card {
+  padding: 1rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.5rem;
+  background-color: #F9FAFB;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.stage-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #111827;
+  margin: 0;
+}
+
+.stage-count {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.stage-values {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.stage-value {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.value-label {
+  font-size: 0.625rem;
+  color: #6B7280;
+}
+
+.value-amount {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.stage-probability {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.probability-label {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.probability-bar {
+  flex: 1;
+  height: 6px;
+  background-color: #E5E7EB;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.probability-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563EB, #10B981);
+  transition: width 0.3s ease;
+}
+
+.probability-value {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.stage-contribution {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  border-top: 1px solid #E5E7EB;
+}
+
+.contribution-label {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.contribution-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .scenario-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid,
+  .accuracy-grid,
+  .country-forecasts,
+  .pipeline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .countries-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .country-filter {
+    width: 100%;
+  }
+}

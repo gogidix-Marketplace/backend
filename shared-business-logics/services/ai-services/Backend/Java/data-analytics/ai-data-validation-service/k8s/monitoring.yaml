@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-data-validation-service
+  namespace: ai-services
+  labels:
+    app: ai-data-validation-service
+    version: v1
+    team: team-ai-data-analytics
+    domain: ai-services
+    component: data-analytics
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-data-validation-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      action: replace
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+      action: replace
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: '(jvm_.*|process_.*|system_.*|http_.*|spring_.*)'
+      action: keep
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: ai-data-validation-service
+  namespace: ai-services
+  labels:
+    app: ai-data-validation-service
+    version: v1
+    team: team-ai-data-analytics
+    domain: ai-services
+    component: data-analytics
+    release: prometheus
+spec:
+  groups:
+  - name: ai-data-validation-service-health
+    interval: 30s
+    rules:
+    - alert: AiDataValidationServiceDown
+      expr: up{job="ai-data-validation-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Data Validation Service is down"
+        description: "AI Data Validation Service has been down for more than 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-data-validation-service-down"
+
+    - alert: AiDataValidationServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{job="ai-data-validation-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Data Validation Service high error rate"
+        description: "AI Data Validation Service error rate is above 5% for 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-data-validation-service-high-errors"
+
+    - alert: AiDataValidationServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="ai-data-validation-service"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Data Validation Service high latency"
+        description: "AI Data Validation Service P95 latency is above 1 second"
+        runbook_url: "https://runbooks.gogidix.com/ai-data-validation-service-high-latency"
+
+    - alert: AiDataValidationServiceHighMemoryUsage
+      expr: jvm_memory_used_bytes{job="ai-data-validation-service",area="heap"} / jvm_memory_max_bytes{job="ai-data-validation-service",area="heap"} > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Data Validation Service high memory usage"
+        description: "AI Data Validation Service heap memory usage is above 90%"
+        runbook_url: "https://runbooks.gogidix.com/ai-data-validation-service-high-memory"
+
+    - alert: AiDataValidationServiceHighGcTime
+      expr: rate(jvm_gc_pause_seconds_sum{job="ai-data-validation-service"}[5m]) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Data Validation Service high GC time"
+        description: "AI Data Validation Service is spending more than 10% of time in GC"
+
+  - name: ai-data-validation-service-business
+    interval: 60s
+    rules:
+    - alert: AiDataValidationServiceValidationFailureRate
+      expr: rate(data_validation_failures_total{job="ai-data-validation-service"}[10m]) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Data Validation Service high validation failure rate"
+        description: "Data validation failure rate is above 10%"
+
+    - alert: AiDataValidationServiceBacklogIncreasing
+      expr: data_validation_queue_size{job="ai-data-validation-service"} > 10000
+      for: 15m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Data Validation Service backlog increasing"
+        description: "Data validation queue size is above 10000 items"

@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: regional-analytics-service
+  data:
+    mongodb:
+      database: regional-analytics-service_db

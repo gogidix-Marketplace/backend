@@ -1,0 +1,61 @@
+{
+  "summary": {
+    "service": "analytics-data-service",
+    "location": "Backend/Java/analytics-services/analytics-data-service",
+    "totalGaps": 2,
+    "criticalGaps": 0,
+    "highGaps": 2,
+    "mediumGaps": 0,
+    "lowGaps": 0
+  },
+  "gaps": [
+    {
+      "filePath": "com/gogidix/dashboard/core/application/service/KPICommandService.java",
+      "type": "Placeholder Implementation",
+      "line": 189,
+      "description": "performCalculation method contains placeholder logic that returns mock value (kpi.getCurrentValue() + 1.0). Real KPI calculation engine needs implementation.",
+      "severity": "HIGH",
+      "recommendation": "Implement proper KPI calculation engine with formula parsing, data fetching from source domains, and aggregation logic"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 138,
+      "description": "Excel export not implemented - throws ExportException. Method generateExcelReport contains only placeholder comment.",
+      "severity": "HIGH",
+      "recommendation": "Implement Excel export using Apache POI library to create XLSX files"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 154,
+      "description": "PDF export not implemented - throws ExportException. Method generatePdfReport contains only placeholder comment.",
+      "severity": "HIGH",
+      "recommendation": "Implement PDF export using iText or Apache PDFBox library"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 200,
+      "description": "scheduleExport method returns random UUID without actual scheduling logic. Job scheduler integration missing.",
+      "severity": "MEDIUM",
+      "recommendation": "Integrate with Quartz or Spring Scheduler for actual report scheduling"
+    },
+    {
+      "filePath": "com/gogidix/centralizeddashboard/reporting/service/ExportService.java",
+      "type": "Incomplete Implementation",
+      "line": 216,
+      "description": "getRecentExports method returns empty list. Actual export history retrieval from storage not implemented.",
+      "severity": "MEDIUM",
+      "recommendation": "Implement export history tracking and retrieval from storage backend"
+    },
+    {
+      "filePath": "com/gogidix/analytics/data/application/service/DataQueryService.java",
+      "type": "Authorization Gap",
+      "line": 198,
+      "description": "Comment indicates admin role check needed but not implemented: 'In a real implementation, check admin role here'",
+      "severity": "MEDIUM",
+      "recommendation": "Implement proper role-based access control (RBAC) for admin operations"
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: config-postgres
+    environment:
+      POSTGRES_DB: config_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - config-network
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: config-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - config-network
+
+  # Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: config-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - config-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: config-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - config-network
+
+  # Config Server (Port 8888)
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/config_server
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_PORT: 8888
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+    networks:
+      - config-network
+    restart: unless-stopped
+
+  # Feature Flag Service (Port 8889)
+  feature-flag-service:
+    build:
+      context: ./feature-flag-service
+      dockerfile: Dockerfile
+    container_name: feature-flag-service
+    ports:
+      - "8889:8889"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/feature_flag_service
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_PORT: 8889
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+    networks:
+      - config-network
+    restart: unless-stopped
+
+  # Environment Service (Port 8890)
+  environment-service:
+    build:
+      context: ./environment-service
+      dockerfile: Dockerfile
+    container_name: environment-service
+    ports:
+      - "8890:8890"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/environment_service
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SERVER_PORT: 8890
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - config-network
+    restart: unless-stopped
+
+  # Notification Service (Port 8891)
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "8891:8891"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/notification_service
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SERVER_PORT: 8891
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - config-network
+    restart: unless-stopped
+
+  # Config Audit Service (Port 8892)
+  config-audit-service:
+    build:
+      context: ./config-audit-service
+      dockerfile: Dockerfile
+    container_name: config-audit-service
+    ports:
+      - "8892:8892"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/config_audit_service
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SERVER_PORT: 8892
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - config-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  config-network:
+    driver: bridge

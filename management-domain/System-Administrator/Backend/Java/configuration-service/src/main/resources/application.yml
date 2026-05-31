@@ -1,0 +1,8 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: configuration-service
+  data:
+    mongodb:
+      database: configuration-service_db

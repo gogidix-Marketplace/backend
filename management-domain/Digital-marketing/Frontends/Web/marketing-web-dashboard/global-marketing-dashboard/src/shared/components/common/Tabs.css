@@ -1,0 +1,217 @@
+/* Tabs Component Styles */
+
+.tabs-container {
+  width: 100%;
+}
+
+.tabs {
+  display: flex;
+  position: relative;
+  gap: var(--spacing-xs);
+}
+
+/* Default Variant */
+.tabs--default {
+  border-bottom: 1px solid var(--color-border);
+  gap: 0;
+}
+
+.tabs--default .tab {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.tabs--default .tab:hover:not(.tab--disabled) {
+  color: var(--color-text-primary);
+}
+
+.tabs--default .tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tabs--default .tab--disabled {
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+}
+
+/* Pills Variant */
+.tabs--pills {
+  gap: var(--spacing-sm);
+}
+
+.tabs--pills .tab {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabs--pills .tab:hover:not(.tab--disabled) {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.tabs--pills .tab--active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.tabs--pills .tab--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Underlined Variant */
+.tabs--underlined {
+  gap: var(--spacing-md);
+  padding-bottom: 2px;
+}
+
+.tabs--underlined .tab {
+  padding: var(--spacing-sm) 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.tabs--underlined .tab:hover:not(.tab--disabled) {
+  color: var(--color-text-primary);
+}
+
+.tabs--underlined .tab--active {
+  color: var(--color-primary);
+}
+
+.tabs--underlined .tab--disabled {
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+}
+
+.tabs__indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background-color: var(--color-primary);
+  transition: left 0.25s ease, width 0.25s ease;
+}
+
+/* Segmented Variant */
+.tabs--segmented {
+  gap: 0;
+  padding: 4px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--border-radius-lg);
+}
+
+.tabs--segmented .tab {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.tabs--segmented .tab:hover:not(.tab--disabled) {
+  color: var(--color-text-primary);
+}
+
+.tabs--segmented .tab--active {
+  background-color: var(--color-bg-primary);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabs--segmented .tab--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Size Variants */
+.tabs--sm .tab {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.8125rem;
+}
+
+.tabs--lg .tab {
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: 1rem;
+}
+
+/* Full Width */
+.tabs--full-width {
+  display: flex;
+}
+
+.tabs--full-width .tab {
+  flex: 1;
+  justify-content: center;
+}
+
+/* Tab Content */
+.tab__icon {
+  display: inline-flex;
+  margin-right: var(--spacing-xs);
+}
+
+.tab__label {
+  display: inline-flex;
+}
+
+.tab__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  margin-left: var(--spacing-xs);
+  background-color: var(--color-danger);
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 9px;
+  line-height: 1;
+}
+
+.tab-panel {
+  padding: var(--spacing-lg) 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .tabs--default,
+  .tabs--underlined {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabs--segmented {
+    flex-wrap: wrap;
+  }
+}

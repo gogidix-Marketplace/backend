@@ -1,0 +1,20 @@
+{
+  "serviceName": "forecasting-service",
+  "analysisDate": "2026-03-06T10:49:57Z",
+  "summary": {
+    "totalFiles": 31,
+    "filesWithGaps": 0,
+    "totalGaps": 1,
+    "gapsByType": {
+      "TODO": 1,
+      "FIXME": 0,
+      "XXX": 0,
+      "HACK": 0,
+      "STUB": 0,
+      "PLACEHOLDER": 0,
+      "MOCK": 0,
+      "NOT_IMPLEMENTED": 0
+    }
+  },
+  "gaps": []
+}

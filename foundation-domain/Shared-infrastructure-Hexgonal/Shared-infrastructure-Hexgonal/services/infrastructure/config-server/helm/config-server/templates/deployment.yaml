@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "config-server.fullname" . }}
+  labels:
+    {{- include "config-server.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "config-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "{{ .Values.monitoring.enabled | toString }}"
+        prometheus.io/port: "{{ .Values.service.port | toString }}"
+        prometheus.io/path: "/actuator/prometheus"
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "config-server.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "config-server.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.port }}
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.env.springProfilesActive | quote }}
+        - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+          value: {{ .Values.env.eurekaUrl | quote }}
+        - name: SPRING_CLOUD_CONFIG_SERVER_GIT_URI
+          value: {{ .Values.git.uri | quote }}
+        - name: SPRING_CLOUD_CONFIG_SERVER_GIT_DEFAULT_LABEL
+          value: {{ .Values.git.label | quote }}
+        - name: SPRING_CLOUD_CONFIG_SERVER_GIT_SEARCH_PATHS
+          value: {{ .Values.git.searchPaths | quote }}
+        - name: CONFIG_SERVER_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.credentials.secret.name }}
+              key: {{ .Values.credentials.secret.usernameKey }}
+        - name: CONFIG_SERVER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.credentials.secret.name }}
+              key: {{ .Values.credentials.secret.passwordKey }}
+        - name: ENCRYPT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.encrypt.secret.name }}
+              key: {{ .Values.encrypt.secret.key }}
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: config-repo
+          mountPath: /tmp/config-repo
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: config-repo
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

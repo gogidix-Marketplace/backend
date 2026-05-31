@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gogidix.shared</groupId>
+    <artifactId>shared-libraries-bom</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Gogidix Shared Libraries BOM</name>
+    <description>Bill of Materials for all Gogidix shared libraries - import this to manage all shared library versions</description>
+    <url>https://github.com/gogidix-technology/gogidix-shared-libraries</url>
+
+    <organization>
+        <name>Gogidix Technology</name>
+        <url>https://gogidix.com</url>
+    </organization>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Shared Libraries Version -->
+        <gogidix.shared.version>1.0.0</gogidix.shared.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Core Libraries -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-exceptions</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-model-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-validation-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+
+            <!-- Security Libraries -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-audit</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-security-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+
+            <!-- Communication Libraries -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-messaging</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+
+            <!-- Testing Libraries -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-testing-service</artifactId>
+                <version>${gogidix.shared.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Utility Libraries -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-utilities</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+
+            <!-- Multi-tenancy -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-multitenancy</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+
+            <!-- AI Libraries -->
+            <dependency>
+                <groupId>com.gogidix.shared</groupId>
+                <artifactId>shared-ai</artifactId>
+                <version>${gogidix.shared.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages - CargoNexus Platform</name>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Shared-Infrastructure</url>
+        </repository>
+    </distributionManagement>
+
+    <licenses>
+        <license>
+            <name>Proprietary</name>
+            <comments>Copyright (c) 2024 Gogidix Technology. All rights reserved.</comments>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Gogidix Development Team</name>
+            <email>dev@gogidix.com</email>
+            <organization>Gogidix Technology</organization>
+            <organizationUrl>https://gogidix.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/gogidix-technology/gogidix-shared-libraries.git</connection>
+        <developerConnection>scm:git:ssh://github.com:gogidix-technology/gogidix-shared-libraries.git</developerConnection>
+        <url>https://github.com/gogidix-technology/gogidix-shared-libraries</url>
+    </scm>
+</project>

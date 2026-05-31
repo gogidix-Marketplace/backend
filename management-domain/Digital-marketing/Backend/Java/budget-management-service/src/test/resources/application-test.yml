@@ -1,0 +1,15 @@
+# Budget Management Service Test Configuration
+
+spring:
+  application:
+    name: budget-management-service
+
+  data:
+    mongodb:
+      database: test_budget_management
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

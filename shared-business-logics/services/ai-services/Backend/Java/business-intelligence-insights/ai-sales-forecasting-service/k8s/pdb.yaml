@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-sales-forecastation-service-pdb
+  namespace: ai-services
+  labels:
+    app: ai-sales-forecastation-service
+    team: team-f-ai-services
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-sales-forecastation-service

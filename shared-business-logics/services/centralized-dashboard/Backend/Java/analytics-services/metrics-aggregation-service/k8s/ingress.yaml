@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metrics-aggregation-service-ingress
+  namespace: centralized-dashboard
+  labels:
+    app: metrics-aggregation-service
+    team: team-f-centralized-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - metrics-aggregation.gogidix.com
+    secretName: metrics-aggregation-service-tls
+  rules:
+  - host: metrics-aggregation.gogidix.com
+    http:
+      paths:
+      - path: /api/metrics(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: metrics-aggregation-service
+            port:
+              number: 8901

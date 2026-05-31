@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: country-marketing-dashboard-service
+
+  data:
+    mongodb:
+      database: test_country_marketing_dashboard
+      auto-index-creation: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

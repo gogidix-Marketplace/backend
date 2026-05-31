@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-prediction-service
+  namespace: ai-services
+  labels:
+    app: ai-prediction-service
+    version: v1
+    team: team-ai-data-analytics
+    domain: ai-services
+    component: data-analytics
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-prediction-service
+  endpoints:
+  - port: management
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      action: replace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      action: replace
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+      action: replace
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: '(jvm_.*|process_.*|system_.*|http_.*|spring_.*)'
+      action: keep
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: ai-prediction-service
+  namespace: ai-services
+  labels:
+    app: ai-prediction-service
+    version: v1
+    team: team-ai-data-analytics
+    domain: ai-services
+    component: data-analytics
+    release: prometheus
+spec:
+  groups:
+  - name: ai-prediction-service-health
+    interval: 30s
+    rules:
+    - alert: AiPredictionServiceDown
+      expr: up{job="ai-prediction-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service is down"
+        description: "AI Prediction Service has been down for more than 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-prediction-service-down"
+
+    - alert: AiPredictionServiceHighErrorRate
+      expr: rate(http_server_requests_seconds_count{job="ai-prediction-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service high error rate"
+        description: "AI Prediction Service error rate is above 5% for 5 minutes"
+        runbook_url: "https://runbooks.gogidix.com/ai-prediction-service-high-errors"
+
+    - alert: AiPredictionServiceHighLatency
+      expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="ai-prediction-service"}[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service high latency"
+        description: "AI Prediction Service P95 latency is above 1 second"
+        runbook_url: "https://runbooks.gogidix.com/ai-prediction-service-high-latency"
+
+    - alert: AiPredictionServiceHighMemoryUsage
+      expr: jvm_memory_used_bytes{job="ai-prediction-service",area="heap"} / jvm_memory_max_bytes{job="ai-prediction-service",area="heap"} > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service high memory usage"
+        description: "AI Prediction Service heap memory usage is above 90%"
+        runbook_url: "https://runbooks.gogidix.com/ai-prediction-service-high-memory"
+
+    - alert: AiPredictionServiceHighGcTime
+      expr: rate(jvm_gc_pause_seconds_sum{job="ai-prediction-service"}[5m]) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service high GC time"
+        description: "AI Prediction Service is spending more than 10% of time in GC"
+
+  - name: ai-prediction-service-business
+    interval: 60s
+    rules:
+    - alert: AiPredictionServicePredictionFailureRate
+      expr: rate(prediction_failures_total{job="ai-prediction-service"}[10m]) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service high prediction failure rate"
+        description: "Prediction failure rate is above 10%"
+
+    - alert: AiPredictionServiceModelNotLoaded
+      expr: model_loaded{job="ai-prediction-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service model not loaded"
+        description: "ML model is not loaded in memory"
+
+    - alert: AiPredictionServiceQueueBacklog
+      expr: prediction_queue_size{job="ai-prediction-service"} > 1000
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-data-analytics
+      annotations:
+        summary: "AI Prediction Service queue backlog"
+        description: "Prediction queue size is above 1000 items"

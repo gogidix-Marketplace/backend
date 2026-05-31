@@ -1,0 +1,64 @@
+server:
+  port: 8204
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+spring:
+  application:
+    name: regional-dashboard-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: regional_dashboard_service_db
+      auto-index-creation: true
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=10m
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+logging:
+  level:
+    root: INFO
+    com.gogidix.globalbusinessmanagement: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+application:
+  dashboard:
+    cache:
+      config-ttl: 300
+      data-ttl: 60
+    widget:
+      max-per-dashboard: 50
+      default-refresh-interval: 60

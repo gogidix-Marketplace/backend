@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gogidix.aiservices</groupId>
+    <artifactId>ai-customer-engagement-service</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>AI Customer Engagement Service</name>
+    <description>AI-powered customer engagement microservice</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Dependency Versions -->
+        <spring.boot-version>3.1.5</spring.boot-version>
+        <spring-kafka.version>3.0.10</spring-kafka.version>
+        <jjwt.version>0.12.3</jjwt.version>
+        <lombok.version>1.18.30</lombok.version>
+        <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+        <junit.version>5.10.1</junit.version>
+        <mockito.version>5.7.0</mockito.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
+        <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+        <maven-surefire-plugin.version>3.0.0</maven-surefire-plugin.version>
+        <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
+        <pitest.version>1.15.2</pitest.version>
+        <pitest.junit5.version>1.2.1</pitest.junit5.version>
+
+        <!-- Financial-Grade Testing: Coverage Thresholds -->
+        <!-- Line coverage minimum for Financial-Grade Blueprint v1.0 -->
+        <fg.coverage.minimum>0.85</fg.coverage.minimum>
+        <!-- Mutation score minimum for Financial-Grade Blueprint v1.0 -->
+        <fg.mutation.minimum>60</fg.mutation.minimum>
+
+        <!-- Memory Configuration for CI/Standard Environments -->
+        <surefire.heap.min>128m</surefire.heap.min>
+        <surefire.heap.max>512m</surefire.heap.max>
+        <pitest.heap.min>128m</pitest.heap.min>
+        <pitest.heap.max>512m</pitest.heap.max>
+
+        <!-- Test Parallelism -->
+        <surefire.parallel.tests>1</surefire.parallel.tests>
+        <surefire.parallel.methods>1</surefire.parallel.methods>
+
+        <!-- Test timeout for integration tests -->
+        <surefire.timeout>180</surefire.timeout>
+
+        <!-- JVM Arguments - Optimized for memory-constrained environments -->
+        <surefire.jvm.args>-Xms${surefire.heap.min} -Xmx${surefire.heap.max} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:CompressedClassSpaceSize=64m -Xss256k -Djava.awt.headless=true</surefire.jvm.args>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot-version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+                <!-- Foundation Shared Library: Testing (commented out for independent testing) -->
+        <!--
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-testing</artifactId><version>1.0.0</version><scope>test</scope></dependency>
+        -->
+</dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Spring Boot Starter Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Data MongoDB -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Data Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Kafka -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Actuator -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Foundation Shared Libraries (commented out for independent testing) -->
+        <!--
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-security</artifactId><version>1.0.0</version></dependency>
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-model</artifactId><version>1.0.0</version></dependency>
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-exceptions</artifactId><version>1.0.0</version></dependency>
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-validation</artifactId><version>1.0.0</version></dependency>
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-audit</artifactId><version>1.0.0</version></dependency>
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-messaging</artifactId><version>1.0.0</version></dependency>
+
+        -->
+        <!-- JWT -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- MapStruct -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${org.mapstruct.version}</version>
+        </dependency>
+
+        <!-- JUnit Jupiter -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Mockito -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- AssertJ -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Mockito JUnit Jupiter -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+            <!-- Foundation Shared Library: Testing (commented out for independent testing) -->
+        <!--
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-testing</artifactId><version>1.0.0</version><scope>test</scope></dependency>
+        -->
+</dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${org.mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <!-- Memory Configuration for Financial-Grade Testing -->
+                    <argLine>${surefire.jvm.args} @{argLine} -Dsurefire.timeout=${surefire.timeout}</argLine>
+                    <!-- Reduced parallelism for memory-constrained environments -->
+                    <parallel>methods</parallel>
+                    <threadCount>${surefire.parallel.methods}</threadCount>
+                    <perCoreThreadCount>false</perCoreThreadCount>
+                    <!-- Use JUnit 5 -->
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                    <!-- Test class inclusion patterns -->
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                    </includes>
+                    <!-- Fork configuration -->
+                    <forkCount>1</forkCount>
+                    <reuseForks>false</reuseForks>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo for coverage -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!-- Financial-Grade: 85% line coverage requirement -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <excludes>
+                                        <!-- Exclude main bootstrap package from coverage check -->
+                                        <exclude>com.gogidix.aiservices.aicontentgenerationservice</exclude>
+                                    </excludes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${fg.coverage.minimum}</minimum>
+                                        </limit>
+                                        <!-- Also enforce branch coverage -->
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.75</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- Infrastructure layer specific requirement -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>com.gogidix.aiservices.aicontentgenerationservice.infrastructure.**</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.85</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                            <!-- Build fails if coverage is below threshold -->
+                            <haltOnFailure>true</haltOnFailure>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot-version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- PIT Mutation Testing Plugin for Financial-Grade Testing -->
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>${pitest.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>${pitest.junit5.version}</version>
+                    </dependency>
+                        <!-- Foundation Shared Library: Testing (commented out for independent testing) -->
+        <!--
+        <dependency><groupId>com.gogidix.shared</groupId><artifactId>shared-testing</artifactId><version>1.0.0</version><scope>test</scope></dependency>
+        -->
+</dependencies>
+                <configuration>
+                    <!-- Financial-Grade: 60% mutation threshold -->
+                    <mutationThreshold>60</mutationThreshold>
+                    <!-- Financial-Grade: 85% line coverage threshold -->
+                    <coverageThreshold>85</coverageThreshold>
+                    <!-- Timeout per mutation (ms) -->
+                    <timeoutConstant>5000</timeoutConstant>
+                    <!-- Maximum allowed mutations per class -->
+                    <features>+CLASSLIMIT(limit[200])</features>
+                    <!-- JVM memory settings for minion process -->
+                    <jvmArgs>
+                        <jvmArg>-Xms256m</jvmArg>
+                        <jvmArg>-Xmx768m</jvmArg>
+                        <jvmArg>-XX:+UseG1GC</jvmArg>
+                    </jvmArgs>
+                    <!-- Mutable code paths -->
+                    <targetClasses>
+                        <param>com.gogidix.aiservices.aicontentgenerationservice.domain.**</param>
+                        <param>com.gogidix.aiservices.aicontentgenerationservice.application.**</param>
+                        <param>com.gogidix.aiservices.aicontentgenerationservice.infrastructure.**</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>com.gogidix.aiservices.aicontentgenerationservice.**</param>
+                    </targetTests>
+                    <!-- Exclude test classes and configuration -->
+                    <excludedClasses>
+                        <param>*.*Test*</param>
+                        <param>*.*Config*</param>
+                        <param>*.*Application*</param>
+                    </excludedClasses>
+                    <!-- Generate HTML and XML reports -->
+                    <outputFormats>
+                        <param>HTML</param>
+                        <param>XML</param>
+                    </outputFormats>
+                    <!-- Use incremental analysis for faster builds -->
+                    <withHistory>true</withHistory>
+                    <historyInputFile>${project.build.directory}/pitest-history.bin</historyInputFile>
+                    <historyOutputFile>${project.build.directory}/pitest-history.bin</historyOutputFile>
+                    <!-- Enable timestamped reports -->
+                    <timestampedReports>true</timestampedReports>
+                    <!-- Fail build when mutation threshold is not met -->
+                    <failWhenNoMutations>false</failWhenNoMutations>
+                    <!-- Detect in-progress mutations -->
+                    <detectInlinedCode>false</detectInlinedCode>
+                </configuration>
+                <executions>
+                    <!-- PIT Mutation Testing - Disabled by default -->
+                    <!-- To enable: Remove comments and run: mvn org.pitest:pitest-maven:mutationCoverage -->
+                    <!--
+                    <execution>
+                        <id>mutation-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>mutationCoverage</goal>
+                        </goals>
+                    </execution>
+                    -->
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Financial-Grade Testing: CI Profiles -->
+    <profiles>
+        <!-- CI Profile: Coverage-focused for Financial-Grade Blueprint -->
+        <!-- PIT disabled temporarily - will be re-enabled after coverage baseline -->
+        <!-- Usage: mvn clean verify -Pci -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven-surefire-plugin.version}</version>
+                        <configuration>
+                            <argLine>${surefire.jvm.args} @{argLine}</argLine>
+                            <parallel>methods</parallel>
+                            <threadCount>${surefire.parallel.methods}</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <useSystemClassLoader>false</useSystemClassLoader>
+                            <includes>
+                                <include>**/*Test.java</include>
+                                <include>**/*Tests.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Local Development Profile: PIT disabled for faster builds -->
+        <profile>
+            <id>local</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+        <!-- Certification Profile: Full testing including mutation for Financial-Grade Blueprint -->
+        <!-- Usage: mvn clean verify -Pcertification -->
+        <profile>
+            <id>certification</id>
+            <properties>
+                <pitest.skip>false</pitest.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>${surefire.jvm.args} @{argLine}</argLine>
+                            <parallel>methods</parallel>
+                            <threadCount>1</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <useSystemClassLoader>false</useSystemClassLoader>
+                            <includes>
+                                <include>**/*Test.java</include>
+                                <include>**/*Tests.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

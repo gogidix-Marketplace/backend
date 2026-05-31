@@ -1,0 +1,134 @@
+# Test Coverage Report - global-hr-dashboard-service
+
+## Overview
+- **Service**: global-hr-dashboard-service
+- **Domain**: Human Resource
+- **Analysis Date**: 2026-03-06T06:15:25Z
+- **Total Classes**: 59
+- **Test Files**: 0
+- **Classes with Tests**: 0
+- **Test Coverage**: 0%
+
+## Source Files
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.ComplianceResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.DashboardResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.DiversityResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.ErrorResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.HeadcountResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.MetricResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.RetentionResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.service.ComplianceQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.DashboardQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.DiversityQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.GlobalMetricsCommandService`
+- `com.gogidix.hr.globalhrdashboard.application.service.GlobalMetricsQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.HeadcountQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.RegionalMetricsQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.RetentionQueryService`
+- `com.gogidix.hr.globalhrdashboard.domain.model.AggregationLevel`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.globalhrdashboard.domain.model.ComplianceMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.ComplianceStatus`
+- `com.gogidix.hr.globalhrdashboard.domain.model.CountryHeadcount`
+- `com.gogidix.hr.globalhrdashboard.domain.model.DiversityMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.ExecutiveLevel`
+- `com.gogidix.hr.globalhrdashboard.domain.model.GlobalWorkforceMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.MetricCategory`
+- `com.gogidix.hr.globalhrdashboard.domain.model.MetricTrend`
+- `com.gogidix.hr.globalhrdashboard.domain.model.RegionalMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.RetentionMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.ComplianceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.CountryHeadcountRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.DiversityMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.GlobalWorkforceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.RegionalMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.RetentionMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.GlobalHRDashboardApplication`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.WebConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoComplianceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoCountryHeadcountRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoDiversityMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoGlobalWorkforceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoRegionalMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoRetentionMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.security.SecurityConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.security.TenantInterceptor`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.ComplianceController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.DashboardController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.DiversityController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.GlobalMetricsController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.HeadcountController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.RegionalMetricsController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.RetentionController`
+- `com.gogidix.hr.globalhrdashboard.shared.base.BaseEntity`
+- `com.gogidix.hr.globalhrdashboard.shared.exception.DuplicateResourceException`
+- `com.gogidix.hr.globalhrdashboard.shared.exception.NotFoundException`
+- `com.gogidix.hr.globalhrdashboard.shared.exception.ValidationException`
+- `com.gogidix.hr.globalhrdashboard.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.globalhrdashboard.shared.requestcontext.RequestContextHolder`
+
+## Test Files
+
+## Classes Without Tests
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.ComplianceResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.DashboardResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.DiversityResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.ErrorResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.HeadcountResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.MetricResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.dto.response.RetentionResponseDto`
+- `com.gogidix.hr.globalhrdashboard.application.service.ComplianceQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.DashboardQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.DiversityQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.GlobalMetricsCommandService`
+- `com.gogidix.hr.globalhrdashboard.application.service.GlobalMetricsQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.HeadcountQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.RegionalMetricsQueryService`
+- `com.gogidix.hr.globalhrdashboard.application.service.RetentionQueryService`
+- `com.gogidix.hr.globalhrdashboard.domain.model.AggregationLevel`
+- `com.gogidix.service.domain.model.BaseEntity`
+- `com.gogidix.hr.globalhrdashboard.domain.model.ComplianceMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.ComplianceStatus`
+- `com.gogidix.hr.globalhrdashboard.domain.model.CountryHeadcount`
+- `com.gogidix.hr.globalhrdashboard.domain.model.DiversityMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.ExecutiveLevel`
+- `com.gogidix.hr.globalhrdashboard.domain.model.GlobalWorkforceMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.MetricCategory`
+- `com.gogidix.hr.globalhrdashboard.domain.model.MetricTrend`
+- `com.gogidix.hr.globalhrdashboard.domain.model.RegionalMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.model.RetentionMetric`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.ComplianceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.CountryHeadcountRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.DiversityMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.GlobalWorkforceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.RegionalMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.domain.repository.RetentionMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.GlobalHRDashboardApplication`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.KafkaConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.MongoConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.RedisConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.config.WebConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoComplianceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoCountryHeadcountRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoDiversityMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoGlobalWorkforceMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoRegionalMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.persistence.mongo.MongoRetentionMetricRepository`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.security.SecurityConfig`
+- `com.gogidix.hr.globalhrdashboard.infrastructure.security.TenantInterceptor`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.ComplianceController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.DashboardController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.DiversityController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.GlobalMetricsController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.HeadcountController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.RegionalMetricsController`
+- `com.gogidix.hr.globalhrdashboard.interfaces.rest.RetentionController`
+- `com.gogidix.hr.globalhrdashboard.shared.base.BaseEntity`
+- `com.gogidix.hr.globalhrdashboard.shared.exception.DuplicateResourceException`
+- `com.gogidix.hr.globalhrdashboard.shared.exception.NotFoundException`
+- `com.gogidix.hr.globalhrdashboard.shared.exception.ValidationException`
+- `com.gogidix.hr.globalhrdashboard.shared.requestcontext.RequestContext`
+- `com.gogidix.hr.globalhrdashboard.shared.requestcontext.RequestContextHolder`

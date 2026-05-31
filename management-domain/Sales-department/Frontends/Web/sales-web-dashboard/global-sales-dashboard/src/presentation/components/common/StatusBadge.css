@@ -1,0 +1,201 @@
+/* StatusBadge Component Styles */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+
+.status-badge-sm {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+.status-badge-md {
+  padding: 4px 12px;
+  font-size: 0.875rem;
+  border-radius: 6px;
+}
+
+.status-badge-lg {
+  padding: 6px 16px;
+  font-size: 1rem;
+  border-radius: 8px;
+}
+
+/* Subtle variant */
+.status-badge-subtle.status-badge-on_track {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status-badge-subtle.status-badge-at_risk,
+.status-badge-subtle.status-badge-pending {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.status-badge-subtle.status-badge-off_track,
+.status-badge-subtle.status-badge-rejected,
+.status-badge-subtle.status-badge-error {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.status-badge-subtle.status-badge-active,
+.status-badge-subtle.status-badge-approved,
+.status-badge-subtle.status-badge-won {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status-badge-subtle.status-badge-under_review,
+.status-badge-subtle.status-badge-qualified,
+.status-badge-subtle.status-badge-info {
+  background-color: var(--color-info-light);
+  color: var(--color-info);
+}
+
+.status-badge-subtle.status-badge-inactive {
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-600);
+}
+
+/* Pipeline stages */
+.status-badge-subtle.status-badge-new {
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-600);
+}
+
+.status-badge-subtle.status-badge-proposal {
+  background-color: var(--color-secondary-light);
+  color: var(--color-secondary);
+}
+
+.status-badge-subtle.status-badge-negotiating {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.status-badge-subtle.status-badge-closing {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+/* Partner tiers */
+.status-badge-subtle.status-badge-bronze {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.status-badge-subtle.status-badge-silver {
+  background-color: #E5E7EB;
+  color: #4B5563;
+}
+
+.status-badge-subtle.status-badge-gold {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.status-badge-subtle.status-badge-platinum {
+  background-color: #EDE9FE;
+  color: #7C3AED;
+}
+
+/* Solid variant */
+.status-badge-solid.status-badge-on_track,
+.status-badge-solid.status-badge-active,
+.status-badge-solid.status-badge-approved,
+.status-badge-solid.status-badge-success {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.status-badge-solid.status-badge-at_risk,
+.status-badge-solid.status-badge-pending,
+.status-badge-solid.status-badge-warning {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+.status-badge-solid.status-badge-off_track,
+.status-badge-solid.status-badge-rejected,
+.status-badge-solid.status-badge-error {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.status-badge-solid.status-badge-under_review,
+.status-badge-solid.status-badge-qualified,
+.status-badge-solid.status-badge-info {
+  background-color: var(--color-info);
+  color: white;
+}
+
+/* Outline variant */
+.status-badge-outline.status-badge-on_track,
+.status-badge-outline.status-badge-active,
+.status-badge-outline.status-badge-success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background-color: transparent;
+}
+
+.status-badge-outline.status-badge-at_risk,
+.status-badge-outline.status-badge-pending,
+.status-badge-outline.status-badge-warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background-color: transparent;
+}
+
+.status-badge-outline.status-badge-off_track,
+.status-badge-outline.status-badge-rejected,
+.status-badge-outline.status-badge-error {
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background-color: transparent;
+}
+
+/* Dark theme adjustments */
+[data-theme='dark'] .status-badge-subtle.status-badge-new {
+  background-color: var(--color-gray-700);
+  color: var(--color-gray-300);
+}
+
+[data-theme='dark'] .status-badge-subtle.status-badge-inactive,
+[data-theme='dark'] .status-badge-subtle.status-badge-silver {
+  background-color: var(--color-gray-700);
+  color: var(--color-gray-300);
+}
+
+/* Status dot indicator */
+.status-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-badge-dot.on_track,
+.status-badge-dot.active,
+.status-badge-dot.success {
+  background-color: var(--color-success);
+}
+
+.status-badge-dot.at_risk,
+.status-badge-dot.pending,
+.status-badge-dot.warning {
+  background-color: var(--color-warning);
+}
+
+.status-badge-dot.off_track,
+.status-badge-dot.rejected,
+.status-badge-dot.error {
+  background-color: var(--color-error);
+}

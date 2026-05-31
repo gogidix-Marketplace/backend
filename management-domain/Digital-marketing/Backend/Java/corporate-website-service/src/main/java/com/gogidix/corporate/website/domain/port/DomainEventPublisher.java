@@ -1,0 +1,54 @@
+package com.gogidix.corporate.website.domain.port;
+
+import com.gogidix.corporate.website.domain.event.*;
+
+public interface DomainEventPublisher {
+    void publishBlogPostCreated(BlogPostCreatedEvent event);
+    void publishBlogPostUpdated(BlogPostUpdatedEvent event);
+    void publishBlogPostDeleted(BlogPostDeletedEvent event);
+    void publishCaseStudyCreated(CaseStudyCreatedEvent event);
+    void publishCaseStudyUpdated(CaseStudyUpdatedEvent event);
+    void publishCaseStudyDeleted(CaseStudyDeletedEvent event);
+    void publishContentStatusCreated(ContentStatusCreatedEvent event);
+    void publishContentStatusUpdated(ContentStatusUpdatedEvent event);
+    void publishContentStatusDeleted(ContentStatusDeletedEvent event);
+    void publishJobCreated(JobCreatedEvent event);
+    void publishJobUpdated(JobUpdatedEvent event);
+    void publishJobDeleted(JobDeletedEvent event);
+    void publishLanguageCreated(LanguageCreatedEvent event);
+    void publishLanguageUpdated(LanguageUpdatedEvent event);
+    void publishLanguageDeleted(LanguageDeletedEvent event);
+    void publishLocalizedContentCreated(LocalizedContentCreatedEvent event);
+    void publishLocalizedContentUpdated(LocalizedContentUpdatedEvent event);
+    void publishLocalizedContentDeleted(LocalizedContentDeletedEvent event);
+    void publishMediaAssetCreated(MediaAssetCreatedEvent event);
+    void publishMediaAssetUpdated(MediaAssetUpdatedEvent event);
+    void publishMediaAssetDeleted(MediaAssetDeletedEvent event);
+    void publishMetricCreated(MetricCreatedEvent event);
+    void publishMetricUpdated(MetricUpdatedEvent event);
+    void publishMetricDeleted(MetricDeletedEvent event);
+    void publishPageCreated(PageCreatedEvent event);
+    void publishPageUpdated(PageUpdatedEvent event);
+    void publishPageDeleted(PageDeletedEvent event);
+    void publishPageVersionCreated(PageVersionCreatedEvent event);
+    void publishPageVersionUpdated(PageVersionUpdatedEvent event);
+    void publishPageVersionDeleted(PageVersionDeletedEvent event);
+    void publishPressReleaseCreated(PressReleaseCreatedEvent event);
+    void publishPressReleaseUpdated(PressReleaseUpdatedEvent event);
+    void publishPressReleaseDeleted(PressReleaseDeletedEvent event);
+    void publishPricingInfoCreated(PricingInfoCreatedEvent event);
+    void publishPricingInfoUpdated(PricingInfoUpdatedEvent event);
+    void publishPricingInfoDeleted(PricingInfoDeletedEvent event);
+    void publishProductCreated(ProductCreatedEvent event);
+    void publishProductUpdated(ProductUpdatedEvent event);
+    void publishProductDeleted(ProductDeletedEvent event);
+    void publishProductFeatureCreated(ProductFeatureCreatedEvent event);
+    void publishProductFeatureUpdated(ProductFeatureUpdatedEvent event);
+    void publishProductFeatureDeleted(ProductFeatureDeletedEvent event);
+    void publishRegionCreated(RegionCreatedEvent event);
+    void publishRegionUpdated(RegionUpdatedEvent event);
+    void publishRegionDeleted(RegionDeletedEvent event);
+    void publishSeoMetadataCreated(SeoMetadataCreatedEvent event);
+    void publishSeoMetadataUpdated(SeoMetadataUpdatedEvent event);
+    void publishSeoMetadataDeleted(SeoMetadataDeletedEvent event);
+}

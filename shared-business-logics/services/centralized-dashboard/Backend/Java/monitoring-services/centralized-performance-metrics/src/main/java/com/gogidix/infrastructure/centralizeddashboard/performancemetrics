@@ -1,0 +1,260 @@
+package com.gogidix.infrastructure.centralizeddashboard.performancemetrics.domain.model;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Objects;
+
+public class MetricValue {
+    private final BigDecimal numericValue;
+    private final String stringValue;
+    private final boolean isNumeric;
+    private final ValueType type;
+
+    private MetricValue(BigDecimal numericValue, String stringValue, ValueType type) {
+        this.numericValue = numericValue;
+        this.stringValue = stringValue;
+        this.isNumeric = numericValue != null;
+        this.type = Objects.requireNonNull(type, "Value type cannot be null");
+        
+        validate();
+    }
+
+    public static MetricValue of(double value) {
+        return new MetricValue(BigDecimal.valueOf(value), null, ValueType.NUMERIC);
+    }
+
+    public static MetricValue of(long value) {
+        return new MetricValue(BigDecimal.valueOf(value), null, ValueType.NUMERIC);
+    }
+
+    public static MetricValue of(BigDecimal value) {
+        return new MetricValue(value, null, ValueType.NUMERIC);
+    }
+
+    public static MetricValue of(String value) {
+        return new MetricValue(null, value, ValueType.STRING);
+    }
+
+    public static MetricValue of(boolean value) {
+        return new MetricValue(
+            BigDecimal.valueOf(value ? 1 : 0), 
+            String.valueOf(value), 
+            ValueType.BOOLEAN
+        );
+    }
+
+    public static MetricValue percentage(double value) {
+        if (value < 0 || value > 100) {
+            throw new IllegalArgumentException("Percentage must be between 0 and 100");
+        }
+        return new MetricValue(BigDecimal.valueOf(value), null, ValueType.PERCENTAGE);
+    }
+
+    public static MetricValue rate(double value) {
+        if (value < 0) {
+            throw new IllegalArgumentException("Rate cannot be negative");
+        }
+        return new MetricValue(BigDecimal.valueOf(value), null, ValueType.RATE);
+    }
+
+    public static MetricValue duration(long milliseconds) {
+        if (milliseconds < 0) {
+            throw new IllegalArgumentException("Duration cannot be negative");
+        }
+        return new MetricValue(BigDecimal.valueOf(milliseconds), null, ValueType.DURATION);
+    }
+
+    public static MetricValue counter(long count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("Counter cannot be negative");
+        }
+        return new MetricValue(BigDecimal.valueOf(count), null, ValueType.COUNTER);
+    }
+
+    public boolean isNumeric() {
+        return isNumeric;
+    }
+
+    public boolean isString() {
+        return type == ValueType.STRING;
+    }
+
+    public boolean isBoolean() {
+        return type == ValueType.BOOLEAN;
+    }
+
+    public boolean isPercentage() {
+        return type == ValueType.PERCENTAGE;
+    }
+
+    public boolean isZero() {
+        return isNumeric && numericValue.compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    public boolean isPositive() {
+        return isNumeric && numericValue.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    public boolean isNegative() {
+        return isNumeric && numericValue.compareTo(BigDecimal.ZERO) < 0;
+    }
+
+    public double asDouble() {
+        if (!isNumeric) {
+            throw new IllegalStateException("Value is not numeric");
+        }
+        return numericValue.doubleValue();
+    }
+
+    public long asLong() {
+        if (!isNumeric) {
+            throw new IllegalStateException("Value is not numeric");
+        }
+        return numericValue.longValue();
+    }
+
+    public String asString() {
+        if (stringValue != null) {
+            return stringValue;
+        }
+        if (isNumeric) {
+            return formatNumericValue();
+        }
+        return "null";
+    }
+
+    public boolean asBoolean() {
+        if (type == ValueType.BOOLEAN) {
+            return numericValue.compareTo(BigDecimal.ZERO) != 0;
+        }
+        if (stringValue != null) {
+            return Boolean.parseBoolean(stringValue);
+        }
+        if (isNumeric) {
+            return numericValue.compareTo(BigDecimal.ZERO) != 0;
+        }
+        return false;
+    }
+
+    public BigDecimal asBigDecimal() {
+        if (!isNumeric) {
+            throw new IllegalStateException("Value is not numeric");
+        }
+        return numericValue;
+    }
+
+    public MetricValue add(MetricValue other) {
+        if (!this.isNumeric || !other.isNumeric) {
+            throw new IllegalStateException("Cannot add non-numeric values");
+        }
+        BigDecimal result = this.numericValue.add(other.numericValue);
+        return new MetricValue(result, null, this.type);
+    }
+
+    public MetricValue subtract(MetricValue other) {
+        if (!this.isNumeric || !other.isNumeric) {
+            throw new IllegalStateException("Cannot subtract non-numeric values");
+        }
+        BigDecimal result = this.numericValue.subtract(other.numericValue);
+        return new MetricValue(result, null, this.type);
+    }
+
+    public MetricValue multiply(double multiplier) {
+        if (!this.isNumeric) {
+            throw new IllegalStateException("Cannot multiply non-numeric value");
+        }
+        BigDecimal result = this.numericValue.multiply(BigDecimal.valueOf(multiplier));
+        return new MetricValue(result, null, this.type);
+    }
+
+    public MetricValue divide(double divisor) {
+        if (!this.isNumeric) {
+            throw new IllegalStateException("Cannot divide non-numeric value");
+        }
+        if (divisor == 0) {
+            throw new IllegalArgumentException("Cannot divide by zero");
+        }
+        BigDecimal result = this.numericValue.divide(BigDecimal.valueOf(divisor), 6, RoundingMode.HALF_UP);
+        return new MetricValue(result, null, this.type);
+    }
+
+    public int compareTo(MetricValue other) {
+        if (!this.isNumeric || !other.isNumeric) {
+            return this.asString().compareTo(other.asString());
+        }
+        return this.numericValue.compareTo(other.numericValue);
+    }
+
+    private String formatNumericValue() {
+        return switch (type) {
+            case PERCENTAGE -> String.format("%.2f%%", numericValue.doubleValue());
+            case DURATION -> formatDuration(numericValue.longValue());
+            case RATE -> String.format("%.2f/sec", numericValue.doubleValue());
+            case COUNTER -> numericValue.longValue() + "";
+            default -> numericValue.setScale(2, RoundingMode.HALF_UP).toString();
+        };
+    }
+
+    private String formatDuration(long milliseconds) {
+        if (milliseconds < 1000) {
+            return milliseconds + "ms";
+        } else if (milliseconds < 60000) {
+            return String.format("%.2fs", milliseconds / 1000.0);
+        } else {
+            long minutes = milliseconds / 60000;
+            long seconds = (milliseconds % 60000) / 1000;
+            return String.format("%dm %ds", minutes, seconds);
+        }
+    }
+
+    private void validate() {
+        if (type == ValueType.STRING && stringValue == null) {
+            throw new IllegalArgumentException("String value cannot be null for STRING type");
+        }
+        if (type != ValueType.STRING && !isNumeric) {
+            throw new IllegalArgumentException("Numeric value required for " + type + " type");
+        }
+    }
+
+    public ValueType getType() { return type; }
+    public BigDecimal getNumericValue() { return numericValue; }
+    public String getStringValue() { return stringValue; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MetricValue that = (MetricValue) o;
+        return Objects.equals(numericValue, that.numericValue) &&
+               Objects.equals(stringValue, that.stringValue) &&
+               type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(numericValue, stringValue, type);
+    }
+
+    @Override
+    public String toString() {
+        return asString();
+    }
+
+    public enum ValueType {
+        NUMERIC("Numeric value"),
+        STRING("String value"),
+        BOOLEAN("Boolean value"),
+        PERCENTAGE("Percentage value (0-100)"),
+        RATE("Rate per second"),
+        DURATION("Duration in milliseconds"),
+        COUNTER("Counter value");
+
+        private final String description;
+
+        ValueType(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() { return description; }
+    }
+}

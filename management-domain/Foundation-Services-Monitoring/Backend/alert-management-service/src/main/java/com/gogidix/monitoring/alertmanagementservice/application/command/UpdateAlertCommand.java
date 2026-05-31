@@ -1,0 +1,16 @@
+package com.gogidix.monitoring.alertmanagementservice.application.command;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateAlertCommand {
+
+    private String id;
+    private String tenantId;
+}

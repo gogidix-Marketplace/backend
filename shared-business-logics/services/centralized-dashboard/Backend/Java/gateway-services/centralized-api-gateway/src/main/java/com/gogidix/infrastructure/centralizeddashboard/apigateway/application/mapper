@@ -1,0 +1,266 @@
+package com.gogidix.infrastructure.centralizeddashboard.apigateway.application.mapper;
+
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.application.dto.*;
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.model.*;
+import com.gogidix.infrastructure.centralizeddashboard.apigateway.domain.port.in.RouteManagementUseCase;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Mapper for converting between Route DTOs and Domain Models
+ */
+@Component
+public class RouteConfigurationMapper {
+
+    public RouteConfigurationDTO toDTO(RouteConfiguration domain) {
+        if (domain == null) {
+            return null;
+        }
+
+        return new RouteConfigurationDTO(
+            domain.getId() != null ? domain.getId().getValue() : null,
+            domain.getServiceName(),
+            domain.getPath(),
+            domain.getUri(),
+            domain.getPredicates(),
+            domain.getFilters() != null ? domain.getFilters().stream()
+                .map(this::toFilterDTO)
+                .collect(Collectors.toList()) : null,
+            domain.getStatus() != null ? domain.getStatus().name() : null,
+            domain.getOrder(),
+            domain.getAllowedMethods(),
+            toRateLimitDTO(domain.getRateLimitConfig()),
+            toCircuitBreakerDTO(domain.getCircuitBreakerConfig()),
+            toAuthConfigDTO(domain.getAuthConfig()),
+            domain.getCreatedAt(),
+            domain.getUpdatedAt()
+        );
+    }
+
+    public RouteConfiguration toDomain(RouteConfigurationDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        return new RouteConfiguration(
+            dto.id() != null ? RouteId.fromString(dto.id()) : RouteId.generate(),
+            dto.serviceName(),
+            dto.path(),
+            dto.uri(),
+            dto.predicates(),
+            dto.filters() != null ? dto.filters().stream()
+                .map(this::toFilterDomain)
+                .collect(Collectors.toList()) : java.util.Collections.emptyList(),
+            dto.order(),
+            dto.allowedMethods(),
+            toRateLimitDomain(dto.rateLimitConfig()),
+            toCircuitBreakerDomain(dto.circuitBreakerConfig()),
+            toAuthConfigDomain(dto.authConfig())
+        );
+    }
+
+    private FilterRuleDTO toFilterDTO(FilterRule domain) {
+        if (domain == null) return null;
+        return new FilterRuleDTO(
+            domain.getName(),
+            domain.getType() != null ? domain.getType().name() : null,
+            domain.getArgs(),
+            domain.getOrder(),
+            domain.isEnabled()
+        );
+    }
+
+    private FilterRule toFilterDomain(FilterRuleDTO dto) {
+        if (dto == null) return null;
+
+        // Parse filter type
+        FilterRule.FilterType filterType = FilterRule.FilterType.REQUEST_HEADER;
+        if (dto.type() != null) {
+            try {
+                filterType = FilterRule.FilterType.valueOf(dto.type().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                filterType = FilterRule.FilterType.REQUEST_HEADER;
+            }
+        }
+
+        return new FilterRule(
+            dto.name(),
+            filterType,
+            dto.args(),
+            dto.order(),
+            dto.enabled() != null ? dto.enabled() : true
+        );
+    }
+
+    private RateLimitConfigDTO toRateLimitDTO(RateLimitConfig domain) {
+        if (domain == null) return null;
+        return new RateLimitConfigDTO(
+            domain.isEnabled(),
+            domain.getRequestsPerWindow(),
+            (int) domain.getWindowDuration().getSeconds(),
+            domain.getScope() != null ? domain.getScope().name() : null,
+            domain.getKeyResolver(),
+            domain.getAction() != null ? domain.getAction().name() : null,
+            domain.getRetryAfter() != null ? (int) domain.getRetryAfter().getSeconds() : null
+        );
+    }
+
+    private RateLimitConfig toRateLimitDomain(RateLimitConfigDTO dto) {
+        if (dto == null) return null;
+
+        // Parse scope
+        RateLimitConfig.RateLimitScope scope = RateLimitConfig.RateLimitScope.USER;
+        if (dto.scope() != null) {
+            try {
+                scope = RateLimitConfig.RateLimitScope.valueOf(dto.scope().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                scope = RateLimitConfig.RateLimitScope.USER;
+            }
+        }
+
+        // Parse action
+        RateLimitConfig.RateLimitAction action = RateLimitConfig.RateLimitAction.REJECT;
+        if (dto.action() != null) {
+            try {
+                action = RateLimitConfig.RateLimitAction.valueOf(dto.action().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                action = RateLimitConfig.RateLimitAction.REJECT;
+            }
+        }
+
+        return new RateLimitConfig(
+            dto.enabled() != null ? dto.enabled() : false,
+            dto.requestsPerWindow() != null ? dto.requestsPerWindow() : 100,
+            java.time.Duration.ofSeconds(dto.windowDurationSeconds() != null ? dto.windowDurationSeconds() : 60),
+            scope,
+            dto.keyResolver(),
+            action,
+            dto.retryAfterSeconds() != null ? java.time.Duration.ofSeconds(dto.retryAfterSeconds()) : null
+        );
+    }
+
+    private CircuitBreakerConfigDTO toCircuitBreakerDTO(CircuitBreakerConfig domain) {
+        if (domain == null) return null;
+        return new CircuitBreakerConfigDTO(
+            domain.isEnabled(),
+            domain.getFailureThreshold(),
+            (int) domain.getTimeWindow().getSeconds(),
+            (int) domain.getOpenStateDuration().getSeconds(),
+            domain.getMinimumNumberOfCalls(),
+            domain.getFailureRateThreshold(),
+            domain.getFallbackStrategy() != null ? domain.getFallbackStrategy().name() : null,
+            domain.getFallbackUri()
+        );
+    }
+
+    private CircuitBreakerConfig toCircuitBreakerDomain(CircuitBreakerConfigDTO dto) {
+        if (dto == null) return null;
+
+        // Parse fallback strategy
+        CircuitBreakerConfig.FallbackStrategy strategy = CircuitBreakerConfig.FallbackStrategy.STATIC_RESPONSE;
+        if (dto.fallbackStrategy() != null) {
+            try {
+                strategy = CircuitBreakerConfig.FallbackStrategy.valueOf(dto.fallbackStrategy().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                strategy = CircuitBreakerConfig.FallbackStrategy.STATIC_RESPONSE;
+            }
+        }
+
+        return new CircuitBreakerConfig(
+            dto.enabled() != null ? dto.enabled() : false,
+            dto.failureThreshold() != null ? dto.failureThreshold() : 5,
+            java.time.Duration.ofSeconds(dto.timeWindowSeconds() != null ? dto.timeWindowSeconds() : 60),
+            java.time.Duration.ofSeconds(dto.openStateDurationSeconds() != null ? dto.openStateDurationSeconds() : 30),
+            dto.minimumNumberOfCalls() != null ? dto.minimumNumberOfCalls() : 10,
+            dto.failureRateThreshold() != null ? dto.failureRateThreshold() : 50.0,
+            strategy,
+            dto.fallbackUri()
+        );
+    }
+
+    private AuthenticationConfigDTO toAuthConfigDTO(AuthenticationConfig domain) {
+        if (domain == null) return null;
+        return new AuthenticationConfigDTO(
+            domain.isEnabled(),
+            domain.getType() != null ? domain.getType().name() : null,
+            domain.getRequiredScopes(),
+            domain.getAllowedRoles(),
+            domain.getJwtIssuer(),
+            domain.getJwtAudience(),
+            domain.isValidateTokenExpiry(),
+            domain.isAllowAnonymous(),
+            domain.getPublicPaths()
+        );
+    }
+
+    private AuthenticationConfig toAuthConfigDomain(AuthenticationConfigDTO dto) {
+        if (dto == null) return null;
+
+        // Parse authentication type
+        AuthenticationConfig.AuthenticationType authType = AuthenticationConfig.AuthenticationType.NONE;
+        if (dto.type() != null) {
+            try {
+                authType = AuthenticationConfig.AuthenticationType.valueOf(dto.type().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                authType = AuthenticationConfig.AuthenticationType.CUSTOM;
+            }
+        }
+
+        return new AuthenticationConfig(
+            dto.enabled() != null ? dto.enabled() : false,
+            authType,
+            dto.requiredScopes(),
+            dto.allowedRoles(),
+            dto.jwtIssuer(),
+            dto.jwtAudience(),
+            dto.validateTokenExpiry() != null ? dto.validateTokenExpiry() : true,
+            dto.allowAnonymous() != null ? dto.allowAnonymous() : false,
+            dto.publicPaths()
+        );
+    }
+
+    /**
+     * Convert CreateRouteRequestDTO to CreateRouteCommand
+     */
+    public RouteManagementUseCase.CreateRouteCommand toCreateCommand(CreateRouteRequestDTO dto) {
+        if (dto == null) return null;
+
+        return new RouteManagementUseCase.CreateRouteCommand(
+            dto.serviceName(),
+            dto.path(),
+            dto.uri(),
+            dto.predicates(),
+            dto.filters() != null ? dto.filters().stream()
+                .map(this::toFilterDomain)
+                .collect(Collectors.toList()) : null,
+            dto.order(),
+            toRateLimitDomain(dto.rateLimitConfig()),
+            toCircuitBreakerDomain(dto.circuitBreakerConfig()),
+            toAuthConfigDomain(dto.authConfig())
+        );
+    }
+
+    /**
+     * Convert UpdateRouteRequestDTO to UpdateRouteCommand
+     */
+    public RouteManagementUseCase.UpdateRouteCommand toUpdateCommand(RouteId routeId, UpdateRouteRequestDTO dto) {
+        if (dto == null) return null;
+
+        return new RouteManagementUseCase.UpdateRouteCommand(
+            routeId,
+            null, // serviceName not included in UpdateRouteRequestDTO
+            dto.uri(),
+            null, // path not included in UpdateRouteRequestDTO
+            dto.predicates(),
+            dto.filters() != null ? dto.filters().stream()
+                .map(this::toFilterDomain)
+                .collect(Collectors.toList()) : null,
+            dto.order(),
+            toRateLimitDomain(dto.rateLimitConfig()),
+            toCircuitBreakerDomain(dto.circuitBreakerConfig()),
+            toAuthConfigDomain(dto.authConfig())
+        );
+    }
+}

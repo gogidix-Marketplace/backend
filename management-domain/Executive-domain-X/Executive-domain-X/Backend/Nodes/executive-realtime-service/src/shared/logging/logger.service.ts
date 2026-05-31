@@ -1,0 +1,3 @@
+import { LoggerService as NestLoggerService, Injectable } from '@nestjs/common';
+@Injectable()
+export class LoggerService implements NestLoggerService { constructor(private readonly logger: NestLoggerService) {} log(m: string, c?: string) { this.logger.log?.(m, c); } error(m: string, t?: string, c?: string) { this.logger.error?.(m, t, c); } warn(m: string, c?: string) { this.logger.warn?.(m, c); } debug(m: string, c?: string) { this.logger.debug?.(m, c); } verbose(m: string, c?: string) { this.logger.verbose?.(m, c); } setContext(c: string) { if ((this.logger as any).setContext) (this.logger as any).setContext(c); } }

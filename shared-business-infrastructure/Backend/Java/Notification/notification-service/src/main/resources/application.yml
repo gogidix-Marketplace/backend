@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: notification-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: gogidix_notification
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        notificationEvents-out-0:
+          destination: notification-events
+          content-type: application/json
+server:
+  port: 8083
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+logging:
+  level:
+    com.gogidix.ecommerce.notification: DEBUG

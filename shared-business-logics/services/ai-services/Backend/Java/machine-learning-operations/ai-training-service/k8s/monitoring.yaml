@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: ai-training-service
+  namespace: ai-services
+  labels:
+    app: ai-training-service
+    team: team-ai-mlops
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-training-service
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+---
+apiVersion: v1
+kind: PrometheusRule
+metadata:
+  name: ai-training-service-alerts
+  namespace: ai-services
+  labels:
+    app: ai-training-service
+    team: team-ai-mlops
+    release: prometheus
+spec:
+  groups:
+  - name: ai-training-service
+    interval: 30s
+    rules:
+    - alert: AiTrainingServiceDown
+      expr: up{job="ai-training-service"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Training Service is down"
+        description: "AI Training Service has been down for more than 5 minutes"
+    - alert: AiTrainingServiceHighErrorRate
+      expr: rate(http_requests_total{job="ai-training-service",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Training Service high error rate"
+        description: "AI Training Service error rate is {{ $value }} errors/sec"
+    - alert: AiTrainingServiceTrainingJobFailed
+      expr: rate(training_jobs_failed_total{job="ai-training-service"}[10m]) > 0.1
+      for: 10m
+      labels:
+        severity: warning
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Training Service training jobs failing"
+        description: "Training job failure rate is {{ $value }} jobs/sec"
+    - alert: AiTrainingServiceLongRunningJob
+      expr: time() - training_job_start_timestamp{job="ai-training-service"} > 7200
+      for: 5m
+      labels:
+        severity: info
+        team: team-ai-mlops
+      annotations:
+        summary: "AI Training Service long running job"
+        description: "Training job {{ $labels.job_id }} has been running for more than 2 hours"
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: ai-training-service-metrics
+  namespace: ai-services
+  labels:
+    app: ai-training-service
+    team: team-ai-mlops
+spec:
+  from:
+  - group: monitoring.coreos.com
+    kind: Prometheus
+    namespace: monitoring
+  to:
+  - group: ""
+    kind: Service

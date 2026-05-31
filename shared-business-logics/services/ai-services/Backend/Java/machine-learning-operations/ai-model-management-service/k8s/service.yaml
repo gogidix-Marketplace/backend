@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-model-management-service
+  namespace: ai-services
+  labels:
+    app: ai-model-management-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-model-management-service
+  ports:
+  - name: http
+    port: 8253
+    targetPort: 8253
+    protocol: TCP

@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: time-series-forecasting-service
+  namespace: ai-services
+  labels:
+    app: time-series-forecasting-service
+    version: v1
+    team: team-ai-data-analytics
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: time-series-forecasting-service

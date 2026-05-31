@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-customer-segmentation-service
+  namespace: ai-services
+  labels:
+    app: ai-customer-segmentation-service
+    team: team-f-ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-customer-segmentation-service
+  ports:
+  - name: http
+    port: 8200
+    targetPort: 8200
+    protocol: TCP

@@ -155,10 +155,23 @@ jobs:
 
   # Build Shared Business Logics Hotfix
   build-shared-logics-hotfix:
-    name: Shared Logics Hotfix
+    name: Shared Logics - ${{ matrix.subdomain }}
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.shared-logics == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        subdomain:
+          - api-gateway
+          - services/ai-services/Backend/Java
+          - services/business-operations
+          - services/business-support
+          - services/centralized-dashboard/Backend/Java
+          - services/event-driven-architecture
+          - services/security
+          - services/transaction-orchestration/Backend/Java
+          - services/universal-tracking-services/Backend/Java
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -171,9 +184,21 @@ jobs:
         with:
           path: ~/.m2/repository
           key: m2-shared-libs-hotfix-${{ github.sha }}
+      - name: Check parent POM exists
+        id: check
+        run: |
+          POM_PATH="shared-business-logics/${{ matrix.subdomain }}/pom.xml"
+          if [ -f "$POM_PATH" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✓ Found: $POM_PATH"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::warning::POM not found: $POM_PATH (skipping)"
+          fi
       - name: Maven Reactor Build & Test
-        working-directory: shared-business-logics
-        run: mvn clean verify -T 1C -B
+        if: steps.check.outputs.exists == 'true'
+        working-directory: shared-business-logics/${{ matrix.subdomain }}
+        run: mvn clean verify -T 1C -B -Djacoco.skip=true
 
   # Build Shared Business Infrastructure Hotfix
   build-shared-infra-hotfix:

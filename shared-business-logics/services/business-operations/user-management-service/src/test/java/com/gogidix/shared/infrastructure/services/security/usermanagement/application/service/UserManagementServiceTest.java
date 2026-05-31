@@ -39,9 +39,6 @@ class UserManagementServiceTest {
     @Mock
     private UserProfileMapper userProfileMapper;
 
-    @Mock
-    private TenantContextHolder tenantContextHolder;
-
     @InjectMocks
     private UserManagementService userManagementService;
 
@@ -51,7 +48,8 @@ class UserManagementServiceTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(tenantContextHolder.getRequiredTenantId()).thenReturn(TEST_TENANT_ID);
+        // Set tenant context for all tests
+        TenantContextHolder.setTenantId(TEST_TENANT_ID);
 
         testUserProfile = UserProfile.builder()
                 .id("profile-123")
@@ -71,6 +69,12 @@ class UserManagementServiceTest {
                 .displayName("John Doe")
                 .email("john@example.com")
                 .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Clear tenant context after each test
+        TenantContextHolder.clear();
     }
 
     @Test
@@ -94,7 +98,6 @@ class UserManagementServiceTest {
         assertEquals("John", result.getFirstName());
         assertEquals("Doe", result.getLastName());
         verify(userProfileRepository).save(any(UserProfile.class));
-        verify(tenantContextHolder).getRequiredTenantId();
     }
 
     @Test
@@ -154,7 +157,6 @@ class UserManagementServiceTest {
 
         assertNotNull(result);
         verify(userProfileRepository).save(any(UserProfile.class));
-        verify(tenantContextHolder).getRequiredTenantId();
     }
 
     @Test
@@ -279,7 +281,6 @@ class UserManagementServiceTest {
 
         assertNotNull(result);
         verify(userProfileRepository).save(any(UserProfile.class));
-        verify(tenantContextHolder).getRequiredTenantId();
     }
 
     @Test

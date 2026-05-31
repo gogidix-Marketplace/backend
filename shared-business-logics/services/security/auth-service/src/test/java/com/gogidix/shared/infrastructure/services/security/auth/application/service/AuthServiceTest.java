@@ -58,9 +58,6 @@ class AuthServiceTest {
     @Mock
     private JwtProvider jwtProvider;
 
-    @Mock
-    private TenantContextHolder tenantContextHolder;
-
     @InjectMocks
     private AuthService authService;
 
@@ -78,6 +75,9 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Set tenant context for all tests
+        TenantContextHolder.setTenantId(TENANT_ID);
+
         testUser = User.builder()
                 .id(USER_ID)
                 .tenantId(TenantId.of(TENANT_ID))
@@ -107,6 +107,12 @@ class AuthServiceTest {
                 .build();
     }
 
+    @AfterEach
+    void tearDown() {
+        // Clear tenant context after each test
+        TenantContextHolder.clear();
+    }
+
     @Test
     @DisplayName("Should login successfully with valid credentials using username")
     void shouldLoginSuccessfullyWithValidCredentialsUsingUsername() {
@@ -118,7 +124,6 @@ class AuthServiceTest {
                 .userAgent("Mozilla/5.0")
                 .build();
 
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId(USERNAME, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
         when(jwtProvider.generateAccessToken(USER_ID, TENANT_ID, testUser.getRoles())).thenReturn(ACCESS_TOKEN);
@@ -139,7 +144,6 @@ class AuthServiceTest {
         assertNotNull(response.getUser());
         assertEquals(USER_ID, response.getUser().getId());
 
-        verify(tenantContextHolder).getRequiredTenantId();
         verify(userRepository).findByUsernameAndTenantId(USERNAME, TENANT_ID);
         verify(passwordEncoder).matches(PASSWORD, ENCODED_PASSWORD);
         verify(jwtProvider).generateAccessToken(USER_ID, TENANT_ID, testUser.getRoles());
@@ -157,7 +161,6 @@ class AuthServiceTest {
                 .password(PASSWORD)
                 .build();
 
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId(EMAIL, TENANT_ID)).thenReturn(Optional.empty());
         when(userRepository.findByEmailAndTenantId(EMAIL, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
@@ -186,7 +189,6 @@ class AuthServiceTest {
                 .password(PASSWORD)
                 .build();
 
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId("unknown", TENANT_ID)).thenReturn(Optional.empty());
         when(userRepository.findByEmailAndTenantId("unknown", TENANT_ID)).thenReturn(Optional.empty());
 
@@ -205,7 +207,6 @@ class AuthServiceTest {
                 .password("wrongPassword")
                 .build();
 
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId(USERNAME, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", ENCODED_PASSWORD)).thenReturn(false);
 
@@ -226,7 +227,6 @@ class AuthServiceTest {
                 .password(PASSWORD)
                 .build();
 
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId(USERNAME, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 
@@ -497,7 +497,6 @@ class AuthServiceTest {
     @DisplayName("Should find user by id successfully")
     void shouldFindUserByIdSuccessfully() {
         // Given
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByIdAndTenantId(USER_ID, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(userMapper.toResponseDto(testUser)).thenReturn(testUserResponseDto);
 
@@ -514,7 +513,6 @@ class AuthServiceTest {
     @DisplayName("Should return empty when user not found by id")
     void shouldReturnEmptyWhenUserNotFoundById() {
         // Given
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByIdAndTenantId(USER_ID, TENANT_ID)).thenReturn(Optional.empty());
 
         // When
@@ -529,7 +527,6 @@ class AuthServiceTest {
     @DisplayName("Should find user by username successfully")
     void shouldFindUserByUsernameSuccessfully() {
         // Given
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId(USERNAME, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(userMapper.toResponseDto(testUser)).thenReturn(testUserResponseDto);
 
@@ -546,7 +543,6 @@ class AuthServiceTest {
     @DisplayName("Should return empty when user not found by username")
     void shouldReturnEmptyWhenUserNotFoundByUsername() {
         // Given
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId(USERNAME, TENANT_ID)).thenReturn(Optional.empty());
 
         // When
@@ -560,7 +556,6 @@ class AuthServiceTest {
     @DisplayName("Should find user by email successfully")
     void shouldFindUserByEmailSuccessfully() {
         // Given
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByEmailAndTenantId(EMAIL, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(userMapper.toResponseDto(testUser)).thenReturn(testUserResponseDto);
 
@@ -577,7 +572,6 @@ class AuthServiceTest {
     @DisplayName("Should return empty when user not found by email")
     void shouldReturnEmptyWhenUserNotFoundByEmail() {
         // Given
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByEmailAndTenantId(EMAIL, TENANT_ID)).thenReturn(Optional.empty());
 
         // When
@@ -596,7 +590,6 @@ class AuthServiceTest {
                 .password(PASSWORD)
                 .build();
 
-        when(tenantContextHolder.getRequiredTenantId()).thenReturn(TENANT_ID);
         when(userRepository.findByUsernameAndTenantId(USERNAME, TENANT_ID)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
         when(jwtProvider.generateAccessToken(USER_ID, TENANT_ID, testUser.getRoles())).thenReturn(ACCESS_TOKEN);

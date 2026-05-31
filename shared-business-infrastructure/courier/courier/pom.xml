@@ -15,7 +15,6 @@
 
     <modules>
         <module>api-gateway</module>
-        <module>shared-libraries/Backend/Java</module>
         <!-- Dispatch -->
         <module>Backend/Java/Dispatch/assignment-service</module>
         <module>Backend/Java/Dispatch/dispatch-core-service</module>

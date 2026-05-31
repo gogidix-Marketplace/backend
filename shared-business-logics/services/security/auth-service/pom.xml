@@ -26,13 +26,11 @@
     </properties>
 
     <dependencies>
-        <!-- Core Tenancy -->
-        <dependency>
-            <groupId>com.gogidix.cargo.shared.infrastructure</groupId>
-            <artifactId>core-tenancy</artifactId>
-        </dependency>
-
         <!-- Shared Libraries -->
+        <dependency>
+            <groupId>com.gogidix.shared</groupId>
+            <artifactId>shared-multitenancy</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.gogidix.shared</groupId>
             <artifactId>shared-exceptions</artifactId>

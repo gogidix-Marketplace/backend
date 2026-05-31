@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.infrastructure.config;
 
-import com.gogidix.shared.infrastructure.core.tenancy.interceptor.TenantInterceptor;
+import com.gogidix.shared.multitenancy.interceptor.TenantInterceptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

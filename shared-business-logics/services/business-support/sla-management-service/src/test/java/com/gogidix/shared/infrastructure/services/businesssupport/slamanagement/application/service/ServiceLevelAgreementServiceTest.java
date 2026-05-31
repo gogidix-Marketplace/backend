@@ -1,7 +1,7 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.application.service;
 
-import com.gogidix.shared.infrastructure.core.tenancy.context.TenantContextHolder;
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.multitenancy.context.TenantContextHolder;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.application.dto.request.CreateServiceLevelAgreementRequestDto;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.application.dto.request.UpdateServiceLevelAgreementRequestDto;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.application.dto.response.ServiceLevelAgreementResponseDto;

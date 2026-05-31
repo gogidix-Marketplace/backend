@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.security.auth.domain.model;
 
-import com.gogidix.shared.servicediscovery.config.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

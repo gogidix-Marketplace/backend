@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.infrastructure.persistence;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.domain.model.ServiceLevelAgreement;
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import java.time.LocalDateTime;

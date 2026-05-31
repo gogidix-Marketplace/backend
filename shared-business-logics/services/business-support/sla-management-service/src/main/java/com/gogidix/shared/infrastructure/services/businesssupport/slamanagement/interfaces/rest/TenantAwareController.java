@@ -1,5 +1,5 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.interfaces.rest;
-import com.gogidix.shared.infrastructure.core.tenancy.context.TenantContextHolder;
+import com.gogidix.shared.multitenancy.context.TenantContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.util.StringUtils;
 /**

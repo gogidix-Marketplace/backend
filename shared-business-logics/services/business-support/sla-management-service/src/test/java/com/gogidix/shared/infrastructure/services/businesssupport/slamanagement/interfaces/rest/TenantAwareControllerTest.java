@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.interfaces.rest;
 
-import com.gogidix.shared.infrastructure.core.tenancy.context.TenantContextHolder;
+import com.gogidix.shared.multitenancy.context.TenantContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

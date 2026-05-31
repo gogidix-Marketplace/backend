@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.security.auth.infrastructure.persistence;
 
-import com.gogidix.shared.servicediscovery.config.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import com.gogidix.shared.infrastructure.services.security.auth.domain.model.User;
 import com.gogidix.shared.infrastructure.services.security.auth.domain.port.out.UserRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;

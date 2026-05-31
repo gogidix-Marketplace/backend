@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.domain.model;
 
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

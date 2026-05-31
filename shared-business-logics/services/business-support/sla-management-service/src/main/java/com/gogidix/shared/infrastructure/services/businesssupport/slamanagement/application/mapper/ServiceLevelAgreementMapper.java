@@ -3,7 +3,7 @@ import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.application.dto.request.UpdateServiceLevelAgreementRequestDto;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.application.dto.response.ServiceLevelAgreementResponseDto;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.domain.model.ServiceLevelAgreement;
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import org.springframework.stereotype.Component;
 /**
  * Mapper for ServiceLevelAgreement entity

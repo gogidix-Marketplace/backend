@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.security.auth.application.mapper;
 
-import com.gogidix.shared.servicediscovery.config.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import com.gogidix.shared.infrastructure.services.security.auth.application.dto.response.UserResponseDto;
 import com.gogidix.shared.infrastructure.services.security.auth.domain.model.User;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.security.usermanagement.infrastructure.config;
 
-import com.gogidix.shared.servicediscovery.config.interceptor.TenantInterceptor;
+import com.gogidix.shared.multitenancy.interceptor.TenantInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;

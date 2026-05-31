@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.infrastructure.config;
 
-import com.gogidix.shared.infrastructure.core.tenancy.interceptor.TenantInterceptor;
+import com.gogidix.shared.multitenancy.interceptor.TenantInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;

@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.security.auth.domain.aggregate;
 
-import com.gogidix.shared.servicediscovery.config.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import com.gogidix.shared.infrastructure.services.security.auth.domain.event.UserLoggedInEvent;
 import com.gogidix.shared.infrastructure.services.security.auth.domain.event.UserLoggedOutEvent;
 import com.gogidix.shared.infrastructure.services.security.auth.domain.event.UserRegisteredEvent;

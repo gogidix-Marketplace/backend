@@ -7,7 +7,7 @@ import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.domain.model.ServiceLevelAgreement;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.domain.port.in.IServiceLevelAgreementUseCase;
 import com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.domain.port.out.IServiceLevelAgreementRepository;
-import com.gogidix.shared.infrastructure.core.tenancy.context.TenantContextHolder;
+import com.gogidix.shared.multitenancy.context.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;

@@ -1,5 +1,5 @@
 package com.gogidix.shared.infrastructure.services.businesssupport.slamanagement.domain.model;
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.multitenancy.model.TenantId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;

@@ -101,39 +101,11 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Foundation Shared Libraries (commented out for independent testing) -->
-        <!--
+        <!-- Shared Multitenancy Library -->
         <dependency>
             <groupId>com.gogidix.shared</groupId>
-            <artifactId>shared-security</artifactId>
-            <version>1.0.0</version>
+            <artifactId>shared-multitenancy</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.gogidix.shared</groupId>
-            <artifactId>shared-model</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.gogidix.shared</groupId>
-            <artifactId>shared-exceptions</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.gogidix.shared</groupId>
-            <artifactId>shared-validation</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.gogidix.shared</groupId>
-            <artifactId>shared-audit</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.gogidix.shared</groupId>
-            <artifactId>shared-messaging</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        -->
 
         <!-- SpringDoc OpenAPI -->
         <dependency>

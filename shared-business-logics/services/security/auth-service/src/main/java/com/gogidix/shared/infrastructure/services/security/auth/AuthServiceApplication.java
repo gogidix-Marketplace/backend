@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.config.EnableMongoAuditing;
  */
 @SpringBootApplication(scanBasePackages = {
         "com.gogidix.shared.infrastructure.services.security.auth",
-        "com.gogidix.shared.servicediscovery.config",
+        "com.gogidix.shared.multitenancy",
         "com.gogidix.shared"
 })
 @EnableMongoAuditing

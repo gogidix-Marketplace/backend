@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    OWASP Dependency Check Suppressions File
+    This file contains suppressions for known vulnerabilities that are:
+    1. False positives
+    2. In transitive dependencies that cannot be upgraded
+    3. Acceptable risk for the current use case
+
+    Add suppressions here as needed with proper justification.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!--
+        Example suppression format (uncomment and modify as needed):
+
+    <suppress>
+        <notes><![CDATA[
+            File: spring-security-crypto-6.1.5.jar
+            Reason: Used by Spring Boot Starter Security, update requires major Spring Boot upgrade
+            Risk: Acceptable - internal use only, not exposed to external input
+        ]]></notes>
+        <cve>CVE-2023-XXXX</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+            File: commons-logging-1.2.jar
+            Reason: Transitive dependency, cannot upgrade without breaking changes
+            Risk: Low - used only for logging
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/commons-logging/commons-logging@.*$</packageUrl>
+    </suppress>
+    -->
+</suppressions>

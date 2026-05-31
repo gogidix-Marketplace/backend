@@ -1,0 +1,256 @@
+{{/*
+===============================================================================
+Deployment Template
+===============================================================================
+Generates Deployment resources for all enabled warehousing services.
+This template creates deployments with proper resource management,
+health probes, and affinity rules.
+*/}}
+
+{{- range $serviceName, $serviceConfig := .Values }}
+{{- if and $serviceConfig.enabled (or (hasSuffix "Service" $serviceName) (hasSuffix "service" $serviceName)) }}
+{{- $svcName := $serviceConfig.name | default $serviceName }}
+{{- $httpPort := $serviceConfig.ports.http | default 8200 }}
+{{- $mgmtPort := $serviceConfig.ports.management | default (add1 $httpPort) }}
+{{- $imageRepo := include "warehousing-core.imageRepository" (list $serviceConfig $) }}
+{{- $imageTag := include "warehousing-core.imageTag" (list $serviceConfig $) }}
+{{- $pullPolicy := include "warehousing-core.imagePullPolicy" (list $serviceConfig $) }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svcName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.deploymentLabels" (list $svcName $) | nindent 4 }}
+spec:
+  replicas: {{ $serviceConfig.replicas | default 2 }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $svcName }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "warehousing-core.podLabels" (list $svcName $) | nindent 8 }}
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $mgmtPort | quote }}
+        prometheus.io/path: "/actuator/prometheus"
+        {{- include "warehousing-core.podAnnotations" (list $svcName $) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "warehousing-core.serviceAccountName" $ }}
+      {{- with $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $.Values.global.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ $svcName }}
+          image: {{ $imageRepo }}:{{ $imageTag }}
+          imagePullPolicy: {{ $pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $httpPort }}
+              protocol: TCP
+            - name: management
+              containerPort: {{ $mgmtPort }}
+              protocol: TCP
+          env:
+            - name: SERVER_PORT
+              value: {{ $httpPort | quote }}
+            - name: MANAGEMENT_SERVER_PORT
+              value: {{ $mgmtPort | quote }}
+            - name: SPRING_APPLICATION_NAME
+              value: {{ $svcName }}
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ $serviceConfig.envVars.SPRING_PROFILES_ACTIVE | default "cloud,production" | quote }}
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ include "warehousing-core.kafka.bootstrapServers" (list $) }}
+            - name: SPRING_REDIS_HOST
+              value: {{ include "warehousing-core.redis.host" (list $) }}
+            - name: SPRING_REDIS_PORT
+              value: "6379"
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: mongodb-username
+                  optional: true
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: mongodb-root-password
+                  optional: true
+            - name: SPRING_DATA_MONGODB_URI
+              value: {{ include "warehousing-core.mongodb.uri" (list $ (trimSuffix "service" (trimSuffix "Service" $svcName))) | quote }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: redis-password
+                  optional: true
+            - name: JAVA_OPTS
+              value: {{ $serviceConfig.envVars.JAVA_OPTS | default "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom" | quote }}
+            {{- range $key, $value := $serviceConfig.envVars }}
+            {{- if not (eq $key "SPRING_PROFILES_ACTIVE") }}
+            {{- if not (eq $key "JAVA_OPTS") }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+          resources:
+            {{- if $serviceConfig.resources }}
+            {{- toYaml $serviceConfig.resources | nindent 12 }}
+            {{- else }}
+            {{- toYaml $.Values.global.resources | nindent 12 }}
+            {{- end }}
+          securityContext:
+            {{- toYaml $.Values.global.securityContext | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: management
+            {{- if $serviceConfig.livenessProbe }}
+            {{- toYaml $serviceConfig.livenessProbe | nindent 12 }}
+            {{- else }}
+            {{- toYaml $.Values.global.livenessProbe | nindent 12 }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: management
+            {{- if $serviceConfig.readinessProbe }}
+            {{- toYaml $serviceConfig.readinessProbe | nindent 12 }}
+            {{- else }}
+            {{- toYaml $.Values.global.readinessProbe | nindent 12 }}
+            {{- end }}
+          {{- if or $serviceConfig.startupProbe $.Values.global.startupProbe }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health/startup
+              port: management
+            {{- if $serviceConfig.startupProbe }}
+            {{- toYaml $serviceConfig.startupProbe | nindent 12 }}
+            {{- else }}
+            {{- toYaml $.Values.global.startupProbe | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: logs
+              mountPath: /logs
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+      {{- if or $serviceConfig.affinity $.Values.global.podAntiAffinity }}
+      affinity:
+        {{- if $serviceConfig.affinity }}
+        {{- toYaml $serviceConfig.affinity | nindent 8 }}
+        {{- else }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ $svcName }}
+                topologyKey: kubernetes.io/hostname
+        {{- end }}
+      {{- end }}
+      {{- with $serviceConfig.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $serviceConfig.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.podDisruptionBudget.enabled }}
+      {{- if not (eq $serviceConfig.replicas 1) }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $svcName }}-pdb
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $svcName }}
+spec:
+  minAvailable: {{ $.Values.podDisruptionBudget.minAvailable | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $svcName }}
+      {{- end }}
+      {{- end }}
+
+{{- if $serviceConfig.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $svcName }}-hpa
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $svcName }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $svcName }}
+  minReplicas: {{ $serviceConfig.hpa.minReplicas | default $serviceConfig.replicas }}
+  maxReplicas: {{ $serviceConfig.hpa.maxReplicas | default (mul $serviceConfig.replicas 3) }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $serviceConfig.hpa.targetCPUUtilizationPercentage | default 70 }}
+    {{- if $serviceConfig.hpa.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $serviceConfig.hpa.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+{{- end }}
+
+{{- end }}
+{{- end }}

@@ -1,0 +1,11 @@
+{
+  "serviceName": "location-service",
+  "analysisDate": "2026-03-06T11:04:00.513Z",
+  "summary": {
+    "totalFiles": 7,
+    "filesWithGaps": 0,
+    "totalGaps": 0,
+    "gapsByType": {}
+  },
+  "gaps": []
+}

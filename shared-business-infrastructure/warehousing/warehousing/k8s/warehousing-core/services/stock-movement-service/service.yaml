@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stock-movement-service
+  namespace: warehousing-core
+  labels:
+    app: stock-movement-service
+    service: stock-movement-service
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8213
+    targetPort: http
+    protocol: TCP
+  - name: management
+    port: 8214
+    targetPort: management
+    protocol: TCP
+  selector:
+    app: stock-movement-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stock-movement-service-headless
+  namespace: warehousing-core
+  labels:
+    app: stock-movement-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8213
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: stock-movement-service

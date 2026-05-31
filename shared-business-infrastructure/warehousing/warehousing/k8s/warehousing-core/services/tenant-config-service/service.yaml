@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-config-service
+  namespace: warehousing-core
+  labels:
+    app: tenant-config-service
+    service: tenant-config-service
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8240
+    targetPort: http
+    protocol: TCP
+  - name: management
+    port: 8241
+    targetPort: management
+    protocol: TCP
+  selector:
+    app: tenant-config-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-config-service-headless
+  namespace: warehousing-core
+  labels:
+    app: tenant-config-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8240
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: tenant-config-service

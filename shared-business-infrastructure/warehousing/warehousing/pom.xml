@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gogidix.cargo.shared-business</groupId>
+    <artifactId>shared-warehousing-core</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>shared-warehousing-core</name>
+    <description>Multi-tenant shared warehousing core services for Gogidix ecosystem</description>
+
+    <modules>
+        <!-- Tenant Services -->
+        <module>Backend/Java/Tenant/tenant-config-service</module>
+
+        <!-- Storage Services -->
+        <module>Backend/Java/Storage/space-service</module>
+        <module>Backend/Java/Storage/access-service</module>
+        <module>Backend/Java/Storage/bin-service</module>
+        <module>Backend/Java/Storage/shelf-service</module>
+        <module>Backend/Java/Storage/space-allocation-service</module>
+        <module>Backend/Java/Storage/warehouse-config-service</module>
+        <module>Backend/Java/Storage/zone-service</module>
+
+        <!-- Inventory Services -->
+        <module>Backend/Java/Inventory/inventory-core-service</module>
+        <module>Backend/Java/Inventory/availability-service</module>
+        <module>Backend/Java/Inventory/batch-service</module>
+        <module>Backend/Java/Inventory/cycle-counting-service</module>
+        <module>Backend/Java/Inventory/expiration-service</module>
+        <module>Backend/Java/Inventory/reorder-service</module>
+        <module>Backend/Java/Inventory/self-storage-service</module>
+        <module>Backend/Java/Inventory/serialization-service</module>
+
+        <!-- Fulfillment Services -->
+        <module>Backend/Java/Fulfillment/fulfillment-core-service</module>
+        <module>Backend/Java/Fulfillment/packing-service</module>
+        <module>Backend/Java/Fulfillment/picking-service</module>
+        <module>Backend/Java/Fulfillment/quality-service</module>
+        <module>Backend/Java/Fulfillment/returns-service</module>
+        <module>Backend/Java/Fulfillment/shipping-service</module>
+
+        <!-- Inbound Services -->
+        <module>Backend/Java/Inbound/putaway-service</module>
+        <module>Backend/Java/Inbound/receipt-service</module>
+        <module>Backend/Java/Inbound/receiving-service</module>
+
+        <!-- Outbound Services -->
+        <module>Backend/Java/Outbound/carrier-service</module>
+        <module>Backend/Java/Outbound/label-service</module>
+        <module>Backend/Java/Outbound/order-service</module>
+
+        <!-- Analytics Services -->
+        <module>Backend/Java/Analytics/fulfillment-analytics-service</module>
+        <module>Backend/Java/Analytics/inventory-analytics-service</module>
+        <module>Backend/Java/Analytics/reporting-service</module>
+        <module>Backend/Java/Analytics/warehouse-analytics-service</module>
+
+        <!-- Pricing Services -->
+        <module>Backend/Java/Pricing/pricing-service</module>
+
+        <!-- Location Services -->
+        <module>Backend/Java/Location/location-service</module>
+
+        <!-- Stock Services -->
+        <module>Backend/Java/Stock/stock-service</module>
+
+        <!-- Vendor Services -->
+        <module>Backend/Java/Vendor/vendor-sync-service</module>
+
+        <!-- Public API Services -->
+        <module>Backend/Java/PublicAPI/public-availability-service</module>
+        <module>Backend/Java/PublicAPI/public-booking-service</module>
+        <module>Backend/Java/PublicAPI/public-pricing-service</module>
+
+        <!-- E-Commerce Integration Services -->
+        <module>Backend/Java/Ecommerce/ecommerce-warehouse-service</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Spring Boot -->
+        <spring.boot.version>3.1.5</spring.boot.version>
+        <spring.cloud.version>2022.0.4</spring.cloud.version>
+
+        <!-- Database - MongoDB -->
+        <mongodb.version>4.11.1</mongodb.version>
+
+        <!-- Kafka -->
+        <kafka.version>3.5.0</kafka.version>
+
+        <!-- Testing -->
+        <testcontainers.version>1.19.3</testcontainers.version>
+    </properties>
+        <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Warehousing-Domain</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages - CargoNexus Warehousing Domain</name>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Warehousing-Domain</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Packages - CargoNexus Warehousing Domain Snapshots</name>
+            <url>https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Warehousing-Domain</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Cloud Dependencies -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- MongoDB Driver (Sync) -->
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-sync</artifactId>
+                <version>${mongodb.version}</version>
+            </dependency>
+
+            <!-- Kafka -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+
+            <!-- Testcontainers for integration testing -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring.boot.version}</version>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

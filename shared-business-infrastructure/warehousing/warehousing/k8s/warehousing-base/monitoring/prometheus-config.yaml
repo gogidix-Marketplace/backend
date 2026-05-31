@@ -1,0 +1,1176 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: warehousing-prometheus-config
+  namespace: warehousing-core
+  labels:
+    app: prometheus
+    component: monitoring
+    part-of: warehousing-core
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'warehousing-core'
+        environment: '${ENVIRONMENT:production}'
+
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - alertmanager:9093
+
+    # Rule files
+    rule_files:
+      - '/etc/prometheus/rules/*.yml'
+
+    # Scrape configurations for all warehousing services
+    scrape_configs:
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+            labels:
+              service: 'prometheus'
+
+      # Kubernetes API Server
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      # Kubernetes Nodes
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+
+      # === INVENTORY SERVICES ===
+      - job_name: 'inventory-core-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '(jvm_.*|http_.*|process_.*|system_.*|spring_.*|application_.*)'
+            action: keep
+
+      - job_name: 'stock-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: stock-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'location-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: location-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'self-storage-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: self-storage-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'serialization-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: serialization-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'batch-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: batch-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'expiration-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: expiration-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'reorder-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: reorder-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'cycle-counting-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: cycle-counting-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'availability-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: availability-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === STORAGE SERVICES ===
+      - job_name: 'space-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: space-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'space-allocation-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: space-allocation-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'pricing-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: pricing-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'access-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: access-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'bin-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: bin-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'shelf-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: shelf-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'zone-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: zone-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'warehouse-config-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: warehouse-config-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === FULFILLMENT SERVICES ===
+      - job_name: 'fulfillment-core-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: fulfillment-core-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'picking-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: picking-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'packing-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: packing-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'shipping-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: shipping-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'returns-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: returns-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'quality-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: quality-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === INBOUND SERVICES ===
+      - job_name: 'receiving-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: receiving-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'receipt-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: receipt-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'putaway-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: putaway-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === OUTBOUND SERVICES ===
+      - job_name: 'order-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: order-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'carrier-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: carrier-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'label-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: label-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === PUBLIC API SERVICES ===
+      - job_name: 'public-booking-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: public-booking-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'public-availability-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: public-availability-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'public-pricing-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: public-pricing-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === ANALYTICS SERVICES ===
+      - job_name: 'inventory-analytics-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: inventory-analytics-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'fulfillment-analytics-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: fulfillment-analytics-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'warehouse-analytics-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: warehouse-analytics-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'reporting-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: reporting-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === TENANT SERVICES ===
+      - job_name: 'tenant-config-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: tenant-config-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      - job_name: 'warehouse-config-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: warehouse-config-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === VENDOR SERVICES ===
+      - job_name: 'vendor-sync-service'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - warehousing-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: vendor-sync-service
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+
+      # === KUBE-STATE-METRICS ===
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+            labels:
+              service: 'kube-state-metrics'
+
+      # === NODE-EXPORTER ===
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: '(.*):10250'
+            replacement: '${1}:9100'
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+
+      # === CADVISOR ===
+      - job_name: 'cadvisor'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: '(.*):10250'
+            replacement: '${1}:4194'
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+
+  warehousing-alerts.yml: |
+    groups:
+      - name: warehousing-alerts
+        interval: 30s
+        rules:
+          # Service Health Alerts
+          - alert: ServiceDown
+            expr: up{job=~".*service"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              component: warehousing
+            annotations:
+              summary: "Service {{ $labels.job }} is down"
+              description: "{{ $labels.job }} has been down for more than 2 minutes."
+
+          - alert: HighErrorRate
+            expr: |
+              rate(http_server_requests_seconds_count{status=~"5.."}[5m]) /
+              rate(http_server_requests_seconds_count[5m]) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+              component: warehousing
+            annotations:
+              summary: "High error rate on {{ $labels.job }}"
+              description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }}."
+
+          - alert: HighLatency
+            expr: |
+              histogram_quantile(0.95,
+                rate(http_server_requests_seconds_bucket[5m])
+              ) > 1
+            for: 5m
+            labels:
+              severity: warning
+              component: warehousing
+            annotations:
+              summary: "High latency on {{ $labels.job }}"
+              description: "P95 latency is {{ $value }}s for {{ $labels.job }}."
+
+          # JVM Alerts
+          - alert: HighMemoryUsage
+            expr: |
+              jvm_memory_used_bytes{area="heap"} /
+              jvm_memory_max_bytes{area="heap"} > 0.9
+            for: 5m
+            labels:
+              severity: warning
+              component: warehousing
+            annotations:
+              summary: "High memory usage on {{ $labels.job }}"
+              description: "Heap memory usage is {{ $value | humanizePercentage }} for {{ $labels.job }}."
+
+          - alert: HighGCPauseTime
+            expr: |
+              rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
+            for: 5m
+            labels:
+              severity: warning
+              component: warehousing
+            annotations:
+              summary: "High GC pause time on {{ $labels.job }}"
+              description: "GC pause time is {{ $value }}s/s for {{ $labels.job }}."
+
+          # Database Alerts
+          - alert: HighMongoDBLatency
+            expr: |
+              histogram_quantile(0.95,
+                rate(mongo_driver_commands_seconds_bucket[5m])
+              ) > 0.5
+            for: 5m
+            labels:
+              severity: warning
+              component: warehousing
+            annotations:
+              summary: "High MongoDB latency on {{ $labels.job }}"
+              description: "P95 MongoDB latency is {{ $value }}s for {{ $labels.job }}."
+
+          - alert: MongoDBConnectionPoolExhausted
+            expr: |
+              mongo_driver_pool_wait_queues_total > 10
+            for: 2m
+            labels:
+              severity: critical
+              component: warehousing
+            annotations:
+              summary: "MongoDB connection pool exhausted on {{ $labels.job }}"
+              description: "Connection pool wait queue is {{ $value }} for {{ $labels.job }}."
+
+          # Kafka Alerts
+          - alert: KafkaConsumerLag
+            expr: |
+              kafka_consumergroup_lag > 1000
+            for: 5m
+            labels:
+              severity: warning
+              component: warehousing
+            annotations:
+              summary: "High Kafka consumer lag on {{ $labels.job }}"
+              description: "Consumer lag is {{ $value }} for {{ $labels.job }}."
+
+          # Inventory Alerts
+          - alert: LowStockItems
+            expr: |
+              inventory_items_low_count{tenant_id="*"} > 100
+            for: 1m
+            labels:
+              severity: info
+              component: inventory
+            annotations:
+              summary: "Many low stock items for tenant {{ $labels.tenant_id }}"
+              description: "{{ $value }} items are below reorder threshold."
+
+          - alert: StockoutDetected
+            expr: |
+              inventory_items_stockout{tenant_id="*"} > 10
+            for: 1m
+            labels:
+              severity: warning
+              component: inventory
+            annotations:
+              summary: "Stockouts detected for tenant {{ $labels.tenant_id }}"
+              description: "{{ $value }} items are out of stock."
+
+          # Fulfillment Alerts
+          - alert: OrdersPendingTooLong
+            expr: |
+              fulfillment_orders_pending_age_seconds > 3600
+            for: 5m
+            labels:
+              severity: warning
+              component: fulfillment
+            annotations:
+              summary: "Orders pending for over 1 hour"
+              description: "{{ $value }} orders have been pending for over 1 hour."
+
+          - alert: PickRateBelowThreshold
+            expr: |
+              rate(fulfillment_picks_total[1h]) < 10
+            for: 10m
+            labels:
+              severity: warning
+              component: fulfillment
+            annotations:
+              summary: "Low picking rate"
+              description: "Picking rate is below 10 picks/hour."
+
+          # Storage Alerts
+          - alert: StorageCapacityHigh
+            expr: |
+              storage_utilization_percent > 90
+            for: 5m
+            labels:
+              severity: warning
+              component: storage
+            annotations:
+              summary: "Storage capacity high for warehouse {{ $labels.warehouse_id }}"
+              description: "Storage utilization is {{ $value }}%."
+
+          - alert: StorageCapacityCritical
+            expr: |
+              storage_utilization_percent > 95
+            for: 2m
+            labels:
+              severity: critical
+              component: storage
+            annotations:
+              summary: "Storage capacity critical for warehouse {{ $labels.warehouse_id }}"
+              description: "Storage utilization is {{ $value }}%."
+
+          # Expiration Alerts
+          - alert: ItemsExpiringSoon
+            expr: |
+              inventory_items_expiring_7days > 50
+            for: 1m
+            labels:
+              severity: warning
+              component: inventory
+            annotations:
+              summary: "Many items expiring soon"
+              description: "{{ $value }} items will expire within 7 days."
+
+          - alert: ExpiredItemsNotQuarantined
+            expr: |
+              inventory_items_expired_not_quarantined > 0
+            for: 5m
+            labels:
+              severity: critical
+              component: inventory
+            annotations:
+              summary: "Expired items not quarantined"
+              description: "{{ $value }} expired items are not in quarantine."
+
+          # Pod Alerts
+          - alert: PodNotReady
+            expr: |
+              kube_pod_status_ready{namespace="warehousing-core", condition="false"} == 1
+            for: 5m
+            labels:
+              severity: warning
+              component: kubernetes
+            annotations:
+              summary: "Pod {{ $labels.pod }} not ready"
+              description: "Pod {{ $labels.pod }} has been not ready for more than 5 minutes."
+
+          - alert: PodCrashLooping
+            expr: |
+              rate(kube_pod_container_status_restarts_total{namespace="warehousing-core"}[15m]) > 0
+            for: 5m
+            labels:
+              severity: critical
+              component: kubernetes
+            annotations:
+              summary: "Pod {{ $labels.pod }} is crash looping"
+              description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes."

@@ -1,0 +1,909 @@
+# ServiceMonitor for Prometheus Operator
+# This file defines ServiceMonitor resources for all warehousing services
+# when using Prometheus Operator for monitoring
+
+---
+# Inventory ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: inventory-core-service
+  namespace: warehousing-core
+  labels:
+    app: inventory-core-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: inventory-core-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: stock-service
+  namespace: warehousing-core
+  labels:
+    app: stock-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: stock-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: location-service
+  namespace: warehousing-core
+  labels:
+    app: location-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: location-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: self-storage-service
+  namespace: warehousing-core
+  labels:
+    app: self-storage-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: self-storage-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: serialization-service
+  namespace: warehousing-core
+  labels:
+    app: serialization-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: serialization-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: batch-service
+  namespace: warehousing-core
+  labels:
+    app: batch-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: batch-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: expiration-service
+  namespace: warehousing-core
+  labels:
+    app: expiration-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: expiration-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: reorder-service
+  namespace: warehousing-core
+  labels:
+    app: reorder-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: reorder-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cycle-counting-service
+  namespace: warehousing-core
+  labels:
+    app: cycle-counting-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: cycle-counting-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: availability-service
+  namespace: warehousing-core
+  labels:
+    app: availability-service
+    component: inventory
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: availability-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Storage ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: space-service
+  namespace: warehousing-core
+  labels:
+    app: space-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: space-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: space-allocation-service
+  namespace: warehousing-core
+  labels:
+    app: space-allocation-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: space-allocation-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pricing-service
+  namespace: warehousing-core
+  labels:
+    app: pricing-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: pricing-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: access-service
+  namespace: warehousing-core
+  labels:
+    app: access-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: access-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: bin-service
+  namespace: warehousing-core
+  labels:
+    app: bin-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: bin-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: shelf-service
+  namespace: warehousing-core
+  labels:
+    app: shelf-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: shelf-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: zone-service
+  namespace: warehousing-core
+  labels:
+    app: zone-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: zone-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: warehouse-config-service
+  namespace: warehousing-core
+  labels:
+    app: warehouse-config-service
+    component: storage
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: warehouse-config-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Fulfillment ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fulfillment-core-service
+  namespace: warehousing-core
+  labels:
+    app: fulfillment-core-service
+    component: fulfillment
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: fulfillment-core-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: picking-service
+  namespace: warehousing-core
+  labels:
+    app: picking-service
+    component: fulfillment
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: picking-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: packing-service
+  namespace: warehousing-core
+  labels:
+    app: packing-service
+    component: fulfillment
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: packing-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: shipping-service
+  namespace: warehousing-core
+  labels:
+    app: shipping-service
+    component: fulfillment
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: shipping-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: returns-service
+  namespace: warehousing-core
+  labels:
+    app: returns-service
+    component: fulfillment
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: returns-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: quality-service
+  namespace: warehousing-core
+  labels:
+    app: quality-service
+    component: fulfillment
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: quality-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Inbound ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: receiving-service
+  namespace: warehousing-core
+  labels:
+    app: receiving-service
+    component: inbound
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: receiving-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: receipt-service
+  namespace: warehousing-core
+  labels:
+    app: receipt-service
+    component: inbound
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: receipt-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: putaway-service
+  namespace: warehousing-core
+  labels:
+    app: putaway-service
+    component: inbound
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: putaway-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Outbound ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: order-service
+  namespace: warehousing-core
+  labels:
+    app: order-service
+    component: outbound
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: order-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: carrier-service
+  namespace: warehousing-core
+  labels:
+    app: carrier-service
+    component: outbound
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: carrier-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: label-service
+  namespace: warehousing-core
+  labels:
+    app: label-service
+    component: outbound
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: label-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Public API ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: public-booking-service
+  namespace: warehousing-core
+  labels:
+    app: public-booking-service
+    component: public-api
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: public-booking-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: public-availability-service
+  namespace: warehousing-core
+  labels:
+    app: public-availability-service
+    component: public-api
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: public-availability-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: public-pricing-service
+  namespace: warehousing-core
+  labels:
+    app: public-pricing-service
+    component: public-api
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: public-pricing-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Analytics ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: inventory-analytics-service
+  namespace: warehousing-core
+  labels:
+    app: inventory-analytics-service
+    component: analytics
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: inventory-analytics-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fulfillment-analytics-service
+  namespace: warehousing-core
+  labels:
+    app: fulfillment-analytics-service
+    component: analytics
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: fulfillment-analytics-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: warehouse-analytics-service
+  namespace: warehousing-core
+  labels:
+    app: warehouse-analytics-service
+    component: analytics
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: warehouse-analytics-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: reporting-service
+  namespace: warehousing-core
+  labels:
+    app: reporting-service
+    component: analytics
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: reporting-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Tenant ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: tenant-config-service
+  namespace: warehousing-core
+  labels:
+    app: tenant-config-service
+    component: tenant
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: tenant-config-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core
+
+---
+# Vendor ServiceMonitors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vendor-sync-service
+  namespace: warehousing-core
+  labels:
+    app: vendor-sync-service
+    component: vendor
+    part-of: warehousing-core
+spec:
+  selector:
+    matchLabels:
+      app: vendor-sync-service
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - warehousing-core

@@ -1,0 +1,98 @@
+3,1,com.gogidix.shared.model.domain.model.common.MoneyTest,testRoundMethods
+5,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testStaticFactoryMethods
+5,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testSplit
+5,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testAmountIsScaled
+5,4,com.gogidix.shared.model.domain.model.common.AddressTest,testNormalizeForShipping
+5,7,com.gogidix.shared.model.domain.model.common.AddressTest,testNormalizeStreetName
+7,4,com.gogidix.shared.model.domain.model.common.AddressTest,testIsValidForTypeMilitary
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[1]
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[8]
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testSubtract
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[2]
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testMultiplyByBigDecimal
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testConstructorWithString
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsPositive(String, boolean)[4]
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testGetCityStatePostal
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegionWithNullCountry
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsWithinDistance
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsCompleteWithInternationalAddress
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[9]
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[4]
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsEquivalentTo
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsDeliverable
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testIsCompleteWithValidUSAddress
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[12]
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsNegative(String, boolean)[2]
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testBuilderCreatesValidAddress
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testEqualsAndHashCode
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testComparisonMethods
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsNegative(String, boolean)[3]
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testPercentageOfWithZeroTotal
+9,0,com.gogidix.shared.model.domain.model.common.AddressTest,testAddressTypeEnum
+9,0,com.gogidix.shared.model.domain.model.common.MoneyTest,testToAmountInCents
+9,1,com.gogidix.shared.model.domain.model.common.MoneyTest,testCurrencyConversion
+9,1,com.gogidix.shared.model.domain.model.common.AddressTest,testIsInternationalAddress
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsPositive(String, boolean)[2]
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsNegative(String, boolean)[4]
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testEqualsAndHashCode
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testNullAmountThrowsException
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testPercentageOf
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[9]
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsPositive(String, boolean)[3]
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testNullCurrencyCodeThrowsException
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testGetDistanceToWithCoordinates
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testSumStaticMethod
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testConversionToSameCurrency
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testMultiplyByDouble
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testConstructorWithDouble
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testComparisonWithDifferentCurrency
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testWithMethodsCreateNewInstances
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[7]
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[8]
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testRegionField
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testConstructorWithLongCents
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testStreet2OptionalField
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testSumWithEmptyArray
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testAbs
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testUsAddressBuilder
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testApplyPercentage
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[5]
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[10]
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testNegate
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testSplitWithZeroPartsThrowsException
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsNegative(String, boolean)[1]
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testAdd
+9,2,com.gogidix.shared.model.domain.model.common.MoneyTest,testMinStaticMethod
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[3]
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[2]
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testIsCompleteReturnsFalseForIncomplete
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[4]
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testIsValidForType
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[11]
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testToString
+9,2,com.gogidix.shared.model.domain.model.common.AddressTest,testGetFullStreetAddress
+9,3,com.gogidix.shared.model.domain.model.common.AddressTest,testGetDistanceToWithoutCoordinates
+9,4,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[6]
+9,4,com.gogidix.shared.model.domain.model.common.MoneyTest,testCurrencyObject
+9,4,com.gogidix.shared.model.domain.model.common.MoneyTest,testToString
+9,4,com.gogidix.shared.model.domain.model.common.MoneyTest,testMultiplyByInteger
+9,4,com.gogidix.shared.model.domain.model.common.AddressTest,testIsValidForTypePOBox
+9,4,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[3]
+9,5,com.gogidix.shared.model.domain.model.common.MoneyTest,testToDouble
+9,6,com.gogidix.shared.model.domain.model.common.MoneyTest,testImmutableOperations
+9,6,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[1]
+9,6,com.gogidix.shared.model.domain.model.common.AddressTest,testVerifiedFlag
+9,6,com.gogidix.shared.model.domain.model.common.MoneyTest,testMaxStaticMethod
+9,6,com.gogidix.shared.model.domain.model.common.MoneyTest,testZeroConstant
+9,6,com.gogidix.shared.model.domain.model.common.MoneyTest,testConstructorWithBigDecimal
+9,6,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[6]
+9,8,com.gogidix.shared.model.domain.model.common.AddressTest,testGetFullAddress
+9,8,com.gogidix.shared.model.domain.model.common.AddressTest,testIsPostalCodeValid(String, String, boolean)[7]
+9,8,com.gogidix.shared.model.domain.model.common.MoneyTest,testDivideByZeroThrowsException
+9,8,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsZero
+9,8,com.gogidix.shared.model.domain.model.common.MoneyTest,testAddWithDifferentCurrency
+9,9,com.gogidix.shared.model.domain.model.common.AddressTest,testGetShippingRegion(String, ShippingRegion)[5]
+9,21,com.gogidix.shared.model.domain.model.common.MoneyTest,testFormatMethods
+9,26,com.gogidix.shared.model.domain.model.common.AddressTest,testInternationalAddressBuilder
+9,53,com.gogidix.shared.model.domain.model.common.MoneyTest,testIsPositive(String, boolean)[1]
+9,58,com.gogidix.shared.model.domain.model.common.MoneyTest,testDivideByDouble

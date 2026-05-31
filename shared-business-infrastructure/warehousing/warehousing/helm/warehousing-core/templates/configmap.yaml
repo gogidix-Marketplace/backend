@@ -1,0 +1,157 @@
+{{/*
+===============================================================================
+ConfigMap Template
+===============================================================================
+Creates Kubernetes ConfigMaps for storing non-sensitive configuration data.
+*/}}
+{{- if .Values.configMap }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.name | default "warehousing-core-config" }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: config
+{{- if .Values.configMap.annotations }}
+  annotations:
+    {{- toYaml .Values.configMap.annotations | nindent 4 }}
+{{- end }}
+data:
+  # Application Configuration
+  application.yml: |
+    server:
+      port: 8200
+      shutdown: graceful
+      tomcat:
+        threads:
+          max: 200
+          min-spare: 10
+    spring:
+      application:
+        name: ${spring.application.name:warehousing-service}
+      profiles:
+        active: ${SPRING_PROFILES_ACTIVE:cloud,development}
+      cloud:
+        kubernetes:
+          discovery:
+            enabled: true
+            service-name: ${spring.application.name}
+        stream:
+          kafka:
+            binder:
+              brokers: ${KAFKA_BOOTSTRAP_SERVERS:kafka-controller-0.kafka-controller-headless.${namespace}.svc.cluster.local:9092}
+              auto-create-topics: true
+              auto-add-partitions: true
+      data:
+        mongodb:
+          uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/warehousing_core}
+      redis:
+        host: ${SPRING_REDIS_HOST:redis-master}
+        port: ${SPRING_REDIS_PORT:6379}
+        timeout: 2000ms
+        lettuce:
+          pool:
+            max-active: 8
+            max-idle: 8
+            min-idle: 2
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          probes:
+            enabled: true
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+        tags:
+          application: ${spring.application.name}
+          environment: ${ENVIRONMENT:development}
+      tracing:
+        sampling:
+          probability: ${TRACING_SAMPLER:0.1}
+    logging:
+      pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+        file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+      level:
+        root: ${LOG_LEVEL_ROOT:INFO}
+        com.gogidix.warehousing: ${LOG_LEVEL_APP:DEBUG}
+    opentracing:
+      jaeger:
+        enabled: ${JAEGER_ENABLED:false}
+        service-name: ${spring.application.name}
+        udp-sender:
+          host: ${JAEGER_HOST:jaeger-agent.observability.svc.cluster.local}
+          port: ${JAEGER_PORT:6831}
+
+  # Common Configuration
+  common-config.properties: |
+    # Infrastructure Configuration
+    mongodb.enabled=${MONGODB_ENABLED:true}
+    kafka.enabled=${KAFKA_ENABLED:true}
+    redis.enabled=${REDIS_ENABLED:true}
+
+    # Service Discovery
+    eureka.client.enabled=${EUREKA_ENABLED:false}
+    eureka.client.service-url.defaultZone=${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://eureka:8761/eureka}
+
+    # Observability
+    management.endpoints.web.exposure.include=health,info,metrics,prometheus
+    management.metrics.export.prometheus.enabled=true
+    management.tracing.sampling.probability=${TRACING_SAMPLER:0.1}
+
+    # Logging
+    logging.level.root=${LOG_LEVEL_ROOT:INFO}
+    logging.level.com.gogidix.warehousing=${LOG_LEVEL_APP:DEBUG}
+
+{{- if .Values.configMap.data }}
+{{- range $key, $value := .Values.configMap.data }}
+  {{ $key }}: |
+    {{- $value | nindent 4 }}
+{{- end }}
+{{- end }}
+
+{{- end }}
+
+{{/*
+Service-specific ConfigMaps
+*/}}
+{{- range $serviceName, $serviceConfig := .Values }}
+{{- if and $serviceConfig.enabled (or (hasSuffix "Service" $serviceName) (hasSuffix "service" $serviceName)) }}
+{{- if $serviceConfig.configMap }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $serviceConfig.name }}-config
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: service-config
+{{- if $serviceConfig.configMap.annotations }}
+  annotations:
+    {{- toYaml $serviceConfig.configMap.annotations | nindent 4 }}
+{{- end }}
+data:
+  application-{{ $serviceConfig.name }}.yml: |
+    server:
+      port: {{ $serviceConfig.ports.http | default 8200 }}
+    spring:
+      application:
+        name: {{ $serviceConfig.name }}
+{{- if $serviceConfig.configMap.data }}
+{{- range $key, $value := $serviceConfig.configMap.data }}
+  {{ $key }}: |
+    {{- $value | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

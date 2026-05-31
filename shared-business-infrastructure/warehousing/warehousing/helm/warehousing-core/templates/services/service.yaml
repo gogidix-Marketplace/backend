@@ -1,0 +1,64 @@
+{{/*
+===============================================================================
+Service Template
+===============================================================================
+Generates Service and Service resources for all enabled warehousing services.
+This template iterates through all services defined in values.yaml and creates
+the appropriate Kubernetes resources.
+*/}}
+
+{{- range $serviceName, $serviceConfig := .Values }}
+{{- if and $serviceConfig.enabled (or (hasSuffix "Service" $serviceName) (hasSuffix "service" $serviceName)) }}
+{{- $svcName := $serviceConfig.name | default $serviceName }}
+{{- $httpPort := $serviceConfig.ports.http | default 8200 }}
+{{- $mgmtPort := $serviceConfig.ports.management | default (add1 $httpPort) }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svcName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.serviceLabels" (list $svcName $) | nindent 4 }}
+    service: {{ $svcName }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: {{ $mgmtPort | quote }}
+    prometheus.io/path: "/actuator/prometheus"
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: http
+      port: {{ $httpPort }}
+      targetPort: http
+      protocol: TCP
+    - name: management
+      port: {{ $mgmtPort }}
+      targetPort: management
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ $svcName }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svcName }}-headless
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.serviceLabels" (list $svcName $) | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: {{ $httpPort }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ $svcName }}
+
+{{- end }}
+{{- end }}

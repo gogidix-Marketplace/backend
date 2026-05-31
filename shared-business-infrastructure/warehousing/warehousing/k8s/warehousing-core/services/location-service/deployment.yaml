@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: location-service
+  namespace: warehousing-core
+  labels:
+    app: location-service
+    version: v1
+    component: location
+    part-of: warehousing-core
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: location-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: location-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8221"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: warehousing-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: location-service
+        image: gogidix/location-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8220
+          protocol: TCP
+        - name: management
+          containerPort: 8221
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: warehousing-common-config
+              key: SPRING_PROFILES_ACTIVE
+        - name: SERVER_PORT
+          value: "8220"
+        - name: MANAGEMENT_SERVER_PORT
+          value: "8221"
+        - name: SPRING_APPLICATION_NAME
+          value: "location-service"
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          valueFrom:
+            configMapKeyRef:
+              name: warehousing-common-config
+              key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: warehousing-common-config
+              key: KAFKA_BOOTSTRAP_SERVERS
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: warehousing-common-secret
+              key: MONGODB_USERNAME
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: warehousing-common-secret
+              key: MONGODB_PASSWORD
+        - name: SPRING_DATA_MONGODB_URI
+          value: "mongodb://$(MONGODB_USERNAME):$(MONGODB_PASSWORD)@mongodb-warehousing.mongodb.svc.cluster.local:27017/location?authSource=admin"
+        - name: SPRING_REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: warehousing-common-config
+              key: REDIS_HOST
+        - name: SPRING_REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: warehousing-common-config
+              key: REDIS_PORT
+        - name: SPRING_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-warehousing-secret
+              key: redis-password
+              optional: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: management
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: management
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /actuator/health/startup
+            port: management
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - location-service
+              topologyKey: kubernetes.io/hostname

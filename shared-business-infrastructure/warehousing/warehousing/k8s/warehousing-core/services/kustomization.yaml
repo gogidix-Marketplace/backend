@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# This is the main kustomization for all warehousing services
+# Individual services can be deployed using their specific directory
+
+namespace: warehousing-core
+
+commonLabels:
+  app.kubernetes.io/part-of: warehousing-core
+  app.kubernetes.io/managed-by: kustomize
+
+# Include all service directories
+resources:
+# Base Configuration
+- ../base/namespace.yaml
+- ../base/configmap.yaml
+- ../base/secret.yaml
+- ../base/network-policy.yaml
+- ../base/resource-quota.yaml
+
+# Inbound/Outbound Operations
+- inbound-core-service
+- outbound-core-service
+- fulfillment-core-service
+- picking-service
+- packing-service
+- putaway-service
+- receiving-service
+- shipping-service
+- returns-service
+- quality-service
+
+# Inventory Management
+- inventory-core-service
+- stock-service
+- stock-adjustment-service
+- stock-movement-service
+- cycle-counting-service
+- serialization-service
+- batch-service
+- expiration-service
+- reorder-service
+
+# Location Management
+- location-service
+- warehouse-config-service
+- zone-service
+- shelf-service
+- bin-service
+
+# Self Storage
+- self-storage-service
+- space-service
+- space-allocation-service
+- storage-reservation-service
+
+# Tenant and Public APIs
+- tenant-config-service
+- public-booking-service
+- public-pricing-service
+- public-availability-service
+
+configMapGenerator:
+- name: warehousing-version-config
+  literals:
+  - VERSION=1.0.0
+  - BUILD_DATE=2026-02-21

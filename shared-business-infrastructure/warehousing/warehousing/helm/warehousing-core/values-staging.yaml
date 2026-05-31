@@ -1,0 +1,591 @@
+# ==============================================================================
+# Warehousing Core Helm Chart - Staging Environment Values
+# ==============================================================================
+# This file contains staging environment specific overrides.
+# Usage: helm install warehousing-core ./warehousing-core -f values-staging.yaml
+
+# ------------------------------------------------------------------------------
+# Global Configuration Overrides
+# ------------------------------------------------------------------------------
+global:
+  environment: staging
+  labels:
+    domain: warehousing
+    platform: gogidix
+    managed-by: helm
+    environment: staging
+
+# ------------------------------------------------------------------------------
+# Namespace Configuration
+# ------------------------------------------------------------------------------
+namespace:
+  create: true
+  name: warehousing-staging
+
+# ------------------------------------------------------------------------------
+# MongoDB Configuration - Staging
+# ------------------------------------------------------------------------------
+mongodb:
+  enabled: true
+  architecture: replicaset
+  replicaSet:
+    name: rs0
+    replicas:
+      secondary: 1
+      arbiter: 0
+  auth:
+    enabled: true
+    rootUser: admin
+    existingSecret: mongodb-credentials-staging
+    database: warehousing_staging
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: 50Gi
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# ------------------------------------------------------------------------------
+# Kafka Configuration - Staging
+# ------------------------------------------------------------------------------
+kafka:
+  enabled: true
+  replicas: 2
+  controller:
+    replicaCount: 2
+  broker:
+    replicaCount: 2
+    persistence:
+      size: 50Gi
+      storageClass: "standard"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# ------------------------------------------------------------------------------
+# Redis Configuration - Staging
+# ------------------------------------------------------------------------------
+redis:
+  enabled: true
+  architecture: replication
+  replica:
+    replicaCount: 2
+  auth:
+    enabled: true
+    existingSecret: redis-credentials-staging
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "standard"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 125m
+      memory: 256Mi
+
+# ------------------------------------------------------------------------------
+# Service Replica Overrides - Staging
+# ------------------------------------------------------------------------------
+# Core services get 2 replicas in staging
+fulfillmentCoreService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+inventoryCoreService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+outboundCoreService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+# Standard services get 1-2 replicas
+pickingService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+packingService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+shippingService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+receivingService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+putawayService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+stockService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+publicBookingService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+publicAvailabilityService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+publicPricingService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Analytics services get 1 replica in staging
+fulfillmentAnalyticsService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+inventoryAnalyticsService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+warehouseAnalyticsService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+reportingService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 800m
+      memory: 1Gi
+    requests:
+      cpu: 150m
+      memory: 256Mi
+
+# Support services get 1 replica
+batchService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+cycleCountingService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+expirationService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+serializationService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+locationService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+warehouseConfigService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+tenantConfigService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+zoneService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+shelfService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+binService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+qualityService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+returnsService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+receiptService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+reorderService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+availabilityService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+carrierService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+labelService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+orderService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+pricingService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+accessService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+selfStorageService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+spaceService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+spaceAllocationService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+storageReservationService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+vendorSyncService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+stockAdjustmentService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+stockMovementService:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 75m
+      memory: 96Mi
+
+# ------------------------------------------------------------------------------
+# HPA Overrides - Staging
+# ------------------------------------------------------------------------------
+# Reduce max replicas in staging
+fulfillmentCoreService:
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+
+inventoryCoreService:
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+
+outboundCoreService:
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+
+# ------------------------------------------------------------------------------
+# Ingress Configuration - Staging
+# ------------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  hosts:
+    - host: api.warehousing-staging.gogidix.com
+      paths:
+        - path: /(/|$)(.*)
+          pathType: Prefix
+          serviceName: fulfillment-core-service
+          servicePort: 8202
+  tls:
+    - secretName: warehousing-staging-tls
+      hosts:
+        - api.warehousing-staging.gogidix.com
+
+# ------------------------------------------------------------------------------
+# Observability - Staging
+# ------------------------------------------------------------------------------
+observability:
+  logging:
+    enabled: true
+    format: json
+    level: debug
+  tracing:
+    enabled: true
+    sampler: 0.5
+  metrics:
+    enabled: true

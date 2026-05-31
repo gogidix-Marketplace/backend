@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: space-allocation-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: shared_warehousing
+      auto-index-creation: true
+
+server:
+  port: ${SERVER_PORT:8232}
+  servlet:
+    context-path: /api/v1/space-allocation
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

@@ -1,0 +1,121 @@
+{{/*
+===============================================================================
+NetworkPolicy Template
+===============================================================================
+Creates Kubernetes NetworkPolicies for warehousing services.
+*/}}
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "warehousing-core.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: warehousing-core
+  policyTypes:
+  {{- range .Values.networkPolicy.policyTypes }}
+    - {{ . }}
+  {{- end }}
+  ingress:
+  {{- range .Values.networkPolicy.ingress }}
+    - from:
+        {{- range .from }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        {{- range .ports }}
+        - protocol: {{ .protocol }}
+          port: {{ .port }}
+        {{- end }}
+  {{- end }}
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+  {{- range .Values.networkPolicy.egress }}
+    - to:
+        {{- range .to }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        {{- range .ports }}
+        - protocol: {{ .protocol }}
+          port: {{ .port }}
+        {{- end }}
+  {{- end }}
+{{- end }}
+
+{{/*
+NetworkPolicy for each service (if service-specific network policies are needed)
+*/}}
+{{- range $serviceName, $serviceConfig := .Values }}
+{{- if and $serviceConfig.enabled (or (hasSuffix "Service" $serviceName) (hasSuffix "service" $serviceName)) }}
+{{- if $serviceConfig.networkPolicy }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $serviceConfig.name }}-network-policy
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: service-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $serviceConfig.name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+  {{- range $serviceConfig.networkPolicy.ingress }}
+    - from:
+        {{- range .from }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        {{- range .ports }}
+        - protocol: {{ .protocol }}
+          port: {{ .port }}
+        {{- end }}
+  {{- end }}
+  egress:
+    # Always allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+  {{- range $serviceConfig.networkPolicy.egress }}
+    - to:
+        {{- range .to }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        {{- range .ports }}
+        - protocol: {{ .protocol }}
+          port: {{ .port }}
+        {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

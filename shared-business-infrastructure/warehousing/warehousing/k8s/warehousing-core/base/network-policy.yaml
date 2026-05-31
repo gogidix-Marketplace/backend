@@ -1,0 +1,269 @@
+# Network Policies for Warehousing Core Services
+# These policies control traffic flow between services
+
+# Allow all services to communicate with each other
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: warehousing-allow-internal
+  namespace: warehousing-core
+  labels:
+    app: warehousing-core
+spec:
+  podSelector:
+    matchLabels:
+      part-of: warehousing-core
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          part-of: warehousing-core
+    ports:
+    - protocol: TCP
+      port: 8200
+    - protocol: TCP
+      port: 8201
+    - protocol: TCP
+      port: 8202
+    - protocol: TCP
+      port: 8203
+    - protocol: TCP
+      port: 8204
+    - protocol: TCP
+      port: 8205
+    - protocol: TCP
+      port: 8206
+    - protocol: TCP
+      port: 8207
+    - protocol: TCP
+      port: 8208
+    - protocol: TCP
+      port: 8209
+    - protocol: TCP
+      port: 8210
+    - protocol: TCP
+      port: 8211
+    - protocol: TCP
+      port: 8212
+    - protocol: TCP
+      port: 8213
+    - protocol: TCP
+      port: 8214
+    - protocol: TCP
+      port: 8215
+    - protocol: TCP
+      port: 8216
+    - protocol: TCP
+      port: 8217
+    - protocol: TCP
+      port: 8218
+    - protocol: TCP
+      port: 8220
+    - protocol: TCP
+      port: 8221
+    - protocol: TCP
+      port: 8222
+    - protocol: TCP
+      port: 8224
+    - protocol: TCP
+      port: 8225
+    - protocol: TCP
+      port: 8230
+    - protocol: TCP
+      port: 8231
+    - protocol: TCP
+      port: 8232
+    - protocol: TCP
+      port: 8233
+    - protocol: TCP
+      port: 8240
+    - protocol: TCP
+      port: 8280
+    - protocol: TCP
+      port: 8281
+    - protocol: TCP
+      port: 8282
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          part-of: warehousing-core
+    ports:
+    - protocol: TCP
+      port: 8200
+    - protocol: TCP
+      port: 8201
+    - protocol: TCP
+      port: 8202
+    - protocol: TCP
+      port: 8203
+    - protocol: TCP
+      port: 8204
+    - protocol: TCP
+      port: 8205
+    - protocol: TCP
+      port: 8206
+    - protocol: TCP
+      port: 8207
+    - protocol: TCP
+      port: 8208
+    - protocol: TCP
+      port: 8209
+    - protocol: TCP
+      port: 8210
+    - protocol: TCP
+      port: 8211
+    - protocol: TCP
+      port: 8212
+    - protocol: TCP
+      port: 8213
+    - protocol: TCP
+      port: 8214
+    - protocol: TCP
+      port: 8215
+    - protocol: TCP
+      port: 8216
+    - protocol: TCP
+      port: 8217
+    - protocol: TCP
+      port: 8218
+    - protocol: TCP
+      port: 8220
+    - protocol: TCP
+      port: 8221
+    - protocol: TCP
+      port: 8222
+    - protocol: TCP
+      port: 8224
+    - protocol: TCP
+      port: 8225
+    - protocol: TCP
+      port: 8230
+    - protocol: TCP
+      port: 8231
+    - protocol: TCP
+      port: 8232
+    - protocol: TCP
+      port: 8233
+    - protocol: TCP
+      port: 8240
+    - protocol: TCP
+      port: 8280
+    - protocol: TCP
+      port: 8281
+    - protocol: TCP
+      port: 8282
+  # Allow external dependencies
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kafka
+    ports:
+    - protocol: TCP
+      port: 9092
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: mongodb
+    ports:
+    - protocol: TCP
+      port: 27017
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: eureka
+    ports:
+    - protocol: TCP
+      port: 8761
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Allow ingress from ingress controllers
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: warehousing-allow-ingress
+  namespace: warehousing-core
+  labels:
+    app: warehousing-core
+spec:
+  podSelector:
+    matchLabels:
+      part-of: warehousing-core
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8200
+    - protocol: TCP
+      port: 8201
+    - protocol: TCP
+      port: 8202
+    - protocol: TCP
+      port: 8280
+    - protocol: TCP
+      port: 8281
+    - protocol: TCP
+      port: 8282
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    ports:
+    - protocol: TCP
+      port: 8200
+    - protocol: TCP
+      port: 8280
+
+---
+# Allow monitoring
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: warehousing-allow-monitoring
+  namespace: warehousing-core
+  labels:
+    app: warehousing-core
+spec:
+  podSelector:
+    matchLabels:
+      part-of: warehousing-core
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8201
+    - protocol: TCP
+      port: 9100
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8201

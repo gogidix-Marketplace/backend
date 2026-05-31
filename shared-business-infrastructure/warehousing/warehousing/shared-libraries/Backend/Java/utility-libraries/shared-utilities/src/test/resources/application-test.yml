@@ -1,0 +1,45 @@
+spring:
+  profiles:
+    active: test
+
+# Test-specific configuration
+gogidix:
+  utilities:
+    date:
+      default-timezone: UTC
+      date-format: yyyy-MM-dd
+      datetime-format: yyyy-MM-dd HH:mm:ss
+    
+    json:
+      pretty-print: true  # Enable for test readability
+      include-null-values: true  # Include nulls for complete testing
+      fail-on-unknown-properties: false
+      
+    csv:
+      default-delimiter: ","
+      skip-header: false
+      
+    excel:
+      max-rows-per-sheet: 1000  # Smaller for tests
+      auto-size-columns: true
+      
+    file:
+      temp-directory: /tmp/gogidix-utilities-test
+      max-file-size: 10MB  # Smaller for tests
+      
+    validation:
+      strict-mode: true  # Strict validation in tests
+      log-validation-errors: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.gogidix.utilities: DEBUG
+    com.gogidix.ecosystem.shared.utilities: DEBUG
+    org.springframework: WARN
+    org.springframework.test: INFO

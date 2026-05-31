@@ -1,0 +1,33 @@
+package com.gogidix.shared.warehousing.inventory.domain.events;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+/**
+ * Domain event published when inventory is updated
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class InventoryUpdatedEvent {
+
+    private String eventId;
+    private String inventoryId;
+    private String sku;
+    private Integer quantity;
+    private String locationId;
+    private String tenantId;
+    private Integer adjustment;
+    private LocalDateTime timestamp;
+
+    public static InventoryUpdatedEventBuilder builder() {
+        return new InventoryUpdatedEventBuilder()
+            .eventId(java.util.UUID.randomUUID().toString())
+            .timestamp(LocalDateTime.now());
+    }
+}

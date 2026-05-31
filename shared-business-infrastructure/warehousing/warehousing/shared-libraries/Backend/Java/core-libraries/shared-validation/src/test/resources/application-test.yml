@@ -1,0 +1,62 @@
+# Test-specific validation configuration
+gogidix:
+  validation:
+    # Strict validation in tests
+    fail-fast: true
+    locale: en_US
+    
+    # Test email settings
+    email:
+      allow-local-domains: true  # Allow test domains
+      max-length: 254
+      strict-mode: false  # Less strict for testing
+      
+    # Test phone settings
+    phone:
+      default-region: US
+      allow-international: true
+      
+    # Test address settings
+    address:
+      require-postal-code: false  # Less strict for testing
+      validate-country-codes: false
+      
+    # Test credit card settings
+    credit-card:
+      validate-luhn: false  # Use test card numbers
+      allowed-types:
+        - VISA
+        - MASTERCARD
+        - TEST  # Allow test cards
+      mask-numbers: false  # Don't mask in tests
+      
+    # Test password settings
+    password:
+      min-length: 4  # Shorter for testing
+      max-length: 128
+      require-uppercase: false  # Less strict for testing
+      require-lowercase: false
+      require-numbers: false
+      require-special-chars: false
+      
+    # Test file upload settings
+    file-upload:
+      max-file-size: 1MB  # Smaller for tests
+      allowed-types:
+        - image/jpeg
+        - text/plain  # Allow text files in tests
+      scan-for-viruses: false  # Disable in tests
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.gogidix.validation: DEBUG
+    org.hibernate.validator: INFO
+    org.springframework: WARN
+    org.springframework.test: INFO
+    org.springframework.validation: DEBUG

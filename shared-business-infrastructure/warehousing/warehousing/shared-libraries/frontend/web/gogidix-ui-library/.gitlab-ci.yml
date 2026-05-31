@@ -1,0 +1,123 @@
+stages:
+  - verify
+  - test
+  - build
+  - docker
+
+variables:
+  NODE_VERSION: "20"
+  NPM_CONFIG_CACHE: "${CI_PROJECT_DIR}/.npm"
+  CYPRESS_CACHE_FOLDER: "${CI_PROJECT_DIR}/cache/Cypress"
+
+cache:
+  paths:
+    - .npm/
+    - cache/Cypress/
+    - node_modules/
+
+# Installation strategy with multiple fallbacks
+.install_template: &install_template
+  before_script:
+    - |
+      echo "Attempting dependency installation with multiple strategies..."
+      
+      # Strategy 1: Try PNPM (fastest)
+      if command -v pnpm >/dev/null 2>&1; then
+        echo "Trying PNPM..."
+        pnpm install --frozen-lockfile --prefer-offline || PNPM_FAILED=1
+      else
+        echo "PNPM not available, installing..."
+        npm install -g pnpm && pnpm install --frozen-lockfile --prefer-offline || PNPM_FAILED=1
+      fi
+      
+      # Strategy 2: Optimized NPM with timeouts
+      if [ "$PNPM_FAILED" = "1" ]; then
+        echo "PNPM failed, trying optimized NPM..."
+        npm ci --cache "${NPM_CONFIG_CACHE}" --prefer-offline --no-audit --fetch-retry-maxtimeout=600000 --fetch-retries=5 || NPM_FAILED=1
+      fi
+      
+      # Strategy 3: NPM with alternative registry
+      if [ "$NPM_FAILED" = "1" ]; then
+        echo "Standard NPM failed, trying with Yarn registry..."
+        npm ci --registry https://registry.yarnpkg.com/ --cache "${NPM_CONFIG_CACHE}" --fetch-retry-maxtimeout=600000 --no-audit || YARN_REG_FAILED=1
+      fi
+      
+      # Strategy 4: Yarn fallback
+      if [ "$YARN_REG_FAILED" = "1" ]; then
+        echo "Registry fallback failed, trying Yarn..."
+        yarn install --frozen-lockfile --network-timeout 600000 --prefer-offline || ALL_FAILED=1
+      fi
+      
+      # Strategy 5: Manual npm.org direct
+      if [ "$ALL_FAILED" = "1" ]; then
+        echo "All strategies failed, trying direct npm.org..."
+        npm config set registry https://registry.npmjs.org/
+        npm ci --fetch-retry-maxtimeout=900000 --fetch-retries=10 --maxsockets=1 || exit 1
+      fi
+
+verify:
+  stage: verify
+  image: node:${NODE_VERSION}-alpine
+  <<: *install_template
+  script:
+    - make verify
+  artifacts:
+    expire_in: 1 week
+    when: always
+
+test:
+  stage: test
+  image: node:${NODE_VERSION}-alpine
+  needs: [verify]
+  <<: *install_template
+  script:
+    - npm run lint
+    - npm run test
+  artifacts:
+    reports:
+      junit: junit.xml
+    expire_in: 1 week
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)%/'
+
+build:
+  stage: build
+  image: node:${NODE_VERSION}-alpine
+  needs: [verify, test]
+  <<: *install_template
+  script:
+    - npm run build
+    - ls -la dist/
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
+# Storybook build (optional)
+storybook:
+  stage: build
+  image: node:${NODE_VERSION}-alpine
+  needs: [verify]
+  <<: *install_template
+  script:
+    - npm run build-storybook
+  artifacts:
+    paths:
+      - storybook-static/
+    expire_in: 1 week
+  when: manual
+
+docker:
+  stage: docker
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  needs: [build]
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/gogidix-ui-library:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/gogidix-ui-library:latest .
+    - docker push $CI_REGISTRY_IMAGE/gogidix-ui-library:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/gogidix-ui-library:latest
+  only:
+    - main
+    - develop

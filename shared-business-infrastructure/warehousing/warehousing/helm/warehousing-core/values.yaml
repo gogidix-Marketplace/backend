@@ -1,0 +1,2135 @@
+# ==============================================================================
+# Warehousing Core Helm Chart - Default Values
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Global Configuration
+# ------------------------------------------------------------------------------
+global:
+  # Image registry configuration
+  imageRegistry: gogidix.azurecr.io
+  imagePullSecrets:
+    - name: gogidix-registry-secret
+
+  # Common labels added to all resources
+  labels:
+    domain: warehousing
+    platform: gogidix
+    managed-by: helm
+
+  # Common annotations added to all resources
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9000"
+    prometheus.io/path: "/actuator/prometheus"
+
+  # Environment (development, staging, production)
+  environment: development
+
+  # Service account configuration
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+
+  # Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+
+  # Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsUser: 1001
+    capabilities:
+      drop:
+        - ALL
+
+  # Resource defaults
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # Health check defaults
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: management
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 6
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: management
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health/startup
+      port: management
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+# ------------------------------------------------------------------------------
+# Namespace Configuration
+# ------------------------------------------------------------------------------
+namespace:
+  create: true
+  name: warehousing-core
+  annotations: {}
+
+# ------------------------------------------------------------------------------
+# MongoDB Configuration (Bitnami Chart Dependency)
+# ------------------------------------------------------------------------------
+mongodb:
+  enabled: true
+  architecture: replicaset
+  replicaSet:
+    name: rs0
+    replicas:
+      secondary: 2
+      arbiter: 1
+  auth:
+    enabled: true
+    rootUser: admin
+    existingSecret: mongodb-credentials
+    database: warehousing_core
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: 100Gi
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - mongodb
+            topologyKey: kubernetes.io/hostname
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# ------------------------------------------------------------------------------
+# Kafka Configuration (Bitnami Chart Dependency)
+# ------------------------------------------------------------------------------
+kafka:
+  enabled: true
+  replicas: 3
+  controller:
+    replicaCount: 3
+  broker:
+    replicaCount: 3
+    persistence:
+      size: 100Gi
+      storageClass: "standard"
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+  autoRecovery:
+    enabled: true
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  metrics:
+    kafka:
+      enabled: true
+      jmx:
+        enabled: true
+      serviceMonitor:
+        enabled: true
+
+# ------------------------------------------------------------------------------
+# Redis Configuration (Bitnami Chart Dependency)
+# ------------------------------------------------------------------------------
+redis:
+  enabled: true
+  architecture: replication
+  replica:
+    replicaCount: 3
+  auth:
+    enabled: true
+    existingSecret: redis-credentials
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "standard"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# ------------------------------------------------------------------------------
+# Analytics Services Configuration
+# ------------------------------------------------------------------------------
+
+# Fulfillment Analytics Service (Port 8250)
+fulfillmentAnalyticsService:
+  enabled: true
+  name: fulfillment-analytics-service
+  image:
+    repository: warehousing/fulfillment-analytics-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8250
+    management: 8251
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ANALYTICS_RETENTION_DAYS: "90"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - fulfillment-analytics-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# Inventory Analytics Service (Port 8252)
+inventoryAnalyticsService:
+  enabled: true
+  name: inventory-analytics-service
+  image:
+    repository: warehousing/inventory-analytics-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8252
+    management: 8253
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ANALYTICS_RETENTION_DAYS: "90"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Reporting Service (Port 8254)
+reportingService:
+  enabled: true
+  name: reporting-service
+  image:
+    repository: warehousing/reporting-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8254
+    management: 8255
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    REPORT_GENERATION_TIMEOUT_SECONDS: "300"
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+    requests:
+      cpu: 300m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Warehouse Analytics Service (Port 8256)
+warehouseAnalyticsService:
+  enabled: true
+  name: warehouse-analytics-service
+  image:
+    repository: warehousing/warehouse-analytics-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8256
+    management: 8257
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ANALYTICS_RETENTION_DAYS: "90"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Config Services Configuration
+# ------------------------------------------------------------------------------
+
+# Warehouse Config Service (Port 8221)
+warehouseConfigService:
+  enabled: true
+  name: warehouse-config-service
+  image:
+    repository: warehousing/warehouse-config-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8221
+    management: 8222
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    CONFIG_CACHE_TTL_SECONDS: "300"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - warehouse-config-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# Tenant Config Service (Port 8240)
+tenantConfigService:
+  enabled: true
+  name: tenant-config-service
+  image:
+    repository: warehousing/tenant-config-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8240
+    management: 8241
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    TENANT_CACHE_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Fulfillment Services Configuration
+# ------------------------------------------------------------------------------
+
+# Fulfillment Core Service (Port 8202)
+fulfillmentCoreService:
+  enabled: true
+  name: fulfillment-core-service
+  image:
+    repository: warehousing/fulfillment-core-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8202
+    management: 8203
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    FULFILLMENT_STRATEGY: "fifo"
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - fulfillment-core-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# Picking Service (Port 8203)
+pickingService:
+  enabled: true
+  name: picking-service
+  image:
+    repository: warehousing/picking-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8203
+    management: 8204
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    PICKING_STRATEGY: "wave"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Packing Service (Port 8204)
+packingService:
+  enabled: true
+  name: packing-service
+  image:
+    repository: warehousing/packing-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8204
+    management: 8205
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    PACKING_VERIFICATION_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Quality Service (Port 8209)
+qualityService:
+  enabled: true
+  name: quality-service
+  image:
+    repository: warehousing/quality-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8209
+    management: 8210
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    QUALITY_CHECK_RATE: "0.1"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Returns Service (Port 8208)
+returnsService:
+  enabled: true
+  name: returns-service
+  image:
+    repository: warehousing/returns-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8208
+    management: 8209
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    RETURNS_PROCESSING_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Shipping Service (Port 8207)
+shippingService:
+  enabled: true
+  name: shipping-service
+  image:
+    repository: warehousing/shipping-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8207
+    management: 8208
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    SHIPMENT_MANIFEST_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Inbound Services Configuration
+# ------------------------------------------------------------------------------
+
+# Putaway Service (Port 8205)
+putawayService:
+  enabled: true
+  name: putaway-service
+  image:
+    repository: warehousing/putaway-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8205
+    management: 8206
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    PUTAWAY_STRATEGY: "directed"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Receipt Service (Port 8260)
+receiptService:
+  enabled: true
+  name: receipt-service
+  image:
+    repository: warehousing/receipt-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8260
+    management: 8261
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    RECEIPT_GENERATION_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Receiving Service (Port 8206)
+receivingService:
+  enabled: true
+  name: receiving-service
+  image:
+    repository: warehousing/receiving-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8206
+    management: 8207
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    RECEIVING_QUALITY_CHECK: "true"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Inventory Services Configuration
+# ------------------------------------------------------------------------------
+
+# Availability Service (Port 8262)
+availabilityService:
+  enabled: true
+  name: availability-service
+  image:
+    repository: warehousing/availability-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8262
+    management: 8263
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    AVAILABILITY_CACHE_TTL_SECONDS: "60"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - availability-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# Batch Service (Port 8216)
+batchService:
+  enabled: true
+  name: batch-service
+  image:
+    repository: warehousing/batch-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8216
+    management: 8217
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    BATCH_TRACKING_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Cycle Counting Service (Port 8214)
+cycleCountingService:
+  enabled: true
+  name: cycle-counting-service
+  image:
+    repository: warehousing/cycle-counting-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8214
+    management: 8215
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    CYCLE_COUNT_STRATEGY: "abc"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Expiration Service (Port 8217)
+expirationService:
+  enabled: true
+  name: expiration-service
+  image:
+    repository: warehousing/expiration-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8217
+    management: 8218
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    EXPIRY_ALERT_DAYS: "30"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Inventory Core Service (Port 8210)
+inventoryCoreService:
+  enabled: true
+  name: inventory-core-service
+  image:
+    repository: warehousing/inventory-core-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8210
+    management: 8211
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    INVENTORY_SYNC_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - inventory-core-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# Location Service (Port 8220)
+locationService:
+  enabled: true
+  name: location-service
+  image:
+    repository: warehousing/location-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8220
+    management: 8221
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    LOCATION_HIERARCHY_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Reorder Service (Port 8218)
+reorderService:
+  enabled: true
+  name: reorder-service
+  image:
+    repository: warehousing/reorder-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8218
+    management: 8219
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    REORDER_STRATEGY: "min-max"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Serialization Service (Port 8215)
+serializationService:
+  enabled: true
+  name: serialization-service
+  image:
+    repository: warehousing/serialization-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8215
+    management: 8216
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    SERIALIZATION_FORMAT: "gs1"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Stock Service (Port 8211)
+stockService:
+  enabled: true
+  name: stock-service
+  image:
+    repository: warehousing/stock-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8211
+    management: 8212
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    STOCK_RESERVATION_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - stock-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Location Services Configuration
+# ------------------------------------------------------------------------------
+
+# Zone Service (Port 8222)
+zoneService:
+  enabled: true
+  name: zone-service
+  image:
+    repository: warehousing/zone-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8222
+    management: 8223
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ZONE_PICKING_STRATEGY: "zone-based"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Shelf Service (Port 8224)
+shelfService:
+  enabled: true
+  name: shelf-service
+  image:
+    repository: warehousing/shelf-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8224
+    management: 8225
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    SHELF_CAPACITY_TRACKING: "true"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Bin Service (Port 8225)
+binService:
+  enabled: true
+  name: bin-service
+  image:
+    repository: warehousing/bin-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8225
+    management: 8226
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    BIN_MIXING_ENABLED: "false"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Outbound Services Configuration
+# ------------------------------------------------------------------------------
+
+# Outbound Core Service (Port 8201)
+outboundCoreService:
+  enabled: true
+  name: outbound-core-service
+  image:
+    repository: warehousing/outbound-core-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8201
+    management: 8202
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    OUTBOUND_ALLOCATION_STRATEGY: "fifo"
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - outbound-core-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# Carrier Service (Port 8264)
+carrierService:
+  enabled: true
+  name: carrier-service
+  image:
+    repository: warehousing/carrier-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8264
+    management: 8265
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    CARRIER_INTEGRATION_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Label Service (Port 8266)
+labelService:
+  enabled: true
+  name: label-service
+  image:
+    repository: warehousing/label-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8266
+    management: 8267
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    LABEL_FORMAT: "gs1-128"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Order Service (Port 8268)
+orderService:
+  enabled: true
+  name: order-service
+  image:
+    repository: warehousing/order-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8268
+    management: 8269
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ORDER_ALLOCATION_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Pricing Services Configuration
+# ------------------------------------------------------------------------------
+
+# Pricing Service (Port 8270)
+pricingService:
+  enabled: true
+  name: pricing-service
+  image:
+    repository: warehousing/pricing-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8270
+    management: 8271
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    PRICING_MODEL: "tiered"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Public API Services Configuration
+# ------------------------------------------------------------------------------
+
+# Public Availability Service (Port 8282)
+publicAvailabilityService:
+  enabled: true
+  name: public-availability-service
+  image:
+    repository: warehousing/public-availability-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8282
+    management: 8283
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    API_RATE_LIMIT: "1000"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - public-availability-service
+            topologyKey: kubernetes.io/hostname
+  serviceMonitor:
+    enabled: true
+
+# Public Booking Service (Port 8280)
+publicBookingService:
+  enabled: true
+  name: public-booking-service
+  image:
+    repository: warehousing/public-booking-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8280
+    management: 8281
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    BOOKING_VALIDATION_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Public Pricing Service (Port 8281)
+publicPricingService:
+  enabled: true
+  name: public-pricing-service
+  image:
+    repository: warehousing/public-pricing-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ports:
+    http: 8281
+    management: 8282
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    PRICING_CACHE_TTL_SECONDS: "300"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Storage Services Configuration
+# ------------------------------------------------------------------------------
+
+# Access Service (Port 8234)
+accessService:
+  enabled: true
+  name: access-service
+  image:
+    repository: warehousing/access-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8234
+    management: 8235
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ACCESS_CONTROL_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Self Storage Service (Port 8230)
+selfStorageService:
+  enabled: true
+  name: self-storage-service
+  image:
+    repository: warehousing/self-storage-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8230
+    management: 8231
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    SELF_STORAGE_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Space Service (Port 8231)
+spaceService:
+  enabled: true
+  name: space-service
+  image:
+    repository: warehousing/space-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8231
+    management: 8232
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    SPACE_UTILIZATION_TRACKING: "true"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Space Allocation Service (Port 8232)
+spaceAllocationService:
+  enabled: true
+  name: space-allocation-service
+  image:
+    repository: warehousing/space-allocation-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8232
+    management: 8233
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ALLOCATION_ALGORITHM: "best-fit"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Storage Reservation Service (Port 8233)
+storageReservationService:
+  enabled: true
+  name: storage-reservation-service
+  image:
+    repository: warehousing/storage-reservation-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8233
+    management: 8234
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    RESERVATION_TIMEOUT_MINUTES: "30"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Vendor Services Configuration
+# ------------------------------------------------------------------------------
+
+# Vendor Sync Service (Port 8290)
+vendorSyncService:
+  enabled: true
+  name: vendor-sync-service
+  image:
+    repository: warehousing/vendor-sync-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8290
+    management: 8291
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    SYNC_INTERVAL_MINUTES: "60"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Stock Movement Services Configuration
+# ------------------------------------------------------------------------------
+
+# Stock Adjustment Service (Port 8212)
+stockAdjustmentService:
+  enabled: true
+  name: stock-adjustment-service
+  image:
+    repository: warehousing/stock-adjustment-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8212
+    management: 8213
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    ADJUSTMENT_APPROVAL_REQUIRED: "true"
+  resources:
+    limits:
+      cpu: 600m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# Stock Movement Service (Port 8213)
+stockMovementService:
+  enabled: true
+  name: stock-movement-service
+  image:
+    repository: warehousing/stock-movement-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ports:
+    http: 8213
+    management: 8214
+  envVars:
+    SPRING_PROFILES_ACTIVE: "cloud,production"
+    MOVEMENT_TRACKING_ENABLED: "true"
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  serviceMonitor:
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Ingress Configuration
+# ------------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/acme-challenge-type: "http01"
+  hosts:
+    - host: api.warehousing.gogidix.com
+      paths:
+        - path: /fulfillment-analytics(/|$)(.*)
+          pathType: Prefix
+          serviceName: fulfillment-analytics-service
+          servicePort: 8250
+        - path: /inventory-analytics(/|$)(.*)
+          pathType: Prefix
+          serviceName: inventory-analytics-service
+          servicePort: 8252
+        - path: /reporting(/|$)(.*)
+          pathType: Prefix
+          serviceName: reporting-service
+          servicePort: 8254
+        - path: /warehouse-analytics(/|$)(.*)
+          pathType: Prefix
+          serviceName: warehouse-analytics-service
+          servicePort: 8256
+        - path: /warehouse-config(/|$)(.*)
+          pathType: Prefix
+          serviceName: warehouse-config-service
+          servicePort: 8221
+        - path: /tenant-config(/|$)(.*)
+          pathType: Prefix
+          serviceName: tenant-config-service
+          servicePort: 8240
+        - path: /fulfillment(/|$)(.*)
+          pathType: Prefix
+          serviceName: fulfillment-core-service
+          servicePort: 8202
+        - path: /picking(/|$)(.*)
+          pathType: Prefix
+          serviceName: picking-service
+          servicePort: 8203
+        - path: /packing(/|$)(.*)
+          pathType: Prefix
+          serviceName: packing-service
+          servicePort: 8204
+        - path: /quality(/|$)(.*)
+          pathType: Prefix
+          serviceName: quality-service
+          servicePort: 8209
+        - path: /returns(/|$)(.*)
+          pathType: Prefix
+          serviceName: returns-service
+          servicePort: 8208
+        - path: /shipping(/|$)(.*)
+          pathType: Prefix
+          serviceName: shipping-service
+          servicePort: 8207
+        - path: /putaway(/|$)(.*)
+          pathType: Prefix
+          serviceName: putaway-service
+          servicePort: 8205
+        - path: /receipt(/|$)(.*)
+          pathType: Prefix
+          serviceName: receipt-service
+          servicePort: 8260
+        - path: /receiving(/|$)(.*)
+          pathType: Prefix
+          serviceName: receiving-service
+          servicePort: 8206
+        - path: /availability(/|$)(.*)
+          pathType: Prefix
+          serviceName: availability-service
+          servicePort: 8262
+        - path: /batch(/|$)(.*)
+          pathType: Prefix
+          serviceName: batch-service
+          servicePort: 8216
+        - path: /cycle-counting(/|$)(.*)
+          pathType: Prefix
+          serviceName: cycle-counting-service
+          servicePort: 8214
+        - path: /expiration(/|$)(.*)
+          pathType: Prefix
+          serviceName: expiration-service
+          servicePort: 8217
+        - path: /inventory(/|$)(.*)
+          pathType: Prefix
+          serviceName: inventory-core-service
+          servicePort: 8210
+        - path: /location(/|$)(.*)
+          pathType: Prefix
+          serviceName: location-service
+          servicePort: 8220
+        - path: /reorder(/|$)(.*)
+          pathType: Prefix
+          serviceName: reorder-service
+          servicePort: 8218
+        - path: /serialization(/|$)(.*)
+          pathType: Prefix
+          serviceName: serialization-service
+          servicePort: 8215
+        - path: /stock(/|$)(.*)
+          pathType: Prefix
+          serviceName: stock-service
+          servicePort: 8211
+        - path: /zone(/|$)(.*)
+          pathType: Prefix
+          serviceName: zone-service
+          servicePort: 8222
+        - path: /shelf(/|$)(.*)
+          pathType: Prefix
+          serviceName: shelf-service
+          servicePort: 8224
+        - path: /bin(/|$)(.*)
+          pathType: Prefix
+          serviceName: bin-service
+          servicePort: 8225
+        - path: /outbound(/|$)(.*)
+          pathType: Prefix
+          serviceName: outbound-core-service
+          servicePort: 8201
+        - path: /carrier(/|$)(.*)
+          pathType: Prefix
+          serviceName: carrier-service
+          servicePort: 8264
+        - path: /label(/|$)(.*)
+          pathType: Prefix
+          serviceName: label-service
+          servicePort: 8266
+        - path: /order(/|$)(.*)
+          pathType: Prefix
+          serviceName: order-service
+          servicePort: 8268
+        - path: /pricing(/|$)(.*)
+          pathType: Prefix
+          serviceName: pricing-service
+          servicePort: 8270
+        - path: /public/availability(/|$)(.*)
+          pathType: Prefix
+          serviceName: public-availability-service
+          servicePort: 8282
+        - path: /public/booking(/|$)(.*)
+          pathType: Prefix
+          serviceName: public-booking-service
+          servicePort: 8280
+        - path: /public/pricing(/|$)(.*)
+          pathType: Prefix
+          serviceName: public-pricing-service
+          servicePort: 8281
+        - path: /access(/|$)(.*)
+          pathType: Prefix
+          serviceName: access-service
+          servicePort: 8234
+        - path: /self-storage(/|$)(.*)
+          pathType: Prefix
+          serviceName: self-storage-service
+          servicePort: 8230
+        - path: /space(/|$)(.*)
+          pathType: Prefix
+          serviceName: space-service
+          servicePort: 8231
+        - path: /space-allocation(/|$)(.*)
+          pathType: Prefix
+          serviceName: space-allocation-service
+          servicePort: 8232
+        - path: /storage-reservation(/|$)(.*)
+          pathType: Prefix
+          serviceName: storage-reservation-service
+          servicePort: 8233
+        - path: /vendor-sync(/|$)(.*)
+          pathType: Prefix
+          serviceName: vendor-sync-service
+          servicePort: 8290
+        - path: /stock-adjustment(/|$)(.*)
+          pathType: Prefix
+          serviceName: stock-adjustment-service
+          servicePort: 8212
+        - path: /stock-movement(/|$)(.*)
+          pathType: Prefix
+          serviceName: stock-movement-service
+          servicePort: 8213
+  tls:
+    - secretName: warehousing-core-tls
+      hosts:
+        - api.warehousing.gogidix.com
+
+# ------------------------------------------------------------------------------
+# Network Policy Configuration
+# ------------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8201
+        - protocol: TCP
+          port: 8202
+        - protocol: TCP
+          port: 8203
+        - protocol: TCP
+          port: 8204
+        - protocol: TCP
+          port: 8205
+        - protocol: TCP
+          port: 8206
+        - protocol: TCP
+          port: 8207
+        - protocol: TCP
+          port: 8208
+        - protocol: TCP
+          port: 8209
+        - protocol: TCP
+          port: 8210
+        - protocol: TCP
+          port: 8211
+        - protocol: TCP
+          port: 8212
+        - protocol: TCP
+          port: 8213
+        - protocol: TCP
+          port: 8214
+        - protocol: TCP
+          port: 8215
+        - protocol: TCP
+          port: 8216
+        - protocol: TCP
+          port: 8217
+        - protocol: TCP
+          port: 8218
+        - protocol: TCP
+          port: 8220
+        - protocol: TCP
+          port: 8221
+        - protocol: TCP
+          port: 8222
+        - protocol: TCP
+          port: 8224
+        - protocol: TCP
+          port: 8225
+        - protocol: TCP
+          port: 8230
+        - protocol: TCP
+          port: 8231
+        - protocol: TCP
+          port: 8232
+        - protocol: TCP
+          port: 8234
+        - protocol: TCP
+          port: 8240
+        - protocol: TCP
+          port: 8250
+        - protocol: TCP
+          port: 8252
+        - protocol: TCP
+          port: 8254
+        - protocol: TCP
+          port: 8256
+        - protocol: TCP
+          port: 8260
+        - protocol: TCP
+          port: 8262
+        - protocol: TCP
+          port: 8264
+        - protocol: TCP
+          port: 8266
+        - protocol: TCP
+          port: 8268
+        - protocol: TCP
+          port: 8270
+        - protocol: TCP
+          port: 8280
+        - protocol: TCP
+          port: 8281
+        - protocol: TCP
+          port: 8282
+        - protocol: TCP
+          port: 8290
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+# ------------------------------------------------------------------------------
+# Pod Disruption Budget Configuration
+# ------------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ------------------------------------------------------------------------------
+# Service Mesh Configuration
+# ------------------------------------------------------------------------------
+serviceMesh:
+  enabled: false
+  istio:
+    enabled: false
+    mTLS:
+      mode: STRICT
+
+# ------------------------------------------------------------------------------
+# Observability Configuration
+# ------------------------------------------------------------------------------
+observability:
+  logging:
+    enabled: true
+    format: json
+    level: info
+  tracing:
+    enabled: true
+    sampler: 0.1
+    exporter: otlp
+    endpoint: "jaeger-collector.observability.svc.cluster.local:4317"
+  metrics:
+    enabled: true
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        interval: 30s
+        scrapeTimeout: 10s
+    datadog:
+      enabled: false
+
+# ------------------------------------------------------------------------------
+# ConfigMap Configuration
+# ------------------------------------------------------------------------------
+configMap:
+  name: warehousing-core-config
+  annotations: {}
+  data: {}

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: putaway-service
+  namespace: warehousing-core
+  labels:
+    app: putaway-service
+    service: putaway-service
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8205
+    targetPort: http
+    protocol: TCP
+  - name: management
+    port: 8206
+    targetPort: management
+    protocol: TCP
+  selector:
+    app: putaway-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: putaway-service-headless
+  namespace: warehousing-core
+  labels:
+    app: putaway-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8205
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: putaway-service

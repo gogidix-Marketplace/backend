@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: order-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: shared_warehousing
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+
+server:
+  port: ${SERVER_PORT:8260}
+  servlet:
+    context-path: /api/v1/orders
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+multitenancy:
+  header-name: X-Tenant-ID
+  default-tenant: public
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG

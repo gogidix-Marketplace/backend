@@ -1,0 +1,7 @@
+1,0,com.gogidix.testing.SharedTestingApplicationTest,contextLoads
+1,1,com.gogidix.ecosystem.shared.testing.TestDataBuilderTest,shouldSelectRandomFromList
+1,2,com.gogidix.ecosystem.shared.testing.TestDataBuilderTest,shouldGenerateRandomEmail
+1,5,com.gogidix.ecosystem.shared.testing.TestDataBuilderTest,shouldGenerateRandomString
+1,6,com.gogidix.ecosystem.shared.testing.TestDataBuilderTest,shouldGenerateRandomDateTime
+1,118,com.gogidix.ecosystem.shared.testing.TestDataBuilderTest,shouldGenerateRandomMetadata
+1,145,com.gogidix.ecosystem.shared.testing.TestDataBuilderTest,shouldGenerateRandomId

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: self-storage-service
+  namespace: warehousing-core
+  labels:
+    app: self-storage-service
+    service: self-storage-service
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8230
+    targetPort: http
+    protocol: TCP
+  - name: management
+    port: 8231
+    targetPort: management
+    protocol: TCP
+  selector:
+    app: self-storage-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: self-storage-service-headless
+  namespace: warehousing-core
+  labels:
+    app: self-storage-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8230
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: self-storage-service

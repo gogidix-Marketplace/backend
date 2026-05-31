@@ -1,0 +1,484 @@
+package com.gogidix.shared.validation.domain.model;
+
+import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+/**
+ * Clean domain model representing the result of a validation operation.
+ * 
+ * This immutable entity encapsulates validation results and business logic
+ * following Domain Driven Design principles with zero external dependencies.
+ * 
+ * @author Gogidix Development Team
+ * @version 2.0.0
+ * @since 2024-01-01
+ */
+public final class ValidationResultClean {
+    
+    private final String resultId;
+    private final boolean isValid;
+    private final List<String> errorMessages;
+    private final List<String> warningMessages;
+    private final List<String> infoMessages;
+    private final Map<String, Object> metadata;
+    private final ValidationSeverity severity;
+    private final String validationRuleId;
+    private final String fieldName;
+    private final Object validatedValue;
+    private final LocalDateTime validationTimestamp;
+    private final Duration validationDuration;
+    private final Map<String, ValidationResultClean> fieldResults;
+    private final ValidationStatus status;
+    private final String correlationId;
+    private final Map<String, Object> customAttributes;
+    
+    // Private constructor enforces immutability
+    private ValidationResultClean(Builder builder) {
+        this.resultId = Objects.requireNonNull(builder.resultId, "Result ID cannot be null");
+        this.isValid = builder.isValid;
+        this.errorMessages = Collections.unmodifiableList(new ArrayList<>(builder.errorMessages));
+        this.warningMessages = Collections.unmodifiableList(new ArrayList<>(builder.warningMessages));
+        this.infoMessages = Collections.unmodifiableList(new ArrayList<>(builder.infoMessages));
+        this.metadata = Collections.unmodifiableMap(new ConcurrentHashMap<>(builder.metadata));
+        this.severity = Objects.requireNonNull(builder.severity, "Severity cannot be null");
+        this.validationRuleId = builder.validationRuleId;
+        this.fieldName = builder.fieldName;
+        this.validatedValue = builder.validatedValue;
+        this.validationTimestamp = Objects.requireNonNull(builder.validationTimestamp, "Validation timestamp cannot be null");
+        this.validationDuration = Objects.requireNonNull(builder.validationDuration, "Validation duration cannot be null");
+        this.fieldResults = Collections.unmodifiableMap(new ConcurrentHashMap<>(builder.fieldResults));
+        this.status = Objects.requireNonNull(builder.status, "Status cannot be null");
+        this.correlationId = Objects.requireNonNull(builder.correlationId, "Correlation ID cannot be null");
+        this.customAttributes = Collections.unmodifiableMap(new ConcurrentHashMap<>(builder.customAttributes));
+        
+        validateInvariant();
+    }
+    
+    // Business invariant validation
+    private void validateInvariant() {
+        // Invalid results must have error messages
+        if (!isValid && errorMessages.isEmpty()) {
+            throw new IllegalArgumentException("Invalid results must contain at least one error message");
+        }
+        
+        // Valid results should not have error messages
+        if (isValid && !errorMessages.isEmpty()) {
+            throw new IllegalArgumentException("Valid results should not contain error messages");
+        }
+        
+        // Validation duration must be reasonable
+        if (validationDuration.isNegative() || validationDuration.toMillis() > 60000) {
+            throw new IllegalArgumentException("Validation duration must be between 0 and 60 seconds");
+        }
+        
+        // Severity consistency check
+        if (!isValid && severity == ValidationSeverity.SUCCESS) {
+            throw new IllegalArgumentException("Invalid results cannot have SUCCESS severity");
+        }
+    }
+    
+    // Rich business logic methods
+    
+    /**
+     * Checks if validation result has any blocking issues.
+     */
+    public boolean hasBlockingIssues() {
+        return !isValid && (severity == ValidationSeverity.ERROR || severity == ValidationSeverity.CRITICAL);
+    }
+    
+    /**
+     * Checks if validation completed within acceptable time.
+     */
+    public boolean isPerformanceAcceptable() {
+        return validationDuration.toMillis() <= getPerformanceThresholdMs();
+    }
+    
+    /**
+     * Gets performance threshold based on validation complexity.
+     */
+    private long getPerformanceThresholdMs() {
+        if (fieldResults.isEmpty()) {
+            return 100L; // Simple validation
+        } else if (fieldResults.size() <= 5) {
+            return 500L; // Medium complexity
+        } else {
+            return 2000L; // Complex validation
+        }
+    }
+    
+    /**
+     * Combines this result with another validation result.
+     */
+    public ValidationResultClean combine(ValidationResultClean other) {
+        if (other == null) return this;
+        
+        List<String> combinedErrors = new ArrayList<>(this.errorMessages);
+        combinedErrors.addAll(other.errorMessages);
+        
+        List<String> combinedWarnings = new ArrayList<>(this.warningMessages);
+        combinedWarnings.addAll(other.warningMessages);
+        
+        List<String> combinedInfo = new ArrayList<>(this.infoMessages);
+        combinedInfo.addAll(other.infoMessages);
+        
+        Map<String, Object> combinedMetadata = new HashMap<>(this.metadata);
+        combinedMetadata.putAll(other.metadata);
+        
+        Map<String, ValidationResultClean> combinedFieldResults = new HashMap<>(this.fieldResults);
+        combinedFieldResults.putAll(other.fieldResults);
+        
+        ValidationSeverity combinedSeverity = ValidationSeverity.getHigherSeverity(this.severity, other.severity);
+        
+        return ValidationResultClean.builder()
+            .valid(this.isValid && other.isValid)
+            .errorMessages(combinedErrors)
+            .warningMessages(combinedWarnings)
+            .infoMessages(combinedInfo)
+            .metadata(combinedMetadata)
+            .severity(combinedSeverity)
+            .fieldResults(combinedFieldResults)
+            .validationDuration(Duration.ofMillis(
+                this.validationDuration.toMillis() + other.validationDuration.toMillis()))
+            .build();
+    }
+    
+    /**
+     * Gets all messages by severity level.
+     */
+    public List<String> getMessagesBySeverity(ValidationSeverity targetSeverity) {
+        return switch (targetSeverity) {
+            case SUCCESS, INFO -> infoMessages;
+            case WARNING -> warningMessages;
+            case ERROR, CRITICAL -> errorMessages;
+        };
+    }
+    
+    /**
+     * Gets summary of validation result.
+     */
+    public ValidationSummary getSummary() {
+        return new ValidationSummary(
+            isValid,
+            errorMessages.size(),
+            warningMessages.size(),
+            infoMessages.size(),
+            fieldResults.size(),
+            validationDuration,
+            severity
+        );
+    }
+    
+    /**
+     * Checks if result contains specific error pattern.
+     */
+    public boolean containsErrorPattern(String pattern) {
+        return errorMessages.stream()
+            .anyMatch(message -> message.toLowerCase().contains(pattern.toLowerCase()));
+    }
+    
+    /**
+     * Gets validation score based on issues found.
+     */
+    public double getValidationScore() {
+        if (isValid && warningMessages.isEmpty()) {
+            return 1.0;
+        }
+        
+        double penalty = errorMessages.size() * 0.3 + warningMessages.size() * 0.1;
+        double score = Math.max(0.0, 1.0 - penalty);
+        
+        // Adjust for performance
+        if (!isPerformanceAcceptable()) {
+            score *= 0.9;
+        }
+        
+        return score;
+    }
+    
+    /**
+     * Filters field results by validation status.
+     */
+    public Map<String, ValidationResultClean> getFieldResultsByStatus(ValidationStatus targetStatus) {
+        return fieldResults.entrySet().stream()
+            .filter(entry -> entry.getValue().getStatus() == targetStatus)
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (existing, replacement) -> existing,
+                LinkedHashMap::new
+            ));
+    }
+    
+    /**
+     * Creates a sanitized version of this result (removes sensitive data).
+     */
+    public ValidationResultClean sanitize() {
+        Map<String, Object> sanitizedMetadata = metadata.entrySet().stream()
+            .filter(entry -> !entry.getKey().toLowerCase().contains("sensitive"))
+            .filter(entry -> !entry.getKey().toLowerCase().contains("password"))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        
+        return ValidationResultClean.builder()
+            .valid(isValid)
+            .errorMessages(errorMessages)
+            .warningMessages(warningMessages)
+            .infoMessages(infoMessages)
+            .metadata(sanitizedMetadata)
+            .severity(severity)
+            .validationRuleId(validationRuleId)
+            .fieldName(fieldName)
+            .validationTimestamp(validationTimestamp)
+            .validationDuration(validationDuration)
+            .fieldResults(fieldResults.entrySet().stream()
+                .collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    entry -> entry.getValue().sanitize()
+                )))
+            .status(status)
+            .correlationId(correlationId)
+            .build();
+    }
+    
+    // Getters (immutable access)
+    public String getResultId() { return resultId; }
+    public boolean isValid() { return isValid; }
+    public List<String> getErrorMessages() { return errorMessages; }
+    public List<String> getWarningMessages() { return warningMessages; }
+    public List<String> getInfoMessages() { return infoMessages; }
+    public Map<String, Object> getMetadata() { return metadata; }
+    public ValidationSeverity getSeverity() { return severity; }
+    public String getValidationRuleId() { return validationRuleId; }
+    public String getFieldName() { return fieldName; }
+    public Object getValidatedValue() { return validatedValue; }
+    public LocalDateTime getValidationTimestamp() { return validationTimestamp; }
+    public Duration getValidationDuration() { return validationDuration; }
+    public Map<String, ValidationResultClean> getFieldResults() { return fieldResults; }
+    public ValidationStatus getStatus() { return status; }
+    public String getCorrelationId() { return correlationId; }
+    public Map<String, Object> getCustomAttributes() { return customAttributes; }
+    
+    // Builder pattern for construction
+    public static Builder builder() {
+        return new Builder();
+    }
+    
+    public static class Builder {
+        private String resultId = UUID.randomUUID().toString();
+        private boolean isValid = true;
+        private List<String> errorMessages = new ArrayList<>();
+        private List<String> warningMessages = new ArrayList<>();
+        private List<String> infoMessages = new ArrayList<>();
+        private Map<String, Object> metadata = new HashMap<>();
+        private ValidationSeverity severity = ValidationSeverity.SUCCESS;
+        private String validationRuleId;
+        private String fieldName;
+        private Object validatedValue;
+        private LocalDateTime validationTimestamp = LocalDateTime.now();
+        private Duration validationDuration = Duration.ofMillis(1);
+        private Map<String, ValidationResultClean> fieldResults = new HashMap<>();
+        private ValidationStatus status = ValidationStatus.COMPLETED;
+        private String correlationId = UUID.randomUUID().toString();
+        private Map<String, Object> customAttributes = new HashMap<>();
+        
+        public Builder resultId(String resultId) {
+            this.resultId = resultId;
+            return this;
+        }
+        
+        public Builder valid(boolean isValid) {
+            this.isValid = isValid;
+            return this;
+        }
+        
+        public Builder errorMessages(List<String> errorMessages) {
+            this.errorMessages = new ArrayList<>(errorMessages);
+            return this;
+        }
+        
+        public Builder addError(String errorMessage) {
+            this.errorMessages.add(errorMessage);
+            this.isValid = false;
+            if (this.severity == ValidationSeverity.SUCCESS) {
+                this.severity = ValidationSeverity.ERROR;
+            }
+            return this;
+        }
+        
+        public Builder warningMessages(List<String> warningMessages) {
+            this.warningMessages = new ArrayList<>(warningMessages);
+            return this;
+        }
+        
+        public Builder addWarning(String warningMessage) {
+            this.warningMessages.add(warningMessage);
+            if (this.severity == ValidationSeverity.SUCCESS) {
+                this.severity = ValidationSeverity.WARNING;
+            }
+            return this;
+        }
+        
+        public Builder infoMessages(List<String> infoMessages) {
+            this.infoMessages = new ArrayList<>(infoMessages);
+            return this;
+        }
+        
+        public Builder addInfo(String infoMessage) {
+            this.infoMessages.add(infoMessage);
+            return this;
+        }
+        
+        public Builder metadata(Map<String, Object> metadata) {
+            this.metadata = new HashMap<>(metadata);
+            return this;
+        }
+        
+        public Builder addMetadata(String key, Object value) {
+            this.metadata.put(key, value);
+            return this;
+        }
+        
+        public Builder severity(ValidationSeverity severity) {
+            this.severity = severity;
+            return this;
+        }
+        
+        public Builder validationRuleId(String validationRuleId) {
+            this.validationRuleId = validationRuleId;
+            return this;
+        }
+        
+        public Builder fieldName(String fieldName) {
+            this.fieldName = fieldName;
+            return this;
+        }
+        
+        public Builder validatedValue(Object validatedValue) {
+            this.validatedValue = validatedValue;
+            return this;
+        }
+        
+        public Builder validationTimestamp(LocalDateTime validationTimestamp) {
+            this.validationTimestamp = validationTimestamp;
+            return this;
+        }
+        
+        public Builder validationDuration(Duration validationDuration) {
+            this.validationDuration = validationDuration;
+            return this;
+        }
+        
+        public Builder fieldResults(Map<String, ValidationResultClean> fieldResults) {
+            this.fieldResults = new HashMap<>(fieldResults);
+            return this;
+        }
+        
+        public Builder addFieldResult(String fieldName, ValidationResultClean result) {
+            this.fieldResults.put(fieldName, result);
+            return this;
+        }
+        
+        public Builder status(ValidationStatus status) {
+            this.status = status;
+            return this;
+        }
+        
+        public Builder correlationId(String correlationId) {
+            this.correlationId = correlationId;
+            return this;
+        }
+        
+        public Builder customAttribute(String key, Object value) {
+            this.customAttributes.put(key, value);
+            return this;
+        }
+        
+        public ValidationResultClean build() {
+            return new ValidationResultClean(this);
+        }
+    }
+    
+    // Domain enums and value objects
+    public enum ValidationSeverity {
+        SUCCESS(0),
+        INFO(1),
+        WARNING(2),
+        ERROR(3),
+        CRITICAL(4);
+        
+        private final int level;
+        
+        ValidationSeverity(int level) {
+            this.level = level;
+        }
+        
+        public int getLevel() { return level; }
+        
+        public static ValidationSeverity getHigherSeverity(ValidationSeverity a, ValidationSeverity b) {
+            return a.level >= b.level ? a : b;
+        }
+    }
+    
+    public enum ValidationStatus {
+        PENDING, IN_PROGRESS, COMPLETED, FAILED, TIMEOUT
+    }
+    
+    public static class ValidationSummary {
+        private final boolean isValid;
+        private final int errorCount;
+        private final int warningCount;
+        private final int infoCount;
+        private final int fieldCount;
+        private final Duration duration;
+        private final ValidationSeverity severity;
+        
+        public ValidationSummary(boolean isValid, int errorCount, int warningCount, 
+                               int infoCount, int fieldCount, Duration duration, 
+                               ValidationSeverity severity) {
+            this.isValid = isValid;
+            this.errorCount = errorCount;
+            this.warningCount = warningCount;
+            this.infoCount = infoCount;
+            this.fieldCount = fieldCount;
+            this.duration = duration;
+            this.severity = severity;
+        }
+        
+        // Getters
+        public boolean isValid() { return isValid; }
+        public int getErrorCount() { return errorCount; }
+        public int getWarningCount() { return warningCount; }
+        public int getInfoCount() { return infoCount; }
+        public int getFieldCount() { return fieldCount; }
+        public Duration getDuration() { return duration; }
+        public ValidationSeverity getSeverity() { return severity; }
+        
+        @Override
+        public String toString() {
+            return String.format("ValidationSummary{valid=%s, errors=%d, warnings=%d, fields=%d, duration=%dms}", 
+                               isValid, errorCount, warningCount, fieldCount, duration.toMillis());
+        }
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ValidationResultClean that = (ValidationResultClean) o;
+        return Objects.equals(resultId, that.resultId) &&
+               Objects.equals(correlationId, that.correlationId);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(resultId, correlationId);
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("ValidationResultClean{resultId='%s', valid=%s, errors=%d, warnings=%d, severity=%s}", 
+                           resultId, isValid, errorMessages.size(), warningMessages.size(), severity);
+    }
+}

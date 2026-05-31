@@ -1,0 +1,52 @@
+name: Domain CI - Staging
+
+on:
+  push:
+    branches: [staging/uat]
+
+concurrency:
+  group: ci-staging-${{ github.repository }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+  MAVEN_ARGS: '-B -V -ntp -e'
+
+jobs:
+  build:
+    name: Full Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Configure Maven for GitHub Packages
+        uses: s4u/maven-settings-action@v3
+        with:
+          servers: |
+            [{
+              "id": "github",
+              "username": "${{ github.actor }}",
+              "password": "${{ secrets.GITHUB_TOKEN }}"
+            }]
+          repositories: |
+            [{
+              "id": "github",
+              "name": "GitHub Packages - CargoNexus Platform",
+              "url": "https://maven.pkg.github.com/cargoNexus-africa/CargoNexus-Africa",
+              "snapshots": { "enabled": "true" }
+            }]
+
+      - name: Build and Test
+        run: mvn verify ${{ env.MAVEN_ARGS }}

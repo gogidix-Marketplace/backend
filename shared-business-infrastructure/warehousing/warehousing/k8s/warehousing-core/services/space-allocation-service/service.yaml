@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: space-allocation-service
+  namespace: warehousing-core
+  labels:
+    app: space-allocation-service
+    service: space-allocation-service
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8232
+    targetPort: http
+    protocol: TCP
+  - name: management
+    port: 8233
+    targetPort: management
+    protocol: TCP
+  selector:
+    app: space-allocation-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: space-allocation-service-headless
+  namespace: warehousing-core
+  labels:
+    app: space-allocation-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8232
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: space-allocation-service

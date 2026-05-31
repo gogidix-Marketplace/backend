@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: warehousing-limit-range
+  namespace: warehousing-core
+  labels:
+    app: warehousing-core
+spec:
+  limits:
+  - default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 250m
+      memory: 256Mi
+    type: Container
+  - max:
+      cpu: "2"
+      memory: 2Gi
+    min:
+      cpu: 100m
+      memory: 128Mi
+    type: Container
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: warehousing-resource-quota
+  namespace: warehousing-core
+  labels:
+    app: warehousing-core
+spec:
+  hard:
+    requests.cpu: "30"
+    requests.memory: 30Gi
+    limits.cpu: "60"
+    limits.memory: 60Gi
+    persistentvolumeclaims: "15"
+    services: "60"
+    secrets: "30"
+    configmaps: "30"
+  scopeSelector:
+    matchLabels:
+      app: warehousing-core

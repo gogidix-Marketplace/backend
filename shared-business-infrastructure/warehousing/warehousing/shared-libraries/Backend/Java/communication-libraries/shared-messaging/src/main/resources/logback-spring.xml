@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured logging configuration for Shared Messaging Service
+  Provides JSON logging with correlation IDs, contextual enrichment, and performance tracking
+-->
+<configuration>
+    <!-- Property definitions -->
+    <springProfile name="!local,!test">
+        <property name="LOG_LEVEL" value="${LOG_LEVEL:-INFO}"/>
+        <property name="SERVICE_NAME" value="shared-messaging"/>
+        <property name="SERVICE_VERSION" value="${project.version:-1.0.0}"/>
+    </springProfile>
+    
+    <springProfile name="local,test">
+        <property name="LOG_LEVEL" value="DEBUG"/>
+        <property name="SERVICE_NAME" value="shared-messaging"/>
+        <property name="SERVICE_VERSION" value="development"/>
+    </springProfile>
+
+    <!-- Console appender for local development -->
+    <springProfile name="local,test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n
+                </pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- JSON console appender for containerized environments -->
+    <springProfile name="!local,!test">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <fieldName>timestamp</fieldName>
+                        <pattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</pattern>
+                    </timestamp>
+                    <version/>
+                    <logLevel>
+                        <fieldName>level</fieldName>
+                    </logLevel>
+                    <loggerName>
+                        <fieldName>logger</fieldName>
+                    </loggerName>
+                    <message>
+                        <fieldName>message</fieldName>
+                    </message>
+                    <mdc>
+                        <fieldName>context</fieldName>
+                    </mdc>
+                    <arguments>
+                        <fieldName>args</fieldName>
+                    </arguments>
+                    <stackTrace>
+                        <fieldName>stackTrace</fieldName>
+                    </stackTrace>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "${SERVICE_NAME}",
+                                "version": "${SERVICE_VERSION}",
+                                "environment": "${ENVIRONMENT:-development}",
+                                "pod": "${HOSTNAME:-localhost}",
+                                "correlationId": "%X{correlationId:-}",
+                                "userId": "%X{userId:-}",
+                                "sessionId": "%X{sessionId:-}",
+                                "messageId": "%X{messageId:-}",
+                                "operation": "%X{operation:-}",
+                                "duration": "%X{duration:-}",
+                                "traceId": "%X{traceId:-}",
+                                "spanId": "%X{spanId:-}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- Business events appender -->
+    <springProfile name="!test">
+        <appender name="BUSINESS_EVENTS" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <fieldName>timestamp</fieldName>
+                        <pattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</pattern>
+                    </timestamp>
+                    <message>
+                        <fieldName>event</fieldName>
+                    </message>
+                    <mdc/>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "${SERVICE_NAME}",
+                                "version": "${SERVICE_VERSION}",
+                                "environment": "${ENVIRONMENT:-development}",
+                                "eventCategory": "business",
+                                "correlationId": "%X{correlationId:-}",
+                                "userId": "%X{userId:-}",
+                                "messageId": "%X{messageId:-}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- Security events appender -->
+    <springProfile name="!test">
+        <appender name="SECURITY_EVENTS" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <fieldName>timestamp</fieldName>
+                        <pattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</pattern>
+                    </timestamp>
+                    <logLevel>
+                        <fieldName>level</fieldName>
+                    </logLevel>
+                    <message>
+                        <fieldName>event</fieldName>
+                    </message>
+                    <mdc/>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "${SERVICE_NAME}",
+                                "version": "${SERVICE_VERSION}",
+                                "environment": "${ENVIRONMENT:-development}",
+                                "eventCategory": "security",
+                                "severity": "high",
+                                "correlationId": "%X{correlationId:-}",
+                                "userId": "%X{userId:-}",
+                                "sessionId": "%X{sessionId:-}",
+                                "ipAddress": "%X{ipAddress:-}",
+                                "userAgent": "%X{userAgent:-}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- Performance events appender -->
+    <springProfile name="!test">
+        <appender name="PERFORMANCE_EVENTS" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <fieldName>timestamp</fieldName>
+                        <pattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</pattern>
+                    </timestamp>
+                    <message>
+                        <fieldName>event</fieldName>
+                    </message>
+                    <mdc/>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "${SERVICE_NAME}",
+                                "version": "${SERVICE_VERSION}",
+                                "environment": "${ENVIRONMENT:-development}",
+                                "eventCategory": "performance",
+                                "correlationId": "%X{correlationId:-}",
+                                "operation": "%X{operation:-}",
+                                "duration": "%X{duration:-}",
+                                "cpu": "%X{cpu:-}",
+                                "memory": "%X{memory:-}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- Audit events appender -->
+    <springProfile name="!test">
+        <appender name="AUDIT_EVENTS" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <fieldName>timestamp</fieldName>
+                        <pattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</pattern>
+                    </timestamp>
+                    <message>
+                        <fieldName>event</fieldName>
+                    </message>
+                    <mdc/>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "${SERVICE_NAME}",
+                                "version": "${SERVICE_VERSION}",
+                                "environment": "${ENVIRONMENT:-development}",
+                                "eventCategory": "audit",
+                                "correlationId": "%X{correlationId:-}",
+                                "userId": "%X{userId:-}",
+                                "action": "%X{action:-}",
+                                "resource": "%X{resource:-}",
+                                "result": "%X{result:-}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- Engagement events appender -->
+    <springProfile name="!test">
+        <appender name="ENGAGEMENT_EVENTS" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <fieldName>timestamp</fieldName>
+                        <pattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</pattern>
+                    </timestamp>
+                    <message>
+                        <fieldName>event</fieldName>
+                    </message>
+                    <mdc/>
+                    <pattern>
+                        <pattern>
+                            {
+                                "service": "${SERVICE_NAME}",
+                                "version": "${SERVICE_VERSION}",
+                                "environment": "${ENVIRONMENT:-development}",
+                                "eventCategory": "engagement",
+                                "correlationId": "%X{correlationId:-}",
+                                "messageId": "%X{messageId:-}",
+                                "recipientId": "%X{recipientId:-}",
+                                "engagementType": "%X{engagementType:-}"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- Async appender wrapper for performance -->
+    <springProfile name="!local,!test">
+        <appender name="ASYNC_JSON" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>1024</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <maxFlushTime>1000</maxFlushTime>
+            <neverBlock>true</neverBlock>
+            <appender-ref ref="JSON_CONSOLE"/>
+        </appender>
+    </springProfile>
+
+    <!-- Logger configurations -->
+    
+    <!-- Root logger -->
+    <root level="${LOG_LEVEL}">
+        <springProfile name="local,test">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <springProfile name="!local,!test">
+            <appender-ref ref="ASYNC_JSON"/>
+        </springProfile>
+    </root>
+
+    <!-- Application loggers -->
+    <logger name="com.gogidix.infrastructure.sharedlibraries.sharedmessaging" level="INFO" additivity="false">
+        <springProfile name="local,test">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <springProfile name="!local,!test">
+            <appender-ref ref="ASYNC_JSON"/>
+        </springProfile>
+    </logger>
+
+    <!-- Business events logger -->
+    <logger name="BUSINESS_EVENTS" level="INFO" additivity="false">
+        <springProfile name="!test">
+            <appender-ref ref="BUSINESS_EVENTS"/>
+        </springProfile>
+    </logger>
+
+    <!-- Security events logger -->
+    <logger name="SECURITY_EVENTS" level="WARN" additivity="false">
+        <springProfile name="!test">
+            <appender-ref ref="SECURITY_EVENTS"/>
+        </springProfile>
+    </logger>
+
+    <!-- Performance events logger -->
+    <logger name="PERFORMANCE_EVENTS" level="DEBUG" additivity="false">
+        <springProfile name="!test">
+            <appender-ref ref="PERFORMANCE_EVENTS"/>
+        </springProfile>
+    </logger>
+
+    <!-- Audit events logger -->
+    <logger name="AUDIT_EVENTS" level="INFO" additivity="false">
+        <springProfile name="!test">
+            <appender-ref ref="AUDIT_EVENTS"/>
+        </springProfile>
+    </logger>
+
+    <!-- Engagement events logger -->
+    <logger name="ENGAGEMENT_EVENTS" level="INFO" additivity="false">
+        <springProfile name="!test">
+            <appender-ref ref="ENGAGEMENT_EVENTS"/>
+        </springProfile>
+    </logger>
+
+    <!-- Framework loggers -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="org.springframework.data" level="WARN"/>
+    <logger name="org.springframework.kafka" level="WARN"/>
+
+    <!-- Database loggers -->
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="INFO"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="com.zaxxer.hikari.HikariConfig" level="INFO"/>
+
+    <!-- Metrics and monitoring loggers -->
+    <logger name="io.micrometer" level="WARN"/>
+    <logger name="io.jaegertracing" level="INFO"/>
+    <logger name="org.testcontainers" level="INFO"/>
+
+    <!-- External service loggers -->
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="kafka" level="WARN"/>
+    <logger name="org.apache.http" level="WARN"/>
+    <logger name="org.springframework.web.client" level="INFO"/>
+
+    <!-- Development and testing loggers -->
+    <springProfile name="local,test">
+        <logger name="com.gogidix.infrastructure.sharedlibraries.sharedmessaging" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    </springProfile>
+
+    <!-- Production-specific settings -->
+    <springProfile name="production">
+        <logger name="org.springframework" level="ERROR"/>
+        <logger name="org.hibernate" level="ERROR"/>
+        <logger name="com.zaxxer.hikari" level="ERROR"/>
+        <logger name="org.apache.kafka" level="ERROR"/>
+    </springProfile>
+
+    <!-- Staging-specific settings -->
+    <springProfile name="staging">
+        <logger name="com.gogidix.infrastructure.sharedlibraries.sharedmessaging" level="DEBUG"/>
+        <logger name="org.springframework.web" level="INFO"/>
+    </springProfile>
+
+</configuration>

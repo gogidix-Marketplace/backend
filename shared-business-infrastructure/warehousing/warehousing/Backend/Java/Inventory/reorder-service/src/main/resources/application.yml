@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: reorder-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: shared_warehousing
+      auto-index-creation: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: reorder-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.gogidix.shared.warehousing.reorder.event.ReorderEvent
+
+  # Scheduling configuration for reorder checks
+  scheduling:
+    enabled: true
+    cron: "0 0 * * * *"  # Run every hour
+
+server:
+  port: ${SERVER_PORT:8218}
+  servlet:
+    context-path: /api/v1/reorder
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Multi-tenancy configuration
+multitenancy:
+  header-name: X-Tenant-ID
+  default-tenant: public
+
+# Reorder configuration
+reorder:
+  default-review-days: 7
+  auto-order-enabled: false
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.gogidix: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.kafka: WARN
+
+# OpenAPI configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

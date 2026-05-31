@@ -1,0 +1,35 @@
+#!/bin/bash
+# Centralized Maven Configuration Service
+# Optimized for Enterprise Java Microservices Build Performance
+
+# JVM Memory Settings - Optimized for large multi-module builds
+export MAVEN_OPTS="-Xmx3072m -Xms1024m -XX:MaxPermSize=512m -XX:ReservedCodeCacheSize=512m"
+
+# Enable parallel builds for faster compilation
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.artifact.threads=4"
+
+# Network optimization for dependency resolution
+export MAVEN_OPTS="$MAVEN_OPTS -Dhttp.keepAlive=true"
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.wagon.http.pool=true"
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.wagon.http.pool.size=20"
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.wagon.httpconnectionManager.maxTotal=20"
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.wagon.httpconnectionManager.maxPerRoute=10"
+
+# Timeout settings to prevent hanging builds
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.wagon.http.connectionTimeout=300000"
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.wagon.http.readTimeout=1800000"
+
+# Retry configuration for transient failures
+export MAVEN_OPTS="$MAVEN_OPTS -Dmaven.wagon.http.retryHandler.count=3"
+
+# Enable batch mode for CI/CD environments
+if [ "${CI}" = "true" ] || [ "${GITLAB_CI}" = "true" ]; then
+    export MAVEN_OPTS="$MAVEN_OPTS -B"
+fi
+
+# Performance monitoring
+export MAVEN_OPTS="$MAVEN_OPTS -Dorg.slf4j.simpleLogger.showDateTime=true"
+export MAVEN_OPTS="$MAVEN_OPTS -Dorg.slf4j.simpleLogger.dateTimeFormat=HH:mm:ss.SSS"
+
+echo "[Maven Config Service] Loaded optimized settings for $(hostname)"
+echo "[Maven Config Service] MAVEN_OPTS: $MAVEN_OPTS"

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: space-service
+  namespace: warehousing-core
+  labels:
+    app: space-service
+    service: space-service
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8231
+    targetPort: http
+    protocol: TCP
+  - name: management
+    port: 8232
+    targetPort: management
+    protocol: TCP
+  selector:
+    app: space-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: space-service-headless
+  namespace: warehousing-core
+  labels:
+    app: space-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8231
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: space-service

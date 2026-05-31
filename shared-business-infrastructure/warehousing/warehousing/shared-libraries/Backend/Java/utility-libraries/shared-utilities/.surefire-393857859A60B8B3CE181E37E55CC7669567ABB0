@@ -1,0 +1,10 @@
+1,0,com.gogidix.utilities.SharedUtilitiesApplicationTest,contextLoads
+1,5,com.gogidix.shared.utilities.DateUtilsTest,shouldFormatToIso
+1,7,com.gogidix.shared.utilities.DateUtilsTest,shouldParseFromIso
+1,7,com.gogidix.shared.utilities.JsonUtilsTest,shouldValidateJson
+1,8,com.gogidix.shared.utilities.JsonUtilsTest,shouldThrowExceptionForInvalidSerialization
+1,9,com.gogidix.shared.utilities.DateUtilsTest,shouldCheckIfExpired
+1,9,com.gogidix.shared.utilities.DateUtilsTest,shouldConvertToDate
+1,24,com.gogidix.shared.utilities.JsonUtilsTest,shouldSerializeToJson
+1,129,com.gogidix.shared.utilities.DateUtilsTest,shouldConvertFromDate
+1,361,com.gogidix.shared.utilities.JsonUtilsTest,shouldDeserializeFromJson

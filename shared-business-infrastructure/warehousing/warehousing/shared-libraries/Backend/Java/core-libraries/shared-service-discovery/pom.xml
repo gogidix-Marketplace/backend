@@ -1,0 +1,227 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.gogidix.shared</groupId>
+        <artifactId>shared-libraries-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>shared-service-discovery</artifactId>
+    <name>Shared Service Discovery</name>
+    <description>Auto-registration and discovery client for all domain services</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2022.0.4</spring-cloud.version>
+    
+        <!-- Financial-Grade Testing: Coverage Thresholds -->
+        <jacoco.version>0.8.10</jacoco.version>
+        <pitest.version>1.15.2</pitest.version>
+        <pitest.junit5.version>1.2.1</pitest.junit5.version>
+        <fg.coverage.minimum>0.85</fg.coverage.minimum>
+        <fg.mutation.minimum>60</fg.mutation.minimum>
+
+<!-- Memory Configuration for CI/Standard Environments -->
+    <surefire.heap.min>64m</surefire.heap.min>
+    <surefire.heap.max>256m</surefire.heap.max>
+    <pitest.heap.min>64m</pitest.heap.min>
+    <pitest.heap.max>256m</pitest.heap.max>
+
+    <!-- Test Parallelism -->
+    <surefire.parallel.tests>1</surefire.parallel.tests>
+    <surefire.parallel.methods>1</surefire.parallel.methods>
+
+    <!-- Test timeout for integration tests -->
+    <surefire.timeout>300</surefire.timeout>
+
+    <!-- JVM Arguments -->
+    <surefire.jvm.args>-Xms${surefire.heap.min} -Xmx${surefire.heap.max} -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -XX:CompressedClassSpaceSize=32m -Xss128k -Djava.awt.headless=true -Dspring.main.allow-bean-definition-overriding=true</surefire.jvm.args>
+
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Starter Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud Consul Discovery -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-consul-discovery</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud OpenFeign for service-to-service calls -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!-- Foundation Shared Model -->
+        <dependency>
+            <groupId>com.gogidix.shared</groupId>
+            <artifactId>shared-model-service</artifactId>
+            <version>${gogidix.shared.version}</version>
+        </dependency>
+
+        <!-- Foundation Shared Security -->
+        <dependency>
+            <groupId>com.gogidix.shared</groupId>
+            <artifactId>shared-security-service</artifactId>
+            <version>${gogidix.shared.version}</version>
+        </dependency>
+
+        <!-- Jackson for JSON -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Validation -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Retry support -->
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+        </dependency>
+
+        <!-- Caffeine cache -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- Logstash for JSON logging -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+<!-- Spring Boot Test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <argLine>-Xms64m -Xmx256m -XX:+UseSerialGC</argLine>
+          <excludes>
+            <exclude>**/chaos/**</exclude>
+            <exclude>**/negative/**</exclude>
+            <exclude>**/performance/**</exclude>
+            <exclude>**/resilience/**</exclude>
+            <exclude>**/scalability/**</exclude>
+            <exclude>**/security/**</exclude>
+            <exclude>**/slo/**</exclude>
+          </excludes>
+          <!-- FIX: Changed forkCount from 0 to 1 to prevent JVM bootstrap classpath warning -->
+          <forkCount>1</forkCount>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <!-- Financial-Grade Testing: CI Profiles -->
+    <profiles>
+        <!-- CI Profile: Coverage-focused -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <pitest.skip>true</pitest.skip>
+            </properties>
+        </profile>
+
+<!-- Local Development Profile -->
+    <profile>
+      <id>local</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <pitest.skip>true</pitest.skip>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.0.0</version>
+            <configuration>
+              <excludes>
+                <exclude>**/chaos/**</exclude>
+                <exclude>**/negative/**</exclude>
+                <exclude>**/performance/**</exclude>
+                <exclude>**/resilience/**</exclude>
+                <exclude>**/scalability/**</exclude>
+                <exclude>**/security/**</exclude>
+                <exclude>**/slo/**</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Integration Test Profile: Full testing -->
+    <profile>
+      <id>integration</id>
+      <properties>
+        <pitest.skip>true</pitest.skip>
+      </properties>
+    </profile>
+
+    <!-- Certification Profile: Full testing including mutation -->
+        <profile>
+            <id>certification</id>
+            <properties>
+                <pitest.skip>false</pitest.skip>
+            </properties>
+        </profile>
+    </profiles>
+
+</project>

@@ -1,0 +1,26 @@
+{
+  "name": "@gogidix/warehousing-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Shared Warehousing Core domain",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api-tests",
+    "test:web": "playwright test --project=chromium-web",
+    "test:mobile": "playwright test --project=mobile-chrome",
+    "test:cross-service": "playwright test --project=cross-service-tests",
+    "test:e2e": "playwright test",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install --with-deps"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.0"
+  }
+}

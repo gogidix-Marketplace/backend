@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: warehousing-common-config
+  namespace: warehousing-core
+data:
+  # Application Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: "true"
+  MANAGEMENT_HEALTH_PROBES_ENABLED: "true"
+
+  # Service Discovery Configuration
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-service:8761/eureka/"
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  EUREKA_INSTANCE_LEASE_RENEWAL_INTERVAL_SECONDS: "10"
+  EUREKA_INSTANCE_LEASE_EXPIRATION_DURATION_SECONDS: "30"
+
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-bootstrap.kafka.svc.cluster.local:9092"
+  KAFKA_PRODUCER_ACKS: "all"
+  KAFKA_PRODUCER_RETRIES: "3"
+  KAFKA_CONSUMER_AUTO_OFFSET_RESET: "earliest"
+  KAFKA_CONSUMER_ENABLE_AUTO_COMMIT: "false"
+
+  # MongoDB Configuration
+  MONGODB_AUTHENTICATION_MECHANISM: "SCRAM-SHA-256"
+  MONGODB_CONNECT_TIMEOUT_MS: "10000"
+  MONGODB_SOCKET_TIMEOUT_MS: "60000"
+  MONGODB_SERVER_SELECTION_TIMEOUT_MS: "30000"
+  MONGODB_MAX_POOL_SIZE: "50"
+  MONGODB_MIN_POOL_SIZE: "5"
+
+  # Redis Configuration
+  REDIS_HOST: "redis-master.redis.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DATABASE: "0"
+  REDIS_TIMEOUT: "5000"
+  REDIS_JEDIS_POOL_MAX_ACTIVE: "8"
+  REDIS_JEDIS_POOL_MAX_IDLE: "8"
+  REDIS_JEDIS_POOL_MIN_IDLE: "0"
+
+  # ElasticSearch Configuration
+  ELASTICSEARCH_HOST: "elasticsearch-master.es.svc.cluster.local"
+  ELASTICSEARCH_PORT: "9200"
+  ELASTICSEARCH_SCHEME: "http"
+
+  # Tracing Configuration
+  ZIPKIN_ENABLED: "true"
+  ZIPKIN_BASE_URL: "http://zipkin.istio-system.svc.cluster.local:9411"
+
+  # Actuator Endpoints
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "always"
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_COMPONENTS: "always"
+  MANAGEMENT_HEALTH_READINESS_STATE_ENABLED: "true"
+  MANAGEMENT_HEALTH_LIVENESS_STATE_ENABLED: "true"
+
+  # Logging Configuration
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_COM_GOGIDIX: "DEBUG"
+  LOGGING_PATTERN_CONSOLE: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+  # Jackson Serialization
+  JACKSON_DEFAULT_PROPERTY_INCLUSION: "non_null"
+  JACKSON_SERIALIZATION_WRITE_DATES_AS_TIMESTAMPS: "false"
+  JACKSON_TIME_ZONE: "UTC"
+
+  # API Documentation
+  SPRINGDOC_API_DOCS_ENABLED: "true"
+  SPRINGDOC_SWAGGER_UI_ENABLED: "true"
+
+  # Security
+  SPRING_SECURITY_OA2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak.keycloak.svc.cluster.local/realms/gogidix/protocol/openid-connect/certs"
+
+  # Warehousing Specific Configuration
+  WAREHOUSE_DEFAULT_LOCATION_CAPACITY: "1000"
+  WAREHOUSE_AUTO_PUTAWAY_ENABLED: "true"
+  WAREHOUSE_CYCLE_COUNT_FREQUENCY: "monthly"
+  WAREHOUSE_SERIAL_TRACKING_ENABLED: "true"
+  WAREHOUSE_BATCH_TRACKING_ENABLED: "true"

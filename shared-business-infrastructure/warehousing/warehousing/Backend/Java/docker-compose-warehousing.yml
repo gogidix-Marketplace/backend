@@ -1,0 +1,1789 @@
+# ==============================================================================
+# Warehousing Core - Docker Compose Configuration
+# ==============================================================================
+# This Docker Compose file orchestrates all warehousing core services along with
+# infrastructure components (MongoDB, Kafka, Redis) for local development and testing.
+#
+# Usage:
+#   docker-compose -f docker-compose-warehousing.yml up -d
+#   docker-compose -f docker-compose-warehousing.yml down
+#
+# Environment:
+#   - PROFILE: Spring profile to use (default: dev)
+#   - MONGODB_VERSION: MongoDB version (default: 7.0)
+#   - KAFKA_VERSION: Kafka version (default: 3.7.0)
+#   - REDIS_VERSION: Redis version (default: 7.2)
+# ==============================================================================
+
+version: '3.8'
+
+networks:
+  warehousing-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  mongodb-data-1:
+    driver: local
+  mongodb-data-2:
+    driver: local
+  mongodb-data-3:
+    driver: local
+  mongodb-config-1:
+    driver: local
+  mongodb-config-2:
+    driver: local
+  mongodb-config-3:
+    driver: local
+  zookeeper-data:
+    driver: local
+  kafka-data-1:
+    driver: local
+  kafka-data-2:
+    driver: local
+  kafka-data-3:
+    driver: local
+  redis-data:
+    driver: local
+
+# -----------------------------------------------------------------------------
+# Infrastructure Services
+# -----------------------------------------------------------------------------
+
+services:
+  # ========================================
+  # MongoDB Replica Set (3 nodes)
+  # ========================================
+  mongodb-1:
+    image: mongo:${MONGODB_VERSION:-7.0}
+    container_name: warehousing-mongodb-1
+    hostname: mongodb-1
+    networks:
+      - warehousing-network
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data-1:/data/db
+      - mongodb-config-1:/data/configdb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: warehousing_dev_password
+      MONGO_INITDB_DATABASE: warehousing_core
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  mongodb-2:
+    image: mongo:${MONGODB_VERSION:-7.0}
+    container_name: warehousing-mongodb-2
+    hostname: mongodb-2
+    networks:
+      - warehousing-network
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-data-2:/data/db
+      - mongodb-config-2:/data/configdb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: warehousing_dev_password
+      MONGO_INITDB_DATABASE: warehousing_core
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    depends_on:
+      - mongodb-1
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  mongodb-3:
+    image: mongo:${MONGODB_VERSION:-7.0}
+    container_name: warehousing-mongodb-3
+    hostname: mongodb-3
+    networks:
+      - warehousing-network
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongodb-data-3:/data/db
+      - mongodb-config-3:/data/configdb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: warehousing_dev_password
+      MONGO_INITDB_DATABASE: warehousing_core
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    depends_on:
+      - mongodb-1
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # MongoDB Replica Set Initializer
+  mongodb-init:
+    image: mongo:${MONGODB_VERSION:-7.0}
+    container_name: warehousing-mongodb-init
+    networks:
+      - warehousing-network
+    depends_on:
+      - mongodb-1
+      - mongodb-2
+      - mongodb-3
+    command: >
+      bash -c "
+      sleep 30 &&
+      mongosh --host mongodb-1:27017 -u admin -p warehousing_dev_password --authenticationDatabase admin --eval '
+      try {
+        rs.status();
+        print(\"Replica set already initialized\");
+      } catch(e) {
+        rs.initiate({
+          _id: \"rs0\",
+          members: [
+            {_id: 0, host: \"mongodb-1:27017\"},
+            {_id: 1, host: \"mongodb-2:27017\"},
+            {_id: 2, host: \"mongodb-3:27017\"}
+          ]
+        });
+        print(\"Replica set initialized\");
+      }
+      '
+      "
+
+  # ========================================
+  # Zookeeper (required for Kafka)
+  # ========================================
+  zookeeper:
+    image: bitnami/zookeeper:${ZOOKEEPER_VERSION:-3.9.2}
+    container_name: warehousing-zookeeper
+    hostname: zookeeper
+    networks:
+      - warehousing-network
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    volumes:
+      - zookeeper-data:/bitnami/zookeeper
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Kafka Cluster (3 brokers)
+  # ========================================
+  kafka-1:
+    image: bitnami/kafka:${KAFKA_VERSION:-3.7.0}
+    container_name: warehousing-kafka-1
+    hostname: kafka-1
+    networks:
+      - warehousing-network
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+    environment:
+      KAFKA_CFG_BROKER_ID: 1
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,EXTERNAL://:19092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,EXTERNAL://localhost:19092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_LOG_RETENTION_HOURS: 168
+      KAFKA_CFG_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka-data-1:/bitnami/kafka
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  kafka-2:
+    image: bitnami/kafka:${KAFKA_VERSION:-3.7.0}
+    container_name: warehousing-kafka-2
+    hostname: kafka-2
+    networks:
+      - warehousing-network
+    ports:
+      - "9093:9093"
+      - "19093:19093"
+    environment:
+      KAFKA_CFG_BROKER_ID: 2
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9093,EXTERNAL://:19093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9093,EXTERNAL://localhost:19093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka-data-2:/bitnami/kafka
+    depends_on:
+      - zookeeper
+
+  kafka-3:
+    image: bitnami/kafka:${KAFKA_VERSION:-3.7.0}
+    container_name: warehousing-kafka-3
+    hostname: kafka-3
+    networks:
+      - warehousing-network
+    ports:
+      - "9094:9094"
+      - "19094:19094"
+    environment:
+      KAFKA_CFG_BROKER_ID: 3
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9094,EXTERNAL://:19094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9094,EXTERNAL://localhost:19094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka-data-3:/bitnami/kafka
+    depends_on:
+      - zookeeper
+
+  # ========================================
+  # Redis with Redis Commander
+  # ========================================
+  redis:
+    image: bitnami/redis:${REDIS_VERSION:-7.2}
+    container_name: warehousing-redis
+    hostname: redis
+    networks:
+      - warehousing-network
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_PASSWORD: warehousing_redis_password
+      REDIS_AOF_ENABLED: "yes"
+      REDIS_MAXMEMORY: 256mb
+      REDIS_MAXMEMORY_POLICY: allkeys-lru
+    volumes:
+      - redis-data:/bitnami/redis/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "warehousing_redis_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: warehousing-redis-commander
+    hostname: redis-commander
+    networks:
+      - warehousing-network
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:warehousing_redis_password
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin
+    depends_on:
+      - redis
+
+  # ========================================
+  # Eureka Server (Service Discovery)
+  # ========================================
+  eureka-server:
+    image: gogidix/eureka-server:latest
+    container_name: warehousing-eureka-server
+    hostname: eureka-server
+    networks:
+      - warehousing-network
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8761
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+# -----------------------------------------------------------------------------
+# Analytics Services
+# -----------------------------------------------------------------------------
+
+  fulfillment-analytics-service:
+    image: gogidix/fulfillment-analytics-service:latest
+    container_name: fulfillment-analytics-service
+    hostname: fulfillment-analytics-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8250:8250"
+      - "8251:8251"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8250
+      MANAGEMENT_SERVER_PORT: 8251
+      SPRING_APPLICATION_NAME: fulfillment-analytics-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/fulfillment_analytics?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8251/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  inventory-analytics-service:
+    image: gogidix/inventory-analytics-service:latest
+    container_name: inventory-analytics-service
+    hostname: inventory-analytics-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8252:8252"
+      - "8253:8253"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8252
+      MANAGEMENT_SERVER_PORT: 8253
+      SPRING_APPLICATION_NAME: inventory-analytics-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/inventory_analytics?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8253/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  reporting-service:
+    image: gogidix/reporting-service:latest
+    container_name: reporting-service
+    hostname: reporting-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8254:8254"
+      - "8255:8255"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8254
+      MANAGEMENT_SERVER_PORT: 8255
+      SPRING_APPLICATION_NAME: reporting-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/reporting?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8255/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  warehouse-analytics-service:
+    image: gogidix/warehouse-analytics-service:latest
+    container_name: warehouse-analytics-service
+    hostname: warehouse-analytics-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8256:8256"
+      - "8257:8257"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8256
+      MANAGEMENT_SERVER_PORT: 8257
+      SPRING_APPLICATION_NAME: warehouse-analytics-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/warehouse_analytics?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8257/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Config Services
+# -----------------------------------------------------------------------------
+
+  warehouse-config-service:
+    image: gogidix/warehouse-config-service:latest
+    container_name: warehouse-config-service
+    hostname: warehouse-config-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8221:8221"
+      - "8222:8222"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8221
+      MANAGEMENT_SERVER_PORT: 8222
+      SPRING_APPLICATION_NAME: warehouse-config-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/warehouse_config?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8222/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  tenant-config-service:
+    image: gogidix/tenant-config-service:latest
+    container_name: tenant-config-service
+    hostname: tenant-config-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8240:8240"
+      - "8241:8241"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8240
+      MANAGEMENT_SERVER_PORT: 8241
+      SPRING_APPLICATION_NAME: tenant-config-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/tenant_config?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8241/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Fulfillment Services
+# -----------------------------------------------------------------------------
+
+  fulfillment-core-service:
+    image: gogidix/fulfillment-core-service:latest
+    container_name: fulfillment-core-service
+    hostname: fulfillment-core-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8202:8202"
+      - "8203:8203"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8202
+      MANAGEMENT_SERVER_PORT: 8203
+      SPRING_APPLICATION_NAME: fulfillment-core-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/fulfillment?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8203/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  picking-service:
+    image: gogidix/picking-service:latest
+    container_name: picking-service
+    hostname: picking-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8203:8203"
+      - "8204:8204"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8203
+      MANAGEMENT_SERVER_PORT: 8204
+      SPRING_APPLICATION_NAME: picking-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/picking?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8204/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  packing-service:
+    image: gogidix/packing-service:latest
+    container_name: packing-service
+    hostname: packing-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8204:8204"
+      - "8205:8205"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8204
+      MANAGEMENT_SERVER_PORT: 8205
+      SPRING_APPLICATION_NAME: packing-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/packing?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8205/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  quality-service:
+    image: gogidix/quality-service:latest
+    container_name: quality-service
+    hostname: quality-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8209:8209"
+      - "8210:8210"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8209
+      MANAGEMENT_SERVER_PORT: 8210
+      SPRING_APPLICATION_NAME: quality-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/quality?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8210/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  returns-service:
+    image: gogidix/returns-service:latest
+    container_name: returns-service
+    hostname: returns-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8208:8208"
+      - "8209:8209"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8208
+      MANAGEMENT_SERVER_PORT: 8209
+      SPRING_APPLICATION_NAME: returns-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/returns?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8209/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  shipping-service:
+    image: gogidix/shipping-service:latest
+    container_name: shipping-service
+    hostname: shipping-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8207:8207"
+      - "8208:8208"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8207
+      MANAGEMENT_SERVER_PORT: 8208
+      SPRING_APPLICATION_NAME: shipping-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/shipping?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8208/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Inbound Services
+# -----------------------------------------------------------------------------
+
+  putaway-service:
+    image: gogidix/putaway-service:latest
+    container_name: putaway-service
+    hostname: putaway-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8205:8205"
+      - "8206:8206"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8205
+      MANAGEMENT_SERVER_PORT: 8206
+      SPRING_APPLICATION_NAME: putaway-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/putaway?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8206/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  receipt-service:
+    image: gogidix/receipt-service:latest
+    container_name: receipt-service
+    hostname: receipt-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8260:8260"
+      - "8261:8261"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8260
+      MANAGEMENT_SERVER_PORT: 8261
+      SPRING_APPLICATION_NAME: receipt-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/receipt?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8261/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  receiving-service:
+    image: gogidix/receiving-service:latest
+    container_name: receiving-service
+    hostname: receiving-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8206:8206"
+      - "8207:8207"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8206
+      MANAGEMENT_SERVER_PORT: 8207
+      SPRING_APPLICATION_NAME: receiving-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/receiving?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8207/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Inventory Services
+# -----------------------------------------------------------------------------
+
+  availability-service:
+    image: gogidix/availability-service:latest
+    container_name: availability-service
+    hostname: availability-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8262:8262"
+      - "8263:8263"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8262
+      MANAGEMENT_SERVER_PORT: 8263
+      SPRING_APPLICATION_NAME: availability-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/availability?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8263/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  batch-service:
+    image: gogidix/batch-service:latest
+    container_name: batch-service
+    hostname: batch-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8216:8216"
+      - "8217:8217"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8216
+      MANAGEMENT_SERVER_PORT: 8217
+      SPRING_APPLICATION_NAME: batch-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/batch?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8217/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  cycle-counting-service:
+    image: gogidix/cycle-counting-service:latest
+    container_name: cycle-counting-service
+    hostname: cycle-counting-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8214:8214"
+      - "8215:8215"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8214
+      MANAGEMENT_SERVER_PORT: 8215
+      SPRING_APPLICATION_NAME: cycle-counting-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/cycle_counting?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8215/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  expiration-service:
+    image: gogidix/expiration-service:latest
+    container_name: expiration-service
+    hostname: expiration-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8217:8217"
+      - "8218:8218"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8217
+      MANAGEMENT_SERVER_PORT: 8218
+      SPRING_APPLICATION_NAME: expiration-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/expiration?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8218/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  inventory-core-service:
+    image: gogidix/inventory-core-service:latest
+    container_name: inventory-core-service
+    hostname: inventory-core-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8210:8210"
+      - "8211:8211"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8210
+      MANAGEMENT_SERVER_PORT: 8211
+      SPRING_APPLICATION_NAME: inventory-core-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/inventory?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8211/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  location-service:
+    image: gogidix/location-service:latest
+    container_name: location-service
+    hostname: location-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8220:8220"
+      - "8221:8221"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8220
+      MANAGEMENT_SERVER_PORT: 8221
+      SPRING_APPLICATION_NAME: location-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/location?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8221/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  reorder-service:
+    image: gogidix/reorder-service:latest
+    container_name: reorder-service
+    hostname: reorder-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8218:8218"
+      - "8219:8219"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8218
+      MANAGEMENT_SERVER_PORT: 8219
+      SPRING_APPLICATION_NAME: reorder-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/reorder?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8219/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  serialization-service:
+    image: gogidix/serialization-service:latest
+    container_name: serialization-service
+    hostname: serialization-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8215:8215"
+      - "8216:8216"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8215
+      MANAGEMENT_SERVER_PORT: 8216
+      SPRING_APPLICATION_NAME: serialization-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/serialization?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8216/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  stock-service:
+    image: gogidix/stock-service:latest
+    container_name: stock-service
+    hostname: stock-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8211:8211"
+      - "8212:8212"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8211
+      MANAGEMENT_SERVER_PORT: 8212
+      SPRING_APPLICATION_NAME: stock-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/stock?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8212/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  stock-adjustment-service:
+    image: gogidix/stock-adjustment-service:latest
+    container_name: stock-adjustment-service
+    hostname: stock-adjustment-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8212:8212"
+      - "8213:8213"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8212
+      MANAGEMENT_SERVER_PORT: 8213
+      SPRING_APPLICATION_NAME: stock-adjustment-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/stock_adjustment?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8213/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  stock-movement-service:
+    image: gogidix/stock-movement-service:latest
+    container_name: stock-movement-service
+    hostname: stock-movement-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8213:8213"
+      - "8214:8214"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8213
+      MANAGEMENT_SERVER_PORT: 8214
+      SPRING_APPLICATION_NAME: stock-movement-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/stock_movement?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8214/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Location Services
+# -----------------------------------------------------------------------------
+
+  zone-service:
+    image: gogidix/zone-service:latest
+    container_name: zone-service
+    hostname: zone-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8222:8222"
+      - "8223:8223"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8222
+      MANAGEMENT_SERVER_PORT: 8223
+      SPRING_APPLICATION_NAME: zone-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/zone?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8223/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  shelf-service:
+    image: gogidix/shelf-service:latest
+    container_name: shelf-service
+    hostname: shelf-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8224:8224"
+      - "8225:8225"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8224
+      MANAGEMENT_SERVER_PORT: 8225
+      SPRING_APPLICATION_NAME: shelf-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/shelf?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8225/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  bin-service:
+    image: gogidix/bin-service:latest
+    container_name: bin-service
+    hostname: bin-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8225:8225"
+      - "8226:8226"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8225
+      MANAGEMENT_SERVER_PORT: 8226
+      SPRING_APPLICATION_NAME: bin-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/bin?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8226/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Outbound Services
+# -----------------------------------------------------------------------------
+
+  outbound-core-service:
+    image: gogidix/outbound-core-service:latest
+    container_name: outbound-core-service
+    hostname: outbound-core-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8201:8201"
+      - "8202:8202"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8201
+      MANAGEMENT_SERVER_PORT: 8202
+      SPRING_APPLICATION_NAME: outbound-core-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/outbound?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8202/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  carrier-service:
+    image: gogidix/carrier-service:latest
+    container_name: carrier-service
+    hostname: carrier-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8264:8264"
+      - "8265:8265"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8264
+      MANAGEMENT_SERVER_PORT: 8265
+      SPRING_APPLICATION_NAME: carrier-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/carrier?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8265/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  label-service:
+    image: gogidix/label-service:latest
+    container_name: label-service
+    hostname: label-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8266:8266"
+      - "8267:8267"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8266
+      MANAGEMENT_SERVER_PORT: 8267
+      SPRING_APPLICATION_NAME: label-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/label?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8267/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  order-service:
+    image: gogidix/order-service:latest
+    container_name: order-service
+    hostname: order-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8268:8268"
+      - "8269:8269"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8268
+      MANAGEMENT_SERVER_PORT: 8269
+      SPRING_APPLICATION_NAME: order-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/order?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8269/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Pricing Services
+# -----------------------------------------------------------------------------
+
+  pricing-service:
+    image: gogidix/pricing-service:latest
+    container_name: pricing-service
+    hostname: pricing-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8270:8270"
+      - "8271:8271"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8270
+      MANAGEMENT_SERVER_PORT: 8271
+      SPRING_APPLICATION_NAME: pricing-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/pricing?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8271/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Public API Services
+# -----------------------------------------------------------------------------
+
+  public-availability-service:
+    image: gogidix/public-availability-service:latest
+    container_name: public-availability-service
+    hostname: public-availability-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8282:8282"
+      - "8283:8283"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8282
+      MANAGEMENT_SERVER_PORT: 8283
+      SPRING_APPLICATION_NAME: public-availability-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/public_availability?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8283/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  public-booking-service:
+    image: gogidix/public-booking-service:latest
+    container_name: public-booking-service
+    hostname: public-booking-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8280:8280"
+      - "8281:8281"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8280
+      MANAGEMENT_SERVER_PORT: 8281
+      SPRING_APPLICATION_NAME: public-booking-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/public_booking?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8281/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  public-pricing-service:
+    image: gogidix/public-pricing-service:latest
+    container_name: public-pricing-service
+    hostname: public-pricing-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8281:8281"
+      - "8282:8282"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8281
+      MANAGEMENT_SERVER_PORT: 8282
+      SPRING_APPLICATION_NAME: public-pricing-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/public_pricing?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms256m -Xmx512m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8282/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Storage Services
+# -----------------------------------------------------------------------------
+
+  access-service:
+    image: gogidix/access-service:latest
+    container_name: access-service
+    hostname: access-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8234:8234"
+      - "8235:8235"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8234
+      MANAGEMENT_SERVER_PORT: 8235
+      SPRING_APPLICATION_NAME: access-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/access?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8235/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  self-storage-service:
+    image: gogidix/self-storage-service:latest
+    container_name: self-storage-service
+    hostname: self-storage-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8230:8230"
+      - "8231:8231"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8230
+      MANAGEMENT_SERVER_PORT: 8231
+      SPRING_APPLICATION_NAME: self-storage-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/self_storage?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8231/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  space-service:
+    image: gogidix/space-service:latest
+    container_name: space-service
+    hostname: space-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8231:8231"
+      - "8232:8232"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8231
+      MANAGEMENT_SERVER_PORT: 8232
+      SPRING_APPLICATION_NAME: space-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/space?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8232/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  space-allocation-service:
+    image: gogidix/space-allocation-service:latest
+    container_name: space-allocation-service
+    hostname: space-allocation-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8232:8232"
+      - "8233:8233"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8232
+      MANAGEMENT_SERVER_PORT: 8233
+      SPRING_APPLICATION_NAME: space-allocation-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/space_allocation?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8233/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  storage-reservation-service:
+    image: gogidix/storage-reservation-service:latest
+    container_name: storage-reservation-service
+    hostname: storage-reservation-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8233:8233"
+      - "8234:8234"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8233
+      MANAGEMENT_SERVER_PORT: 8234
+      SPRING_APPLICATION_NAME: storage-reservation-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/storage_reservation?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8234/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+# -----------------------------------------------------------------------------
+# Vendor Services
+# -----------------------------------------------------------------------------
+
+  vendor-sync-service:
+    image: gogidix/vendor-sync-service:latest
+    container_name: vendor-sync-service
+    hostname: vendor-sync-service
+    networks:
+      - warehousing-network
+    ports:
+      - "8290:8290"
+      - "8291:8291"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${PROFILE:-dev},docker
+      SERVER_PORT: 8290
+      MANAGEMENT_SERVER_PORT: 8291
+      SPRING_APPLICATION_NAME: vendor-sync-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: warehousing_redis_password
+      SPRING_DATA_MONGODB_URI: mongodb://admin:warehousing_dev_password@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/vendor_sync?authSource=admin&replicaSet=rs0
+      JAVA_OPTS: -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m
+    depends_on:
+      - mongodb-1
+      - kafka-1
+      - redis
+      - eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8291/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s

@@ -1,0 +1,199 @@
+{{/*
+===============================================================================
+ServiceMonitor Template
+===============================================================================
+Creates Prometheus Operator ServiceMonitor for warehousing services.
+*/}}
+{{- if .Values.observability.metrics.prometheus.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "warehousing-core.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: servicemonitor
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: warehousing-core
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: {{ .Values.observability.metrics.prometheus.serviceMonitor.interval | default "30s" }}
+      scrapeTimeout: {{ .Values.observability.metrics.prometheus.serviceMonitor.scrapeTimeout | default "10s" }}
+      scheme: http
+{{- end }}
+
+{{/*
+ServiceMonitor for individual services
+*/}}
+{{- range $serviceName, $serviceConfig := .Values }}
+{{- if and $serviceConfig.enabled (or (hasSuffix "Service" $serviceName) (hasSuffix "service" $serviceName)) }}
+{{- if $serviceConfig.serviceMonitor }}
+{{- if $serviceConfig.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $serviceConfig.name }}-servicemonitor
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: servicemonitor
+    app.kubernetes.io/name: {{ $serviceConfig.name }}
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $serviceConfig.name }}
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: {{ $serviceConfig.serviceMonitor.interval | default "30s" }}
+      scrapeTimeout: {{ $serviceConfig.serviceMonitor.scrapeTimeout | default "10s" }}
+      scheme: http
+{{- if $serviceConfig.serviceMonitor.relabelings }}
+      relabelings:
+        {{- toYaml $serviceConfig.serviceMonitor.relabelings | nindent 8 }}
+{{- end }}
+{{- if $serviceConfig.serviceMonitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml $serviceConfig.serviceMonitor.metricRelabelings | nindent 8 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+ServiceMonitor for infrastructure components
+*/}}
+{{- if .Values.mongodb.enabled }}
+{{- if .Values.mongodb.metrics.enabled }}
+{{- if .Values.mongodb.metrics.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mongodb-servicemonitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb-servicemonitor
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mongodb
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.kafka.enabled }}
+{{- if .Values.kafka.metrics.enabled }}
+{{- if .Values.kafka.metrics.kafka.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-servicemonitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kafka-servicemonitor
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafka
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.redis.enabled }}
+{{- if .Values.redis.metrics.enabled }}
+{{- if .Values.redis.metrics.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-servicemonitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis-servicemonitor
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+PrometheusRule for alerting
+*/}}
+{{- if .Values.observability.metrics.prometheus.prometheusRules }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "warehousing-core.fullname" . }}-rules
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "warehousing-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus-rule
+    release: prometheus-operator
+spec:
+  groups:
+    - name: warehousing-core-alerts
+      rules:
+        - alert: WarehousingServiceDown
+          expr: up{job=~"warehousing-.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: warehousing
+          annotations:
+            summary: "Warehousing service is down"
+            description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
+
+        - alert: WarehousingHighErrorRate
+          expr: rate(http_requests_total{status=~"5..", job=~"warehousing-.*"}[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+            team: warehousing
+          annotations:
+            summary: "High error rate detected"
+            description: "{{ $labels.instance }} has error rate above 5% for more than 5 minutes."
+
+        - alert: WarehousingHighLatency
+          expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=~"warehousing-.*"}[5m])) > 1
+          for: 10m
+          labels:
+            severity: warning
+            team: warehousing
+          annotations:
+            summary: "High latency detected"
+            description: "{{ $labels.instance }} has p99 latency above 1 second for more than 10 minutes."
+{{- end }}

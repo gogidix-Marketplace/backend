@@ -1,0 +1,193 @@
+# Test Configuration for Shared Messaging Library
+# Optimized for testing with TestContainers and performance testing
+
+spring:
+  # Application Configuration
+  application:
+    name: shared-messaging-test
+  profiles:
+    active: test
+    
+  # Database Configuration - Will be overridden by TestContainers
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: test
+    password: test
+    driver-class-name: org.h2.Driver
+    
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+        generate_statistics: false
+        jdbc:
+          batch_size: 50
+          order_inserts: true
+          order_updates: true
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+          
+  # Redis Configuration - Will be overridden by TestContainers  
+  redis:
+    host: localhost
+    port: 6379
+    password: 
+    timeout: 2000ms
+    jedis:
+      pool:
+        max-active: 10
+        max-idle: 10
+        min-idle: 1
+        
+  # Kafka Configuration - Will be overridden by TestContainers
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: 1
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+    consumer:
+      group-id: shared-messaging-test
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.gogidix.infrastructure.sharedlibraries.sharedmessaging"
+        
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+      
+  # Test Transaction Configuration
+  test:
+    database:
+      replace: none
+
+# Server Configuration
+server:
+  port: 0 # Random port for testing
+  servlet:
+    context-path: /api/messaging
+
+# Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+# Security Configuration for Testing
+security:
+  jwt:
+    secret: test-jwt-secret-key-for-security-testing-purposes-only-this-is-not-for-production
+    expiration: 3600000 # 1 hour
+  rate-limit:
+    enabled: true
+    requests-per-minute: 1000 # Higher limit for testing
+
+# Message Configuration
+messaging:
+  retry:
+    max-attempts: 3
+    delay-ms: 1000
+    backoff-multiplier: 2.0
+    max-delay-ms: 10000
+    
+  delivery:
+    timeout-ms: 5000
+    batch-size: 100
+    
+  cache:
+    template-ttl-minutes: 30
+    stats-ttl-minutes: 5
+    
+  async:
+    core-pool-size: 5
+    max-pool-size: 20
+    queue-capacity: 1000
+
+# Test-specific Configuration
+test:
+  containers:
+    reuse: true
+    startup-timeout: 60s
+    
+  load:
+    messages-per-second: 100
+    duration-minutes: 5
+    thread-pool-size: 20
+    
+  performance:
+    memory-threshold-mb: 512
+    response-time-threshold-ms: 200
+    error-rate-threshold: 0.01
+    
+  security:
+    sql-injection-tests: true
+    xss-tests: true
+    rate-limiting-tests: true
+    authentication-tests: true
+
+# Circuit Breaker Configuration (for testing failure scenarios)
+resilience4j:
+  circuitbreaker:
+    instances:
+      messageDelivery:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 5
+        minimumNumberOfCalls: 5
+        
+  retry:
+    instances:
+      messageDelivery:
+        maxAttempts: 3
+        waitDuration: 1s
+        retryExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          
+  ratelimiter:
+    instances:
+      messageApi:
+        limitRefreshPeriod: 1s
+        limitForPeriod: 1000
+        timeoutDuration: 0s
+
+# Logging Configuration
+logging:
+  level:
+    com.gogidix.infrastructure.sharedlibraries.sharedmessaging: INFO
+    org.springframework.kafka: WARN
+    org.springframework.data.redis: WARN
+    org.hibernate: WARN
+    org.springframework.security: WARN
+    org.testcontainers: INFO
+    com.zaxxer.hikari: WARN
+    
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
+
+# Actuator Configuration
+info:
+  app:
+    name: '@project.name@'
+    version: '@project.version@'
+    description: Shared Messaging Library Test Configuration

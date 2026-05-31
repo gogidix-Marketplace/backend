@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: warehousing-core
+  labels:
+    name: warehousing-core
+    environment: shared
+    project: gogidix-warehousing

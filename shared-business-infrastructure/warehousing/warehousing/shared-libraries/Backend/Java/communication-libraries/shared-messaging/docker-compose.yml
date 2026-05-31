@@ -1,0 +1,246 @@
+# Docker Compose for Shared Messaging Library
+# Local development environment with dependencies
+# Spring Boot 3.1.5 with Java 17
+
+version: '3.8'
+
+networks:
+  messaging-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  kafka-data:
+    driver: local
+  zookeeper-data:
+    driver: local
+
+services:
+  # =====================================
+  # DATABASE SERVICES
+  # =====================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: shared-messaging-postgres
+    environment:
+      POSTGRES_DB: gogidix_messaging
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.10
+
+  # =====================================
+  # CACHE SERVICES
+  # =====================================
+  redis:
+    image: redis:7-alpine
+    container_name: shared-messaging-redis
+    command: redis-server --appendonly yes --requirepass redis123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.11
+
+  # =====================================
+  # MESSAGE BROKER SERVICES
+  # =====================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: shared-messaging-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.12
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: shared-messaging-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      KAFKA_CONFLUENT_METRICS_ENABLE: 'true'
+      KAFKA_CONFLUENT_SUPPORT_CUSTOMER_ID: anonymous
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.13
+
+  # =====================================
+  # MONITORING SERVICES
+  # =====================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: shared-messaging-mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.14
+
+  # =====================================
+  # APPLICATION SERVICE
+  # =====================================
+  shared-messaging:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: shared-messaging-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      # Spring profiles
+      SPRING_PROFILES_ACTIVE: docker
+      
+      # Database configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      
+      # Redis configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      
+      # Kafka configuration
+      KAFKA_HOST: kafka
+      KAFKA_PORT: 9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # Mail configuration
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      
+      # JVM configuration
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseG1GC -XX:+UseStringDeduplication"
+      JVM_MEMORY: "-Xmx512m -Xms256m"
+      
+      # Application configuration
+      SERVER_PORT: 8501
+      MANAGEMENT_PORT: 8501
+      
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/api/messaging/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.20
+
+  # =====================================
+  # DEVELOPMENT TOOLS
+  # =====================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: shared-messaging-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gogidix.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - ./docker/pgadmin-servers.json:/pgadmin4/servers.json
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.21
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: shared-messaging-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379:1:redis123
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.22
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: shared-messaging-kafka-ui
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+    networks:
+      messaging-network:
+        ipv4_address: 172.20.0.23

@@ -1,0 +1,1075 @@
+# ==============================================================================
+# Warehousing Core Helm Chart - Production Environment Values
+# ==============================================================================
+# This file contains production environment specific overrides.
+# Usage: helm install warehousing-core ./warehousing-core -f values-production.yaml
+
+# ------------------------------------------------------------------------------
+# Global Configuration Overrides
+# ------------------------------------------------------------------------------
+global:
+  environment: production
+  labels:
+    domain: warehousing
+    platform: gogidix
+    managed-by: helm
+    environment: production
+
+  # Production security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsUser: 1001
+    capabilities:
+      drop:
+        - ALL
+
+  # Production resource defaults (higher than default)
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+# ------------------------------------------------------------------------------
+# Namespace Configuration
+# ------------------------------------------------------------------------------
+namespace:
+  create: true
+  name: warehousing-production
+  annotations:
+    iam.amazonaws.com/permitted: ".*"
+
+# ------------------------------------------------------------------------------
+# MongoDB Configuration - Production
+# ------------------------------------------------------------------------------
+mongodb:
+  enabled: true
+  architecture: replicaset
+  replicaSet:
+    name: rs0
+    replicas:
+      secondary: 3
+      arbiter: 0
+  auth:
+    enabled: true
+    rootUser: admin
+    existingSecret: mongodb-credentials-production
+    database: warehousing_production
+  persistence:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 500Gi
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - mongodb
+          topologyKey: kubernetes.io/zone
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# ------------------------------------------------------------------------------
+# Kafka Configuration - Production
+# ------------------------------------------------------------------------------
+kafka:
+  enabled: true
+  replicas: 5
+  controller:
+    replicaCount: 5
+  broker:
+    replicaCount: 5
+    persistence:
+      size: 500Gi
+      storageClass: "fast-ssd"
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+  metrics:
+    kafka:
+      enabled: true
+      jmx:
+        enabled: true
+      serviceMonitor:
+        enabled: true
+
+# ------------------------------------------------------------------------------
+# Redis Configuration - Production
+# ------------------------------------------------------------------------------
+redis:
+  enabled: true
+  architecture: replication
+  replica:
+    replicaCount: 5
+  auth:
+    enabled: true
+    existingSecret: redis-credentials-production
+  master:
+    persistence:
+      enabled: true
+      size: 50Gi
+      storageClass: "fast-ssd"
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# ------------------------------------------------------------------------------
+# Service Replica Overrides - Production
+# ------------------------------------------------------------------------------
+# Core services get higher replica counts in production
+fulfillmentCoreService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - fulfillment-core-service
+          topologyKey: kubernetes.io/zone
+
+inventoryCoreService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - inventory-core-service
+          topologyKey: kubernetes.io/zone
+
+outboundCoreService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - outbound-core-service
+          topologyKey: kubernetes.io/zone
+
+# High-traffic operational services
+pickingService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+packingService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 70
+
+shippingService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+receivingService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+putawayService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+stockService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - stock-service
+          topologyKey: kubernetes.io/zone
+
+# Public API services - high availability
+publicBookingService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - public-booking-service
+          topologyKey: kubernetes.io/zone
+
+publicAvailabilityService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - public-availability-service
+          topologyKey: kubernetes.io/zone
+
+publicPricingService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+# Analytics services - higher resources
+fulfillmentAnalyticsService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+inventoryAnalyticsService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+warehouseAnalyticsService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+reportingService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 3000m
+      memory: 4Gi
+    requests:
+      cpu: 750m
+      memory: 1Gi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+# Support services
+batchService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+
+cycleCountingService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+expirationService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+serializationService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+locationService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+warehouseConfigService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+
+tenantConfigService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+
+zoneService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+shelfService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+binService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+qualityService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+returnsService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+
+receiptService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+reorderService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+availabilityService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+carrierService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+labelService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+orderService:
+  replicas: 5
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+    requests:
+      cpu: 300m
+      memory: 384Mi
+  hpa:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+pricingService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+accessService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+selfStorageService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+spaceService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+spaceAllocationService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+storageReservationService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+vendorSyncService:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+
+stockAdjustmentService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 800m
+      memory: 768Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+
+stockMovementService:
+  replicas: 3
+  resources:
+    limits:
+      cpu: 1200m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+
+# ------------------------------------------------------------------------------
+# Pod Disruption Budget - Production
+# ------------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# ------------------------------------------------------------------------------
+# Ingress Configuration - Production
+# ------------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: "nginx-internal"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "256k"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/acme-challenge-type: "http01"
+  hosts:
+    - host: api.warehousing.gogidix.com
+      paths:
+        - path: /fulfillment-analytics(/|$)(.*)
+          pathType: Prefix
+          serviceName: fulfillment-analytics-service
+          servicePort: 8250
+        - path: /inventory-analytics(/|$)(.*)
+          pathType: Prefix
+          serviceName: inventory-analytics-service
+          servicePort: 8252
+        - path: /reporting(/|$)(.*)
+          pathType: Prefix
+          serviceName: reporting-service
+          servicePort: 8254
+        - path: /warehouse-analytics(/|$)(.*)
+          pathType: Prefix
+          serviceName: warehouse-analytics-service
+          servicePort: 8256
+        - path: /warehouse-config(/|$)(.*)
+          pathType: Prefix
+          serviceName: warehouse-config-service
+          servicePort: 8221
+        - path: /tenant-config(/|$)(.*)
+          pathType: Prefix
+          serviceName: tenant-config-service
+          servicePort: 8240
+        - path: /fulfillment(/|$)(.*)
+          pathType: Prefix
+          serviceName: fulfillment-core-service
+          servicePort: 8202
+        - path: /picking(/|$)(.*)
+          pathType: Prefix
+          serviceName: picking-service
+          servicePort: 8203
+        - path: /packing(/|$)(.*)
+          pathType: Prefix
+          serviceName: packing-service
+          servicePort: 8204
+        - path: /quality(/|$)(.*)
+          pathType: Prefix
+          serviceName: quality-service
+          servicePort: 8209
+        - path: /returns(/|$)(.*)
+          pathType: Prefix
+          serviceName: returns-service
+          servicePort: 8208
+        - path: /shipping(/|$)(.*)
+          pathType: Prefix
+          serviceName: shipping-service
+          servicePort: 8207
+        - path: /putaway(/|$)(.*)
+          pathType: Prefix
+          serviceName: putaway-service
+          servicePort: 8205
+        - path: /receipt(/|$)(.*)
+          pathType: Prefix
+          serviceName: receipt-service
+          servicePort: 8260
+        - path: /receiving(/|$)(.*)
+          pathType: Prefix
+          serviceName: receiving-service
+          servicePort: 8206
+        - path: /availability(/|$)(.*)
+          pathType: Prefix
+          serviceName: availability-service
+          servicePort: 8262
+        - path: /batch(/|$)(.*)
+          pathType: Prefix
+          serviceName: batch-service
+          servicePort: 8216
+        - path: /cycle-counting(/|$)(.*)
+          pathType: Prefix
+          serviceName: cycle-counting-service
+          servicePort: 8214
+        - path: /expiration(/|$)(.*)
+          pathType: Prefix
+          serviceName: expiration-service
+          servicePort: 8217
+        - path: /inventory(/|$)(.*)
+          pathType: Prefix
+          serviceName: inventory-core-service
+          servicePort: 8210
+        - path: /location(/|$)(.*)
+          pathType: Prefix
+          serviceName: location-service
+          servicePort: 8220
+        - path: /reorder(/|$)(.*)
+          pathType: Prefix
+          serviceName: reorder-service
+          servicePort: 8218
+        - path: /serialization(/|$)(.*)
+          pathType: Prefix
+          serviceName: serialization-service
+          servicePort: 8215
+        - path: /stock(/|$)(.*)
+          pathType: Prefix
+          serviceName: stock-service
+          servicePort: 8211
+        - path: /zone(/|$)(.*)
+          pathType: Prefix
+          serviceName: zone-service
+          servicePort: 8222
+        - path: /shelf(/|$)(.*)
+          pathType: Prefix
+          serviceName: shelf-service
+          servicePort: 8224
+        - path: /bin(/|$)(.*)
+          pathType: Prefix
+          serviceName: bin-service
+          servicePort: 8225
+        - path: /outbound(/|$)(.*)
+          pathType: Prefix
+          serviceName: outbound-core-service
+          servicePort: 8201
+        - path: /carrier(/|$)(.*)
+          pathType: Prefix
+          serviceName: carrier-service
+          servicePort: 8264
+        - path: /label(/|$)(.*)
+          pathType: Prefix
+          serviceName: label-service
+          servicePort: 8266
+        - path: /order(/|$)(.*)
+          pathType: Prefix
+          serviceName: order-service
+          servicePort: 8268
+        - path: /pricing(/|$)(.*)
+          pathType: Prefix
+          serviceName: pricing-service
+          servicePort: 8270
+        - path: /public/availability(/|$)(.*)
+          pathType: Prefix
+          serviceName: public-availability-service
+          servicePort: 8282
+        - path: /public/booking(/|$)(.*)
+          pathType: Prefix
+          serviceName: public-booking-service
+          servicePort: 8280
+        - path: /public/pricing(/|$)(.*)
+          pathType: Prefix
+          serviceName: public-pricing-service
+          servicePort: 8281
+        - path: /access(/|$)(.*)
+          pathType: Prefix
+          serviceName: access-service
+          servicePort: 8234
+        - path: /self-storage(/|$)(.*)
+          pathType: Prefix
+          serviceName: self-storage-service
+          servicePort: 8230
+        - path: /space(/|$)(.*)
+          pathType: Prefix
+          serviceName: space-service
+          servicePort: 8231
+        - path: /space-allocation(/|$)(.*)
+          pathType: Prefix
+          serviceName: space-allocation-service
+          servicePort: 8232
+        - path: /storage-reservation(/|$)(.*)
+          pathType: Prefix
+          serviceName: storage-reservation-service
+          servicePort: 8233
+        - path: /vendor-sync(/|$)(.*)
+          pathType: Prefix
+          serviceName: vendor-sync-service
+          servicePort: 8290
+        - path: /stock-adjustment(/|$)(.*)
+          pathType: Prefix
+          serviceName: stock-adjustment-service
+          servicePort: 8212
+        - path: /stock-movement(/|$)(.*)
+          pathType: Prefix
+          serviceName: stock-movement-service
+          servicePort: 8213
+  tls:
+    - secretName: warehousing-production-tls
+      hosts:
+        - api.warehousing.gogidix.com
+
+# ------------------------------------------------------------------------------
+# Observability - Production
+# ------------------------------------------------------------------------------
+observability:
+  logging:
+    enabled: true
+    format: json
+    level: info
+  tracing:
+    enabled: true
+    sampler: 0.1
+    exporter: otlp
+    endpoint: "jaeger-collector.observability.svc.cluster.local:4317"
+  metrics:
+    enabled: true
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        interval: 15s
+        scrapeTimeout: 10s
+    datadog:
+      enabled: true
+
+# ------------------------------------------------------------------------------
+# Service Mesh - Production
+# ------------------------------------------------------------------------------
+serviceMesh:
+  enabled: true
+  istio:
+    enabled: true
+    mTLS:
+      mode: STRICT

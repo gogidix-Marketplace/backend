@@ -1,0 +1,372 @@
+# =============================================================================
+# GOGIDIX SHARED MODEL LIBRARY SERVICE - DOCKER COMPOSE
+# =============================================================================
+# Service: shared-model-service
+# Port: 8704 (Shared Model Library Service)
+# Environment: Development & Testing
+# Dependencies: PostgreSQL, Redis, Eureka, Kafka
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # SHARED MODEL LIBRARY SERVICE
+  # =============================================================================
+  shared-model-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: shared-model-service
+    hostname: shared-model-service
+    restart: unless-stopped
+    
+    ports:
+      - "8704:8704"
+    
+    environment:
+      # Spring Configuration
+      SPRING_PROFILES_ACTIVE: development
+      SERVER_PORT: 8704
+      
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://shared-model-postgres:5432/shared_model_db
+      SPRING_DATASOURCE_USERNAME: shared_model_user
+      SPRING_DATASOURCE_PASSWORD: shared_model_pass
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      
+      # JPA Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: true
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      
+      # Redis Configuration
+      SPRING_REDIS_HOST: shared-model-redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: redis_pass
+      SPRING_REDIS_DATABASE: 0
+      
+      # Eureka Configuration
+      EUREKA_CLIENT_ENABLED: true
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: shared-model-service
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: false
+      
+      # Kafka Configuration
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: shared-model-service
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      
+      # Logging Configuration
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_GOGIDIX: DEBUG
+      
+      # Application Configuration
+      GOGIDIX_SHARED_MODEL_DOMAIN_VALIDATION_ENABLED: true
+      GOGIDIX_SHARED_MODEL_CACHE_ENABLED: true
+      
+      # Health Check Configuration
+      HEALTH_CHECK_TIMEOUT: 10
+      MEMORY_THRESHOLD: 85
+      DISK_THRESHOLD: 85
+      
+      # Wait for dependencies
+      WAIT_FOR_SERVICES: shared-model-postgres:5432,shared-model-redis:6379,eureka-server:8761
+    
+    volumes:
+      - shared-model-logs:/app/logs
+      - shared-model-data:/app/data
+    
+    networks:
+      - gogidix-network
+      - shared-model-network
+    
+    depends_on:
+      shared-model-postgres:
+        condition: service_healthy
+      shared-model-redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    
+    healthcheck:
+      test: ["CMD", "/app/health-check.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    labels:
+      - "com.gogidix.service=shared-model-service"
+      - "com.gogidix.domain=shared-libraries"
+      - "com.gogidix.port=8704"
+      - "com.gogidix.architecture=hexagonal"
+      - "traefik.enable=true"
+      - "traefik.http.routers.shared-model.rule=PathPrefix(`/shared-model`)"
+      - "traefik.http.routers.shared-model.entrypoints=web"
+      - "traefik.http.services.shared-model.loadbalancer.server.port=8704"
+
+  # =============================================================================
+  # POSTGRESQL DATABASE
+  # =============================================================================
+  shared-model-postgres:
+    image: postgres:15-alpine
+    container_name: shared-model-postgres
+    hostname: shared-model-postgres
+    restart: unless-stopped
+    
+    environment:
+      POSTGRES_DB: shared_model_db
+      POSTGRES_USER: shared_model_user
+      POSTGRES_PASSWORD: shared_model_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    
+    volumes:
+      - shared-model-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    
+    networks:
+      - shared-model-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shared_model_user -d shared_model_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # =============================================================================
+  # REDIS CACHE
+  # =============================================================================
+  shared-model-redis:
+    image: redis:7-alpine
+    container_name: shared-model-redis
+    hostname: shared-model-redis
+    restart: unless-stopped
+    
+    command: redis-server --requirepass redis_pass --appendonly yes
+    
+    volumes:
+      - shared-model-redis-data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    
+    networks:
+      - shared-model-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.125'
+
+  # =============================================================================
+  # EUREKA SERVICE DISCOVERY
+  # =============================================================================
+  eureka-server:
+    image: steeltoeoss/eureka-server:latest
+    container_name: eureka-server
+    hostname: eureka-server
+    restart: unless-stopped
+    
+    ports:
+      - "8761:8761"
+    
+    environment:
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: false
+      EUREKA_CLIENT_FETCH_REGISTRY: false
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: false
+    
+    networks:
+      - gogidix-network
+      - shared-model-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # APACHE KAFKA (Message Streaming)
+  # =============================================================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: shared-model-zookeeper
+    hostname: zookeeper
+    restart: unless-stopped
+    
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    
+    volumes:
+      - shared-model-zookeeper-data:/var/lib/zookeeper/data
+      - shared-model-zookeeper-logs:/var/lib/zookeeper/log
+    
+    networks:
+      - shared-model-network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: shared-model-kafka
+    hostname: kafka
+    restart: unless-stopped
+    
+    depends_on:
+      - zookeeper
+    
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_LOG_RETENTION_HOURS: 168
+    
+    volumes:
+      - shared-model-kafka-data:/var/lib/kafka/data
+    
+    networks:
+      - shared-model-network
+      - gogidix-network
+    
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # MONITORING & OBSERVABILITY
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: shared-model-prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - shared-model-prometheus-data:/prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    
+    networks:
+      - shared-model-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: shared-model-grafana
+    hostname: grafana
+    restart: unless-stopped
+    
+    ports:
+      - "3000:3000"
+    
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+    
+    volumes:
+      - shared-model-grafana-data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    networks:
+      - shared-model-network
+    
+    depends_on:
+      - prometheus
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  gogidix-network:
+    external: true
+    name: gogidix-network
+  shared-model-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  # Application Data
+  shared-model-logs:
+    driver: local
+    name: shared-model-logs
+  shared-model-data:
+    driver: local
+    name: shared-model-data
+  
+  # Database Data
+  shared-model-postgres-data:
+    driver: local
+    name: shared-model-postgres-data
+  shared-model-redis-data:
+    driver: local
+    name: shared-model-redis-data
+  
+  # Kafka Data
+  shared-model-zookeeper-data:
+    driver: local
+    name: shared-model-zookeeper-data
+  shared-model-zookeeper-logs:
+    driver: local
+    name: shared-model-zookeeper-logs
+  shared-model-kafka-data:
+    driver: local
+    name: shared-model-kafka-data
+  
+  # Monitoring Data
+  shared-model-prometheus-data:
+    driver: local
+    name: shared-model-prometheus-data
+  shared-model-grafana-data:
+    driver: local
+    name: shared-model-grafana-data

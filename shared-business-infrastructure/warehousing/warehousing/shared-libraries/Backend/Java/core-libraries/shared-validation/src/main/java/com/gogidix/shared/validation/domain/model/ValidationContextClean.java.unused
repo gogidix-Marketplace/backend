@@ -1,0 +1,361 @@
+package com.gogidix.shared.validation.domain.model;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+
+/**
+ * Clean domain model representing the context in which validation occurs.
+ * 
+ * This immutable entity encapsulates validation context data and business rules
+ * following Domain Driven Design principles with zero external dependencies.
+ * 
+ * @author Gogidix Development Team
+ * @version 2.0.0
+ * @since 2024-01-01
+ */
+public final class ValidationContextClean {
+    
+    private final String contextId;
+    private final String userId;
+    private final String sessionId;
+    private final String tenantId;
+    private final ValidationScope scope;
+    private final Locale locale;
+    private final TimeZone timeZone;
+    private final Map<String, Object> contextData;
+    private final Map<String, String> headers;
+    private final ValidationMode mode;
+    private final SecurityLevel securityLevel;
+    private final LocalDateTime timestamp;
+    private final String correlationId;
+    private final Map<String, Object> customProperties;
+    
+    // Private constructor enforces immutability
+    private ValidationContextClean(Builder builder) {
+        this.contextId = Objects.requireNonNull(builder.contextId, "Context ID cannot be null");
+        this.userId = builder.userId;
+        this.sessionId = builder.sessionId;
+        this.tenantId = builder.tenantId;
+        this.scope = Objects.requireNonNull(builder.scope, "Validation scope cannot be null");
+        this.locale = Objects.requireNonNull(builder.locale, "Locale cannot be null");
+        this.timeZone = Objects.requireNonNull(builder.timeZone, "TimeZone cannot be null");
+        this.contextData = Collections.unmodifiableMap(new ConcurrentHashMap<>(builder.contextData));
+        this.headers = Collections.unmodifiableMap(new ConcurrentHashMap<>(builder.headers));
+        this.mode = Objects.requireNonNull(builder.mode, "Validation mode cannot be null");
+        this.securityLevel = Objects.requireNonNull(builder.securityLevel, "Security level cannot be null");
+        this.timestamp = Objects.requireNonNull(builder.timestamp, "Timestamp cannot be null");
+        this.correlationId = Objects.requireNonNull(builder.correlationId, "Correlation ID cannot be null");
+        this.customProperties = Collections.unmodifiableMap(new ConcurrentHashMap<>(builder.customProperties));
+        
+        validateInvariant();
+    }
+    
+    // Business invariant validation
+    private void validateInvariant() {
+        if (timestamp.isAfter(LocalDateTime.now().plusMinutes(5))) {
+            throw new IllegalArgumentException("Context timestamp cannot be significantly in the future");
+        }
+        
+        // Validate security context consistency
+        if (securityLevel == SecurityLevel.HIGH && (userId == null || sessionId == null)) {
+            throw new IllegalArgumentException("High security level requires user and session identification");
+        }
+    }
+    
+    // Rich business logic methods
+    
+    /**
+     * Checks if this context allows a specific validation operation.
+     */
+    public boolean allowsOperation(String operationType) {
+        return switch (securityLevel) {
+            case LOW -> true;
+            case MEDIUM -> operationType != null && !operationType.contains("sensitive");
+            case HIGH -> operationType != null && isAuthorizedUser() && hasValidSession();
+            case CRITICAL -> operationType != null && isAuthorizedUser() && hasValidSession() && hasSecureHeaders();
+        };
+    }
+    
+    /**
+     * Checks if user is properly authorized.
+     */
+    public boolean isAuthorizedUser() {
+        return userId != null && !userId.trim().isEmpty() && 
+               contextData.containsKey("userRole") && 
+               !contextData.get("userRole").toString().equals("anonymous");
+    }
+    
+    /**
+     * Checks if session is valid and active.
+     */
+    public boolean hasValidSession() {
+        if (sessionId == null) return false;
+        
+        Object sessionExpiry = contextData.get("sessionExpiry");
+        if (sessionExpiry instanceof LocalDateTime expiry) {
+            return expiry.isAfter(LocalDateTime.now());
+        }
+        
+        return true; // Default to valid if no expiry info
+    }
+    
+    /**
+     * Checks for required security headers.
+     */
+    public boolean hasSecureHeaders() {
+        return headers.containsKey("X-CSRF-Token") &&
+               headers.containsKey("Authorization") &&
+               headers.containsKey("X-Request-ID");
+    }
+    
+    /**
+     * Gets context data with type safety.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> getContextData(String key, Class<T> type) {
+        Object value = contextData.get(key);
+        if (value != null && type.isInstance(value)) {
+            return Optional.of((T) value);
+        }
+        return Optional.empty();
+    }
+    
+    /**
+     * Gets header value safely.
+     */
+    public Optional<String> getHeader(String headerName) {
+        return Optional.ofNullable(headers.get(headerName));
+    }
+    
+    /**
+     * Checks if validation should be strict based on context.
+     */
+    public boolean shouldUseStrictValidation() {
+        return mode == ValidationMode.STRICT || 
+               securityLevel.ordinal() >= SecurityLevel.HIGH.ordinal() ||
+               scope == ValidationScope.PRODUCTION;
+    }
+    
+    /**
+     * Gets timeout for validation operations based on context.
+     */
+    public long getValidationTimeoutMs() {
+        return switch (mode) {
+            case FAST -> 1000L;
+            case NORMAL -> 5000L;
+            case STRICT -> 10000L;
+            case COMPREHENSIVE -> 30000L;
+        };
+    }
+    
+    /**
+     * Checks if context is expired.
+     */
+    public boolean isExpired() {
+        LocalDateTime expiryTime = timestamp.plusMinutes(getContextLifetimeMinutes());
+        return LocalDateTime.now().isAfter(expiryTime);
+    }
+    
+    /**
+     * Gets context lifetime based on security level.
+     */
+    private long getContextLifetimeMinutes() {
+        return switch (securityLevel) {
+            case LOW -> 60;
+            case MEDIUM -> 30;
+            case HIGH -> 15;
+            case CRITICAL -> 5;
+        };
+    }
+    
+    /**
+     * Creates a child context for nested validations.
+     */
+    public ValidationContextClean createChildContext(String childOperationType) {
+        return ValidationContextClean.builder()
+            .contextId(contextId + "-child-" + UUID.randomUUID().toString().substring(0, 8))
+            .userId(userId)
+            .sessionId(sessionId)
+            .tenantId(tenantId)
+            .scope(scope)
+            .locale(locale)
+            .timeZone(timeZone)
+            .contextData(new HashMap<>(contextData))
+            .headers(new HashMap<>(headers))
+            .mode(mode)
+            .securityLevel(securityLevel)
+            .timestamp(LocalDateTime.now())
+            .correlationId(correlationId)
+            .customProperty("parentContext", contextId)
+            .customProperty("operationType", childOperationType)
+            .build();
+    }
+    
+    /**
+     * Filters context data by predicate.
+     */
+    public Map<String, Object> getFilteredContextData(Predicate<Map.Entry<String, Object>> filter) {
+        return contextData.entrySet().stream()
+            .filter(filter)
+            .collect(HashMap::new, 
+                    (map, entry) -> map.put(entry.getKey(), entry.getValue()), 
+                    HashMap::putAll);
+    }
+    
+    // Getters (immutable access)
+    public String getContextId() { return contextId; }
+    public String getUserId() { return userId; }
+    public String getSessionId() { return sessionId; }
+    public String getTenantId() { return tenantId; }
+    public ValidationScope getScope() { return scope; }
+    public Locale getLocale() { return locale; }
+    public TimeZone getTimeZone() { return timeZone; }
+    public Map<String, Object> getContextData() { return contextData; }
+    public Map<String, String> getHeaders() { return headers; }
+    public ValidationMode getMode() { return mode; }
+    public SecurityLevel getSecurityLevel() { return securityLevel; }
+    public LocalDateTime getTimestamp() { return timestamp; }
+    public String getCorrelationId() { return correlationId; }
+    public Map<String, Object> getCustomProperties() { return customProperties; }
+    
+    // Builder pattern for construction
+    public static Builder builder() {
+        return new Builder();
+    }
+    
+    public static class Builder {
+        private String contextId = UUID.randomUUID().toString();
+        private String userId;
+        private String sessionId;
+        private String tenantId;
+        private ValidationScope scope = ValidationScope.DEVELOPMENT;
+        private Locale locale = Locale.getDefault();
+        private TimeZone timeZone = TimeZone.getDefault();
+        private Map<String, Object> contextData = new HashMap<>();
+        private Map<String, String> headers = new HashMap<>();
+        private ValidationMode mode = ValidationMode.NORMAL;
+        private SecurityLevel securityLevel = SecurityLevel.MEDIUM;
+        private LocalDateTime timestamp = LocalDateTime.now();
+        private String correlationId = UUID.randomUUID().toString();
+        private Map<String, Object> customProperties = new HashMap<>();
+        
+        public Builder contextId(String contextId) {
+            this.contextId = contextId;
+            return this;
+        }
+        
+        public Builder userId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+        
+        public Builder sessionId(String sessionId) {
+            this.sessionId = sessionId;
+            return this;
+        }
+        
+        public Builder tenantId(String tenantId) {
+            this.tenantId = tenantId;
+            return this;
+        }
+        
+        public Builder scope(ValidationScope scope) {
+            this.scope = scope;
+            return this;
+        }
+        
+        public Builder locale(Locale locale) {
+            this.locale = locale;
+            return this;
+        }
+        
+        public Builder timeZone(TimeZone timeZone) {
+            this.timeZone = timeZone;
+            return this;
+        }
+        
+        public Builder contextData(Map<String, Object> contextData) {
+            this.contextData = new HashMap<>(contextData);
+            return this;
+        }
+        
+        public Builder addContextData(String key, Object value) {
+            this.contextData.put(key, value);
+            return this;
+        }
+        
+        public Builder headers(Map<String, String> headers) {
+            this.headers = new HashMap<>(headers);
+            return this;
+        }
+        
+        public Builder addHeader(String name, String value) {
+            this.headers.put(name, value);
+            return this;
+        }
+        
+        public Builder mode(ValidationMode mode) {
+            this.mode = mode;
+            return this;
+        }
+        
+        public Builder securityLevel(SecurityLevel securityLevel) {
+            this.securityLevel = securityLevel;
+            return this;
+        }
+        
+        public Builder timestamp(LocalDateTime timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+        
+        public Builder correlationId(String correlationId) {
+            this.correlationId = correlationId;
+            return this;
+        }
+        
+        public Builder customProperty(String key, Object value) {
+            this.customProperties.put(key, value);
+            return this;
+        }
+        
+        public ValidationContextClean build() {
+            return new ValidationContextClean(this);
+        }
+    }
+    
+    // Domain enums
+    public enum ValidationScope {
+        DEVELOPMENT, TESTING, STAGING, PRODUCTION
+    }
+    
+    public enum ValidationMode {
+        FAST, NORMAL, STRICT, COMPREHENSIVE
+    }
+    
+    public enum SecurityLevel {
+        LOW, MEDIUM, HIGH, CRITICAL
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ValidationContextClean that = (ValidationContextClean) o;
+        return Objects.equals(contextId, that.contextId) &&
+               Objects.equals(correlationId, that.correlationId);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(contextId, correlationId);
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("ValidationContextClean{contextId='%s', userId='%s', scope=%s, mode=%s, securityLevel=%s}", 
+                           contextId, userId, scope, mode, securityLevel);
+    }
+}

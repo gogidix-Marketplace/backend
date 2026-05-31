@@ -1,0 +1,17 @@
+# Test application configuration for inventory-analytics-service
+spring:
+  application:
+    name: inventory-analytics-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/test_inventory_analytics
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: inventory-analytics-test
+      auto-offset-reset: earliest
+
+logging:
+  level:
+    com.gogidix.shared.warehousing: DEBUG
+    org.springframework.data.mongodb: DEBUG

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  pricing-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pricing-service
+    ports:
+      - "8251:8251"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8251
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017
+      - SPRING_DATA_MONGODB_DATABASE=shared_warehousing
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      - mongodb
+      - kafka
+    networks:
+      - warehousing-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    container_name: pricing-mongodb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - warehousing-network
+    restart: unless-stopped
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: pricing-kafka
+    ports:
+      - "9093:9093"
+    environment:
+      - KAFKA_CFG_KAFKA_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    networks:
+      - warehousing-network
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
+
+networks:
+  warehousing-network:
+    driver: bridge

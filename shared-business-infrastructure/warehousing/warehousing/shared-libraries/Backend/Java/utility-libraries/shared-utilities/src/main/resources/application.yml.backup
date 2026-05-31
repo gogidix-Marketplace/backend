@@ -1,0 +1,273 @@
+# Shared Utilities Library Configuration
+# Spring Boot 3.1.5 with Java 17
+
+server:
+  port: 8706
+  servlet:
+    context-path: /api/utilities
+
+spring:
+  application:
+    name: shared-utilities
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    enabled: true
+    fetch-registry: true
+    register-with-eureka: true
+    health-check-url-path: /actuator/health
+    status-page-url-path: /actuator/info
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    metadata-map:
+      management.context-path: /actuator
+
+  # Database Configuration (Optional for utility library)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gogidix_utilities
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  # JPA Configuration (Optional)
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # Redis Configuration for Caching
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 2
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+    cache-names:
+      - utility-cache
+      - datetime-cache
+      - json-cache
+      - file-cache
+
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      write-durations-as-timestamps: false
+      indent-output: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: UTC
+
+  # Security Configuration
+  security:
+    user:
+      name: ${SECURITY_USER:admin}
+      password: ${SECURITY_PASSWORD:admin123}
+      roles: ADMIN
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,caches
+  endpoint:
+    health:
+      show-details: when-authorized
+    caches:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.gogidix.libraries.utilities: INFO
+    org.springframework.cache: WARN
+    org.springframework.data.redis: WARN
+    org.apache.commons: INFO
+    com.google.guava: INFO
+    com.opencsv: INFO
+    org.apache.poi: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Custom Utility Configuration
+utilities:
+  async:
+    core-pool-size: 3
+    max-pool-size: 10
+    queue-capacity: 500
+  cache:
+    enabled: true
+    ttl-seconds: 3600
+    max-entries: 10000
+  processing:
+    timeout-seconds: 30
+    max-retries: 3
+
+# Gogidix Utilities Configuration
+gogidix:
+  utilities:
+    date:
+      default-timezone: UTC
+      date-format: yyyy-MM-dd
+      datetime-format: yyyy-MM-dd HH:mm:ss
+      iso-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+      cache-ttl-seconds: 1800
+    
+    json:
+      pretty-print: false
+      include-null-values: false
+      date-format: yyyy-MM-dd HH:mm:ss
+      fail-on-unknown-properties: false
+      cache-ttl-seconds: 1800
+      
+    csv:
+      default-delimiter: ","
+      default-quote-char: "\""
+      skip-header: false
+      max-file-size: 50MB
+      
+    excel:
+      max-rows-per-sheet: 65536
+      default-sheet-name: "Sheet1"
+      auto-size-columns: true
+      max-file-size: 100MB
+      
+    file:
+      temp-directory: ${TEMP_DIR:/tmp/gogidix-utilities}
+      max-file-size: 100MB
+      cleanup-interval: 3600000
+      allowed-extensions:
+        - .csv
+        - .xlsx
+        - .xls
+        - .txt
+        - .json
+        - .xml
+        
+    validation:
+      strict-mode: false
+      log-validation-errors: true
+      cache-results: true
+      cache-ttl-seconds: 900
+
+# =============================================================================
+# KAFKA CONFIGURATION
+# =============================================================================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+    consumer:
+      group-id: shared-utilities-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.gogidix.utilities"
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level:
+    com.gogidix.utilities: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  cache:
+    redis:
+      time-to-live: 300000
+
+logging:
+  level:
+    com.gogidix.libraries.utilities: DEBUG
+    org.springframework.cache: DEBUG
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  cache:
+    type: simple
+
+gogidix:
+  utilities:
+    file:
+      temp-directory: /tmp/test-utilities
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  cache:
+    redis:
+      time-to-live: 7200000
+
+logging:
+  level:
+    com.gogidix.libraries.utilities: WARN

@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.security.usermanagement.infrastructure.persistence;
 
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.servicediscovery.config.model.TenantId;
 import com.gogidix.shared.infrastructure.services.security.usermanagement.domain.model.UserProfile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

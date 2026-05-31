@@ -1,7 +1,7 @@
 package com.gogidix.shared.infrastructure.services.security.usermanagement.application.service;
 
 import com.gogidix.shared.infrastructure.core.tenancy.context.TenantContextHolder;
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.servicediscovery.config.model.TenantId;
 import com.gogidix.shared.infrastructure.services.security.usermanagement.application.dto.request.CreateUserRequestDto;
 import com.gogidix.shared.infrastructure.services.security.usermanagement.application.dto.request.UpdateUserRequestDto;
 import com.gogidix.shared.infrastructure.services.security.usermanagement.application.dto.response.UserProfileResponseDto;

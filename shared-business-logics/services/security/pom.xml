@@ -18,9 +18,7 @@
     <description>Parent POM for security services microservices</description>
 
     <modules>
-        <!-- Temporarily excluded - pending shared-multitenancy implementation
         <module>auth-service</module>
-        -->
     </modules>
 
     <dependencyManagement>

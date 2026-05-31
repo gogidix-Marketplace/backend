@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.businessoperations.payment.domain.model;
 
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.servicediscovery.config.model.TenantId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;

@@ -1,6 +1,6 @@
 package com.gogidix.shared.infrastructure.services.security.usermanagement.application.mapper;
 
-import com.gogidix.shared.infrastructure.core.tenancy.model.TenantId;
+import com.gogidix.shared.servicediscovery.config.model.TenantId;
 import com.gogidix.shared.infrastructure.services.security.usermanagement.application.dto.response.UserProfileResponseDto;
 import com.gogidix.shared.infrastructure.services.security.usermanagement.domain.model.UserProfile;
 import org.junit.jupiter.api.DisplayName;

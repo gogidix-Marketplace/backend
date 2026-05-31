@@ -20,8 +20,10 @@
     <modules>
         <module>payment-processing-service</module>
         <module>billing-service</module>
+        <!-- Temporarily excluded - pending shared-multitenancy implementation
         <module>tenant-management-service</module>
         <module>user-management-service</module>
+        -->
     </modules>
 
     <dependencyManagement>

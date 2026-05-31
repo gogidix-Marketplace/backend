@@ -23,7 +23,7 @@ public abstract class TenantAwareController {
      * Get tenant ID from context.
      */
     protected String getTenantId() {
-        String tenantId = TenantContextHolder.getTenantId();
+        String tenantId = TenantContextHolder.getTenantIdAsString();
         if (tenantId == null) {
             throw new IllegalStateException("Tenant ID not set in context");
         }

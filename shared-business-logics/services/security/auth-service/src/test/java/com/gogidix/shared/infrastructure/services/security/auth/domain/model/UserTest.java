@@ -16,7 +16,7 @@ class UserTest {
     @Test
     @DisplayName("Should create user with builder")
     void shouldCreateUserWithBuilder() {
-        TenantId tenantId = new TenantId("tenant-123");
+        TenantId tenantId = TenantId.of("tenant-123");
         Set<String> roles = new HashSet<>();
         roles.add("USER");
         roles.add("ADMIN");
@@ -254,7 +254,7 @@ class UserTest {
     @Test
     @DisplayName("Should handle all-args constructor")
     void shouldHandleAllArgsConstructor() {
-        TenantId tenantId = new TenantId("tenant-123");
+        TenantId tenantId = TenantId.of("tenant-123");
         Set<String> roles = new HashSet<>(Set.of("USER"));
         Set<String> permissions = new HashSet<>(Set.of("read"));
 
@@ -316,7 +316,7 @@ class UserTest {
     @Test
     @DisplayName("Should verify equals and hashCode with same values")
     void shouldVerifyEqualsAndHashCodeWithSameValues() {
-        TenantId tenantId = new TenantId("tenant-123");
+        TenantId tenantId = TenantId.of("tenant-123");
         User user1 = User.builder()
                 .id("user-123")
                 .tenantId(tenantId)

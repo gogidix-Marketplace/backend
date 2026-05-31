@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class ServiceLevelAgreementMapper {
     public ServiceLevelAgreement toEntity(CreateServiceLevelAgreementRequestDto dto, String tenantId) {
         return new ServiceLevelAgreement(
-            new TenantId(tenantId),
+            TenantId.of(tenantId),
             dto.name(),
             dto.description(),
             dto.serviceType(),

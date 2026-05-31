@@ -80,7 +80,7 @@ class AuthServiceTest {
     void setUp() {
         testUser = User.builder()
                 .id(USER_ID)
-                .tenantId(new TenantId(TENANT_ID))
+                .tenantId(TenantId.of(TENANT_ID))
                 .username(USERNAME)
                 .email(EMAIL)
                 .password(ENCODED_PASSWORD)

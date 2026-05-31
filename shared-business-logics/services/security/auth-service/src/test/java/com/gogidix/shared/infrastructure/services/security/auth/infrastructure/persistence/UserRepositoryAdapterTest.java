@@ -37,7 +37,7 @@ class UserRepositoryAdapterTest {
     void setUp() {
         testUser = User.builder()
                 .id("user-123")
-                .tenantId(new TenantId("tenant-123"))
+                .tenantId(TenantId.of("tenant-123"))
                 .username("john.doe")
                 .email("john.doe@example.com")
                 .password("encodedPassword")

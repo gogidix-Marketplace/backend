@@ -67,6 +67,7 @@
         <dependency>
             <groupId>com.gogidix.shared</groupId>
             <artifactId>shared-multitenancy</artifactId>
+            <version>1.0.0</version>
         </dependency>
 
         <!-- Lombok -->

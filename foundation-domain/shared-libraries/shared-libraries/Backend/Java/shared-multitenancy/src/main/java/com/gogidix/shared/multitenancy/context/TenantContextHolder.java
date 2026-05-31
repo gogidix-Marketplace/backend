@@ -36,6 +36,17 @@ public final class TenantContextHolder {
     }
 
     /**
+     * Get required tenant ID or throw exception if not set
+     */
+    public static String getRequiredTenantId() {
+        String tenantId = TENANT_ID.get();
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new IllegalStateException("Tenant ID not set in context");
+        }
+        return tenantId;
+    }
+
+    /**
      * Set tenant ID from TenantId value object
      */
     public static void setTenantId(TenantId tenantId) {

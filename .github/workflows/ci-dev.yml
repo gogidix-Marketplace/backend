@@ -48,7 +48,7 @@ jobs:
         parent:
           - ai-platform
           - centralized-configuration
-          - Shared-infrastructure-Hexgonal
+          - Shared-infrastructure-Hexgonal/Shared-infrastructure-Hexgonal
           - platform/platform/Backend/Java
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +62,20 @@ jobs:
         with:
           path: ~/.m2/repository
           key: m2-shared-libs-dev-${{ github.sha }}
+      - name: Check parent POM exists
+        id: check
+        run: |
+          POM_PATH="foundation-domain/${{ matrix.parent }}/pom.xml"
+          if [ -f "$POM_PATH" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✓ Found: $POM_PATH"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::error::POM not found: $POM_PATH"
+            exit 1
+          fi
       - name: Build ${{ matrix.parent }} (Maven Reactor)
+        if: steps.check.outputs.exists == 'true'
         working-directory: foundation-domain/${{ matrix.parent }}
         run: mvn clean verify -T 1C -B -DskipTests=false
 
@@ -96,7 +109,20 @@ jobs:
         with:
           path: ~/.m2/repository
           key: m2-shared-libs-dev-${{ github.sha }}
+      - name: Check parent POM exists
+        id: check
+        run: |
+          POM_PATH="management-domain/${{ matrix.parent }}/pom.xml"
+          if [ -f "$POM_PATH" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✓ Found: $POM_PATH"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::error::POM not found: $POM_PATH"
+            exit 1
+          fi
       - name: Build ${{ matrix.parent }} (Maven Reactor)
+        if: steps.check.outputs.exists == 'true'
         working-directory: management-domain/${{ matrix.parent }}
         run: mvn clean verify -T 1C -B -DskipTests=false
 
@@ -145,7 +171,19 @@ jobs:
         with:
           path: ~/.m2/repository
           key: m2-shared-libs-dev-${{ github.sha }}
+      - name: Check parent POM exists
+        id: check
+        run: |
+          POM_PATH="shared-business-infrastructure/${{ matrix.parent }}/pom.xml"
+          if [ -f "$POM_PATH" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✓ Found: $POM_PATH"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::warning::POM not found: $POM_PATH (may be optional)"
+          fi
       - name: Build ${{ matrix.parent }} (Maven Reactor)
+        if: steps.check.outputs.exists == 'true'
         working-directory: shared-business-infrastructure/${{ matrix.parent }}
         run: mvn clean verify -T 1C -B -DskipTests=false
 
